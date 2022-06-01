@@ -139,6 +139,7 @@ DEPDIR   := ./.dep
 STMSRC = $(RELATIVE)/COMMON/stm
 VARIOUS = $(RELATIVE)/COMMON/various
 USBD_LIB = $(VARIOUS)/Chibios-USB-Devices
+ETL_LIB = ../../../../etl/include
 
 # Licensing files.
 include $(CHIBIOS)/os/license/license.mk

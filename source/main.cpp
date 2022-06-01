@@ -7,7 +7,7 @@
 #include <ch.h>
 #include <hal.h>
 #include "stdutil.h"		// necessaire pour initHeap
-#include "ttyConsole.h"		// fichier d'entête du shell
+#include "ttyConsole.hpp"		// fichier d'entête du shell
 
 
 /*
