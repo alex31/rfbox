@@ -63,12 +63,12 @@
 #define	PA02_VCP_TX                    2U
 #define	PA03                           3U
 #define	PA04                           4U
-#define	PA05                           5U
-#define	PA06                           6U
-#define	PA07                           7U
+#define	PA05_TDA5150_SCK               5U
+#define	PA06_TDA5150_CS                6U
+#define	PA07_TDA5150_MOSI              7U
 #define	PA08                           8U
-#define	PA09                           9U
-#define	PA10                           10U
+#define	PA09_FRAME_TX                  9U
+#define	PA10_FRAME_RX                  10U
 #define	PA11                           11U
 #define	PA12                           12U
 #define	PA13_SWDIO                     13U
@@ -165,6 +165,11 @@
  */
 #define	LINE_RCC_CK_IN                 PAL_LINE(GPIOA, 0U)
 #define	LINE_VCP_TX                    PAL_LINE(GPIOA, 2U)
+#define	LINE_TDA5150_SCK               PAL_LINE(GPIOA, 5U)
+#define	LINE_TDA5150_CS                PAL_LINE(GPIOA, 6U)
+#define	LINE_TDA5150_MOSI              PAL_LINE(GPIOA, 7U)
+#define	LINE_FRAME_TX                  PAL_LINE(GPIOA, 9U)
+#define	LINE_FRAME_RX                  PAL_LINE(GPIOA, 10U)
 #define	LINE_SWDIO                     PAL_LINE(GPIOA, 13U)
 #define	LINE_SWCLK                     PAL_LINE(GPIOA, 14U)
 #define	LINE_VCP_RX                    PAL_LINE(GPIOA, 15U)
@@ -207,12 +212,12 @@
 					 PIN_MODE_ALTERNATE(PA02_VCP_TX) | \
 					 PIN_MODE_ANALOG(PA03) | \
 					 PIN_MODE_ANALOG(PA04) | \
-					 PIN_MODE_ANALOG(PA05) | \
-					 PIN_MODE_ANALOG(PA06) | \
-					 PIN_MODE_ANALOG(PA07) | \
+					 PIN_MODE_ALTERNATE(PA05_TDA5150_SCK) | \
+					 PIN_MODE_OUTPUT(PA06_TDA5150_CS) | \
+					 PIN_MODE_INPUT(PA07_TDA5150_MOSI) | \
 					 PIN_MODE_ANALOG(PA08) | \
-					 PIN_MODE_ANALOG(PA09) | \
-					 PIN_MODE_ANALOG(PA10) | \
+					 PIN_MODE_INPUT(PA09_FRAME_TX) | \
+					 PIN_MODE_ALTERNATE(PA10_FRAME_RX) | \
 					 PIN_MODE_ANALOG(PA11) | \
 					 PIN_MODE_ANALOG(PA12) | \
 					 PIN_MODE_ALTERNATE(PA13_SWDIO) | \
@@ -224,12 +229,12 @@
 					 PIN_OTYPE_PUSHPULL(PA02_VCP_TX) | \
 					 PIN_OTYPE_PUSHPULL(PA03) | \
 					 PIN_OTYPE_PUSHPULL(PA04) | \
-					 PIN_OTYPE_PUSHPULL(PA05) | \
-					 PIN_OTYPE_PUSHPULL(PA06) | \
-					 PIN_OTYPE_PUSHPULL(PA07) | \
+					 PIN_OTYPE_PUSHPULL(PA05_TDA5150_SCK) | \
+					 PIN_OTYPE_PUSHPULL(PA06_TDA5150_CS) | \
+					 PIN_OTYPE_OPENDRAIN(PA07_TDA5150_MOSI) | \
 					 PIN_OTYPE_PUSHPULL(PA08) | \
-					 PIN_OTYPE_PUSHPULL(PA09) | \
-					 PIN_OTYPE_PUSHPULL(PA10) | \
+					 PIN_OTYPE_OPENDRAIN(PA09_FRAME_TX) | \
+					 PIN_OTYPE_PUSHPULL(PA10_FRAME_RX) | \
 					 PIN_OTYPE_PUSHPULL(PA11) | \
 					 PIN_OTYPE_PUSHPULL(PA12) | \
 					 PIN_OTYPE_PUSHPULL(PA13_SWDIO) | \
@@ -241,12 +246,12 @@
 					 PIN_OSPEED_SPEED_HIGH(PA02_VCP_TX) | \
 					 PIN_OSPEED_SPEED_VERYLOW(PA03) | \
 					 PIN_OSPEED_SPEED_VERYLOW(PA04) | \
-					 PIN_OSPEED_SPEED_VERYLOW(PA05) | \
-					 PIN_OSPEED_SPEED_VERYLOW(PA06) | \
-					 PIN_OSPEED_SPEED_VERYLOW(PA07) | \
+					 PIN_OSPEED_SPEED_HIGH(PA05_TDA5150_SCK) | \
+					 PIN_OSPEED_SPEED_HIGH(PA06_TDA5150_CS) | \
+					 PIN_OSPEED_SPEED_VERYLOW(PA07_TDA5150_MOSI) | \
 					 PIN_OSPEED_SPEED_VERYLOW(PA08) | \
-					 PIN_OSPEED_SPEED_VERYLOW(PA09) | \
-					 PIN_OSPEED_SPEED_VERYLOW(PA10) | \
+					 PIN_OSPEED_SPEED_VERYLOW(PA09_FRAME_TX) | \
+					 PIN_OSPEED_SPEED_HIGH(PA10_FRAME_RX) | \
 					 PIN_OSPEED_SPEED_VERYLOW(PA11) | \
 					 PIN_OSPEED_SPEED_VERYLOW(PA12) | \
 					 PIN_OSPEED_SPEED_HIGH(PA13_SWDIO) | \
@@ -258,12 +263,12 @@
 					 PIN_PUPDR_FLOATING(PA02_VCP_TX) | \
 					 PIN_PUPDR_FLOATING(PA03) | \
 					 PIN_PUPDR_FLOATING(PA04) | \
-					 PIN_PUPDR_FLOATING(PA05) | \
-					 PIN_PUPDR_FLOATING(PA06) | \
-					 PIN_PUPDR_FLOATING(PA07) | \
+					 PIN_PUPDR_FLOATING(PA05_TDA5150_SCK) | \
+					 PIN_PUPDR_FLOATING(PA06_TDA5150_CS) | \
+					 PIN_PUPDR_PULLDOWN(PA07_TDA5150_MOSI) | \
 					 PIN_PUPDR_FLOATING(PA08) | \
-					 PIN_PUPDR_FLOATING(PA09) | \
-					 PIN_PUPDR_FLOATING(PA10) | \
+					 PIN_PUPDR_PULLDOWN(PA09_FRAME_TX) | \
+					 PIN_PUPDR_FLOATING(PA10_FRAME_RX) | \
 					 PIN_PUPDR_FLOATING(PA11) | \
 					 PIN_PUPDR_FLOATING(PA12) | \
 					 PIN_PUPDR_PULLUP(PA13_SWDIO) | \
@@ -275,12 +280,12 @@
 					 PIN_ODR_LEVEL_HIGH(PA02_VCP_TX) | \
 					 PIN_ODR_LEVEL_HIGH(PA03) | \
 					 PIN_ODR_LEVEL_HIGH(PA04) | \
-					 PIN_ODR_LEVEL_HIGH(PA05) | \
-					 PIN_ODR_LEVEL_HIGH(PA06) | \
-					 PIN_ODR_LEVEL_HIGH(PA07) | \
+					 PIN_ODR_LEVEL_HIGH(PA05_TDA5150_SCK) | \
+					 PIN_ODR_LEVEL_HIGH(PA06_TDA5150_CS) | \
+					 PIN_ODR_LEVEL_HIGH(PA07_TDA5150_MOSI) | \
 					 PIN_ODR_LEVEL_HIGH(PA08) | \
-					 PIN_ODR_LEVEL_HIGH(PA09) | \
-					 PIN_ODR_LEVEL_HIGH(PA10) | \
+					 PIN_ODR_LEVEL_HIGH(PA09_FRAME_TX) | \
+					 PIN_ODR_LEVEL_HIGH(PA10_FRAME_RX) | \
 					 PIN_ODR_LEVEL_HIGH(PA11) | \
 					 PIN_ODR_LEVEL_HIGH(PA12) | \
 					 PIN_ODR_LEVEL_HIGH(PA13_SWDIO) | \
@@ -292,13 +297,13 @@
 					 PIN_AFIO_AF(PA02_VCP_TX, 7) | \
 					 PIN_AFIO_AF(PA03, 0) | \
 					 PIN_AFIO_AF(PA04, 0) | \
-					 PIN_AFIO_AF(PA05, 0) | \
-					 PIN_AFIO_AF(PA06, 0) | \
-					 PIN_AFIO_AF(PA07, 0))
+					 PIN_AFIO_AF(PA05_TDA5150_SCK, 5) | \
+					 PIN_AFIO_AF(PA06_TDA5150_CS, 0) | \
+					 PIN_AFIO_AF(PA07_TDA5150_MOSI, 0))
 
 #define VAL_GPIOA_AFRH			(PIN_AFIO_AF(PA08, 0) | \
-					 PIN_AFIO_AF(PA09, 0) | \
-					 PIN_AFIO_AF(PA10, 0) | \
+					 PIN_AFIO_AF(PA09_FRAME_TX, 0) | \
+					 PIN_AFIO_AF(PA10_FRAME_RX, 7) | \
 					 PIN_AFIO_AF(PA11, 0) | \
 					 PIN_AFIO_AF(PA12, 0) | \
 					 PIN_AFIO_AF(PA13_SWDIO, 0) | \
@@ -310,12 +315,12 @@
 					 PIN_ASCR_DISABLED(PA02_VCP_TX) | \
 					 PIN_ASCR_DISABLED(PA03) | \
 					 PIN_ASCR_DISABLED(PA04) | \
-					 PIN_ASCR_DISABLED(PA05) | \
-					 PIN_ASCR_DISABLED(PA06) | \
-					 PIN_ASCR_DISABLED(PA07) | \
+					 PIN_ASCR_DISABLED(PA05_TDA5150_SCK) | \
+					 PIN_ASCR_DISABLED(PA06_TDA5150_CS) | \
+					 PIN_ASCR_DISABLED(PA07_TDA5150_MOSI) | \
 					 PIN_ASCR_DISABLED(PA08) | \
-					 PIN_ASCR_DISABLED(PA09) | \
-					 PIN_ASCR_DISABLED(PA10) | \
+					 PIN_ASCR_DISABLED(PA09_FRAME_TX) | \
+					 PIN_ASCR_DISABLED(PA10_FRAME_RX) | \
 					 PIN_ASCR_DISABLED(PA11) | \
 					 PIN_ASCR_DISABLED(PA12) | \
 					 PIN_ASCR_DISABLED(PA13_SWDIO) | \
@@ -327,12 +332,12 @@
 					 PIN_LOCKR_DISABLED(PA02_VCP_TX) | \
 					 PIN_LOCKR_DISABLED(PA03) | \
 					 PIN_LOCKR_DISABLED(PA04) | \
-					 PIN_LOCKR_DISABLED(PA05) | \
-					 PIN_LOCKR_DISABLED(PA06) | \
-					 PIN_LOCKR_DISABLED(PA07) | \
+					 PIN_LOCKR_DISABLED(PA05_TDA5150_SCK) | \
+					 PIN_LOCKR_DISABLED(PA06_TDA5150_CS) | \
+					 PIN_LOCKR_DISABLED(PA07_TDA5150_MOSI) | \
 					 PIN_LOCKR_DISABLED(PA08) | \
-					 PIN_LOCKR_DISABLED(PA09) | \
-					 PIN_LOCKR_DISABLED(PA10) | \
+					 PIN_LOCKR_DISABLED(PA09_FRAME_TX) | \
+					 PIN_LOCKR_DISABLED(PA10_FRAME_RX) | \
 					 PIN_LOCKR_DISABLED(PA11) | \
 					 PIN_LOCKR_DISABLED(PA12) | \
 					 PIN_LOCKR_DISABLED(PA13_SWDIO) | \
@@ -1028,6 +1033,10 @@
 #define AF_LINE_RCC_CK_IN                0U
 #define AF_PA02_VCP_TX                   7U
 #define AF_LINE_VCP_TX                   7U
+#define AF_PA05_TDA5150_SCK              5U
+#define AF_LINE_TDA5150_SCK              5U
+#define AF_PA10_FRAME_RX                 7U
+#define AF_LINE_FRAME_RX                 7U
 #define AF_PA13_SWDIO                    0U
 #define AF_LINE_SWDIO                    0U
 #define AF_PA14_SWCLK                    0U
@@ -1040,6 +1049,12 @@
 #define AF_LINE_RCC_OSC32_OUT            0U
 
 
+#define TDA5150_MOSI_SPI	 1
+#define TDA5150_MOSI_SPI_FN	 MOSI
+#define TDA5150_MOSI_SPI_AF	 5
+#define FRAME_TX_USART	 1
+#define FRAME_TX_USART_FN	 TX
+#define FRAME_TX_USART_AF	 7
 
 #define BOARD_GROUP_DECLFOREACH(line, group) \
   static const ioline_t group ## _ARRAY[] = {group}; \
