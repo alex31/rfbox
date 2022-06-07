@@ -12,9 +12,10 @@ void Tda5150::initTda5150()
 {
   // initialize all SFR registers
 
-  writeSfr(0x04, {0x10, 0x11});
-  writeSfr(0x04, 0x10);
-  DebugTrace("status = %u",   readSfr(0x04));
+  writeSfr(TdaSfr::TXCFG1, {0x10, 0x11});
+  writeSfr(TdaSfr::PLLINTD, 0x10);
+  writeSfr({{TdaSfr::PLLFRACB0, 0x1}, {TdaSfr::PLLFRACB1, 0x2}});
+  DebugTrace("status = %u",   readSfr(TdaSfr::TXCFG1));
 }
 
 void Tda5150::writeSfr(const std::initializer_list<AddrVal>& values)
@@ -25,9 +26,11 @@ void Tda5150::writeSfr(const std::initializer_list<AddrVal>& values)
 
 }
 
-void Tda5150::writeSfr(tda_sfr_addr_t addr, const std::initializer_list<uint8_t>& values)
+void Tda5150::writeSfr(TdaSfr _addr, const std::initializer_list<uint8_t>& values)
 {
   chDbgAssert(state == Tda5150State::READY, "not READY");
+  uint8_t addr = static_cast<uint8_t>(_addr);
+  
   chDbgAssert(addr >= 0x04 && (addr + values.size()) <= 0x27,
 	      "incorrect sfr address range");
 
@@ -44,12 +47,12 @@ void Tda5150::writeSfr(tda_sfr_addr_t addr, const std::initializer_list<uint8_t>
 }
 
 
-uint8_t Tda5150::readSfr(tda_sfr_addr_t addr)
+uint8_t Tda5150::readSfr(TdaSfr _addr)
 {
   uint8_t oneV{};
   chDbgAssert(state == Tda5150State::READY, "not READY");
-  chDbgAssert(addr >= 0x04 && addr <= 0x27,
-	      "incorrect sfr address range");
+  uint8_t addr = static_cast<uint8_t>(_addr);
+  chDbgAssert(addr <= 0x27, "incorrect register address range");
   addr &= 0b00111111;
   addr |= 0b01000000;
   select();
@@ -62,13 +65,13 @@ uint8_t Tda5150::readSfr(tda_sfr_addr_t addr)
   return oneV;
 }
 
-void Tda5150::writeSfr(tda_sfr_addr_t addr, uint8_t value)
+void Tda5150::writeSfr(TdaSfr addr, uint8_t value)
 {
   writeSfr(addr, {value});
 }
 
 
-void Tda5150::startFrame(uint8_t mode){
+void Tda5150::startTransmit(uint8_t mode){
   chDbgAssert(state == Tda5150State::READY, "not READY");
   mode |= 0b11000000;
   select();
@@ -79,15 +82,16 @@ void Tda5150::startFrame(uint8_t mode){
   tiedPins.select(lineTx);
 }
 
-void Tda5150::endFrame(){
+void Tda5150::endTransmit(){
   chDbgAssert(state == Tda5150State::SENDING, "not SENDING");
   unselect();
   tiedPins.select(lineMosi);
+  state = Tda5150State::READY;
 }
 
 bool  Tda5150::cksumValid()
 {
-  uint8_t tdaCksum = readSfr(0x00);
+  uint8_t tdaCksum = readSfr(TdaSfr::SPICHKSUM);
   const bool status = tdaCksum == lcksum;
   lcksum = 0;
   return status;

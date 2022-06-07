@@ -24,8 +24,48 @@
 
  */
 
-using tda_sfr_addr_t = uint8_t;
+enum class TdaSfr : uint8_t {
+  SPICHKSUM = 0x0,
+  TXSTAT = 0x1,
+  TXCFG0 = 0x4,
+  TXCFG1,
+  CLKOUTCFG,
+  BDRDIV,
+  PRBS,
+  PLLINTA,
+  PLLFRACA0,
+  PLLFRACA1,
+  PLLFRACA2,
+  PLLINTB,
+  PLLFRACB0,
+  PLLFRACB1,
+  PLLFRACB2,
+  PLLINTC,
+  PLLFRACC0,
+  PLLFRACC1,
+  PLLFRACC2,
+  PLLINTD,
+  PLLFRACD0,
+  PLLFRACD1,
+  PLLFRACD2,
+  SLOPEDIV,
+  POWCFG0,
+  POWCFG1,
+  FDEV,
+  GFDIV,
+  GFXOSC,
+  ANTTDCC,
+  RES1,
+  VAC0,
+  VAC1,
+  VACERRTH,
+  CPCFG,
+  PLLBW,
+  RES2,
+  ENCCNT
+};
 
+static_assert(static_cast<int>(TdaSfr::ENCCNT) == 0x27);
 enum class Tda5150State {UNINIT, READY, SENDING};
 
 class Tda5150 {
@@ -45,7 +85,7 @@ private:
   };
   public:
   struct AddrVal {
-    uint8_t addr;
+    TdaSfr  addr;
     uint8_t val;
   };
 
@@ -66,20 +106,20 @@ private:
     initTda5150();
     state = Tda5150State::READY;
   }
-  void startFrame(uint8_t mode);
-  void endFrame();
+  void startTransmit(uint8_t mode);
+  void endTransmit();
   bool cksumValid();
-
+  uint8_t getTxStatus(void) {return readSfr(TdaSfr::TXSTAT);}
   
   private:
   void initSpi();
   void initTda5150();
 
   void writeSfr(const std::initializer_list<AddrVal>& values);
-  void writeSfr(tda_sfr_addr_t addr, const std::initializer_list<uint8_t>& values);
+  void writeSfr(TdaSfr addr, const std::initializer_list<uint8_t>& values);
 
-  void writeSfr(tda_sfr_addr_t addr, uint8_t value);
-  uint8_t readSfr(tda_sfr_addr_t addr);
+  void writeSfr(TdaSfr addr, uint8_t value);
+  uint8_t readSfr(TdaSfr addr);
   void select() {palSetLine(enable);}
   void unselect() {palClearLine(enable);}
   void modeOut() {spid.spi->CR1 |= SPI_CR1_BIDIOE;}
