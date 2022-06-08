@@ -5,7 +5,10 @@ void Tda5150::initSpi()
 {
   spiStart(&spid, &spicfg);
   unselect();
-  tiedPins.select(lineMosi);
+  tiedTxMosi.select(lineMosi);
+#if TIED_CLOCK
+  tiedCkClk.select(lineClk);
+#endif
 }
 
 void Tda5150::initTda5150()
@@ -70,22 +73,28 @@ void Tda5150::writeSfr(TdaSfr addr, uint8_t value)
   writeSfr(addr, {value});
 }
 
-
+// one can use TransmitMask bitmask for mode
 void Tda5150::startTransmit(uint8_t mode){
   chDbgAssert(state == Tda5150State::READY, "not READY");
-  mode |= 0b11000000;
+  mode |= TRANSMIT_BITMASK;
   select();
   modeOut();
   spiSend(&spid, sizeof(mode), &mode);
   state = Tda5150State::SENDING;
   chThdSleepMicroseconds(100); // cf tda5150 ref manuel §2.4.3.4 Transmit Command
-  tiedPins.select(lineTx);
+  tiedTxMosi.select(lineTx);
+#if TIED_CLOCK
+  tiedCkClk.select(lineCk);
+#endif
 }
 
 void Tda5150::endTransmit(){
   chDbgAssert(state == Tda5150State::SENDING, "not SENDING");
   unselect();
-  tiedPins.select(lineMosi);
+  tiedTxMosi.select(lineMosi);
+#if TIED_CLOCK
+  tiedCkClk.select(lineClk);
+#endif
   state = Tda5150State::READY;
 }
 

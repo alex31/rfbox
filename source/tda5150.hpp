@@ -4,7 +4,7 @@
 #include <hal.h>
 #include <array>
 #include "tiedGpios.hpp"
-
+#include "config.hpp"
 
 /*
   Il faut en paramètre du constructeur une struct spiconfig, une struct SPIDriver
@@ -23,6 +23,27 @@
 
 
  */
+
+
+enum TxstatMask : uint8_t {TXSTAT_PLLLDER = 1 << 0, TXSTAT_PARERR = 1 << 1,
+  TXSTAT_BROUTERR = 1 << 2, TXSTAT_LBD_2V4 = 1 << 4, TXSTAT_LBD_2V1 = 1 << 5,
+  TXSTAT_MASK = 0b1110110}; 
+
+enum TransmitMask : uint8_t {
+  TRANSMIT_CHAN_A = 0b00,
+  TRANSMIT_CHAN_B = 0b01,
+  TRANSMIT_CHAN_C = 0b10,
+  TRANSMIT_CHAN_D = 0b11,
+  TRANSMIT_POWER_LEVEL_1 = 0,
+  TRANSMIT_POWER_LEVEL_2 = 0b100,
+  TRANSMIT_ENCODING_OFF = 0,
+  TRANSMIT_ENCODING_ON = 0b1000,
+  TRANSMIT_PAMODE_0 = 0,
+  TRANSMIT_PAMODE_1 = 0b10000,
+  TRANSMIT_DATASYNC_OFF = 0,
+  TRANSMIT_DATASYNC_ON = 0b100000,
+  TRANSMIT_BITMASK = 0b11000000
+};
 
 enum class TdaSfr : uint8_t {
   SPICHKSUM = 0x0,
@@ -89,18 +110,43 @@ private:
     uint8_t val;
   };
 
+#if TIED_CLOCK
   Tda5150(SPIDriver& _spid, ioline_t _enable, 
 	  ioline_t _lineMosi, uint32_t afMosi,
-	  ioline_t _lineTx, uint32_t afTx) :
+	  ioline_t _lineTx, uint32_t afTx,
+          ioline_t _lineClk, uint32_t afClk,
+	  ioline_t _lineCk, uint32_t afCk) :
     spid(_spid), 
     enable(_enable), lineMosi(_lineMosi), lineTx(_lineTx),
-    tiedPins{
+    lineClk(_lineClk), lineCk(_lineCk),
+    tiedTxMosi{
       {_lineMosi,
        PAL_MODE_ALTERNATE(afMosi) | PAL_STM32_OTYPE_PUSHPULL | PAL_STM32_OSPEED_HIGHEST},
       
       {_lineTx,
        PAL_MODE_ALTERNATE(afTx) | PAL_STM32_OTYPE_PUSHPULL | PAL_STM32_OSPEED_HIGHEST}
     },
+   tiedCkClk{
+      {_lineClk,
+       PAL_MODE_ALTERNATE(afClk) | PAL_STM32_OTYPE_PUSHPULL | PAL_STM32_OSPEED_HIGHEST},
+      
+      {_lineCk,
+       PAL_MODE_ALTERNATE(afCk) | PAL_STM32_OTYPE_PUSHPULL | PAL_STM32_OSPEED_HIGHEST}
+    },
+#else
+  Tda5150(SPIDriver& _spid, ioline_t _enable, 
+	  ioline_t _lineMosi, uint32_t afMosi,
+	  ioline_t _lineTx, uint32_t afTx) :
+    spid(_spid), 
+    enable(_enable), lineMosi(_lineMosi), lineTx(_lineTx),
+    tiedTxMosi{
+      {_lineMosi,
+       PAL_MODE_ALTERNATE(afMosi) | PAL_STM32_OTYPE_PUSHPULL | PAL_STM32_OSPEED_HIGHEST},
+      
+      {_lineTx,
+       PAL_MODE_ALTERNATE(afTx) | PAL_STM32_OTYPE_PUSHPULL | PAL_STM32_OSPEED_HIGHEST}
+    },
+#endif
     lcksum(0) {
     initSpi();
     initTda5150();
@@ -109,7 +155,7 @@ private:
   void startTransmit(uint8_t mode);
   void endTransmit();
   bool cksumValid();
-  uint8_t getTxStatus(void) {return readSfr(TdaSfr::TXSTAT);}
+  TxstatMask getTxStatus(void) {return static_cast<TxstatMask>(readSfr(TdaSfr::TXSTAT));}
   
   private:
   void initSpi();
@@ -130,7 +176,14 @@ private:
   ioline_t enable;
   ioline_t lineMosi;
   ioline_t lineTx;
-  TiedPins<2> tiedPins;
+#if TIED_CLOCK
+  ioline_t lineClk;
+  ioline_t lineCk;
+#endif
+  TiedPins<2> tiedTxMosi;
+#if TIED_CLOCK
+  TiedPins<2> tiedCkClk;
+#endif
   uint8_t  lcksum;
   Tda5150State state = Tda5150State::UNINIT;
 };

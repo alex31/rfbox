@@ -1,0 +1,17 @@
+* PAS BESOIN des bitmask des SFR : tester comment l'outil TESEUS exporte la register map.
+* en option : clock (spi, usart) en tied pins.
+
+* ecrire l'appli complete
+ ° format des données ?
+   pression en mb*10, temperature celcius*10, vitesse du vent en m/s*10,
+   direction du vent en ° 0-360, position correcte du mat (test accelero)
+   start(0xcafe) int16, int16, int16, int16, int16(0 ou 1), crc16
+   14 octets -> 28 octets avec la correction d'erreur
+   280 bits, à 2400 bauds : 0.12s pour un envoi de trame,
+   on écoute avec un timeout de 300ms, on envoie à 2Hz
+
+
+   config tda5150
+   ecoute, synchro sur 0xcafe, puis reception, test crc16
+   si ok : tda5150.startTransmit, serial transmit, tda5150.endTransmit
+   
