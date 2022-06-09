@@ -1,9 +1,9 @@
 #include "tda5150.hpp"
 #include "stdutil.h"
+#include <array>
 
 void Tda5150::initSpi()
 {
-  spiStart(&spid, &spicfg);
   unselect();
   tiedTxMosi.select(lineMosi);
 #if TIED_CLOCK
@@ -21,6 +21,7 @@ void Tda5150::writeSfr(const std::initializer_list<AddrVal>& values)
 
 void Tda5150::writeSfr(TdaSfr _addr, const std::initializer_list<uint8_t>& values)
 {
+  std::array<uint8_t, 36> spiBuffer{};
   chDbgAssert(state == Tda5150State::READY, "not READY");
   uint8_t addr = static_cast<uint8_t>(_addr);
   
@@ -28,15 +29,19 @@ void Tda5150::writeSfr(TdaSfr _addr, const std::initializer_list<uint8_t>& value
 	      "incorrect sfr address range");
 
   addr &= 0b00111111;
-  select();
   modeOut();
-  spiSend(&spid, sizeof(addr), &addr);
-  spiSend(&spid, values.size(), std::data(values));
+
+  spiBuffer[0] = addr;
+  std::copy(values.begin(), values.end(), spiBuffer.begin() + 1);
+  for (size_t i=0; i<spiBuffer.size(); i++) {
+    DebugTrace("value[%u] = 0x%x", i, spiBuffer[i]);
+  }
+  spiSend(&spid, values.size() + 1, spiBuffer.data());
   lcksum ^= addr;
   for (const auto v : values)
     lcksum ^= v;
   
-  unselect();
+  modeIdle();
 }
 
 
@@ -48,13 +53,12 @@ uint8_t Tda5150::readSfr(TdaSfr _addr)
   chDbgAssert(addr <= 0x27, "incorrect register address range");
   addr &= 0b00111111;
   addr |= 0b01000000;
-  select();
   modeOut();
   spiSend(&spid, sizeof(addr), &addr);
+  modeIdle();
   modeIn();
   spiReceive(&spid, sizeof(oneV), &oneV);
-  unselect();
-
+  modeIdle();
   return oneV;
 }
 
@@ -67,7 +71,6 @@ void Tda5150::writeSfr(TdaSfr addr, uint8_t value)
 void Tda5150::startTransmit(uint8_t mode){
   chDbgAssert(state == Tda5150State::READY, "not READY");
   mode |= TRANSMIT_BITMASK;
-  select();
   modeOut();
   spiSend(&spid, sizeof(mode), &mode);
   state = Tda5150State::SENDING;
@@ -80,7 +83,7 @@ void Tda5150::startTransmit(uint8_t mode){
 
 void Tda5150::endTransmit(){
   chDbgAssert(state == Tda5150State::SENDING, "not SENDING");
-  unselect();
+  modeIdle();
   tiedTxMosi.select(lineMosi);
 #if TIED_CLOCK
   tiedCkClk.select(lineClk);

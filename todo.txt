@@ -1,6 +1,5 @@
 TODO :
-tester le registre d'état après chaque trame
-tester le crc après l'écriture initiale des SFR
+
 
 ======= appli complete =======
    

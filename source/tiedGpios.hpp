@@ -39,7 +39,7 @@ template<size_t N>
 void TiedPins<N>::highZ(const ioline_t line)
 {
     constexpr static auto doHighZ = [](const ioline_t l) {
-        DebugTrace("high Z line 0x%x\n", l);
+      //        DebugTrace("high Z line 0x%x\n", l);
 	palSetLineMode(l, PAL_STM32_MODE_ANALOG);
     };
 
@@ -55,7 +55,7 @@ template<size_t N>
 void TiedPins<N>::setAltMode(const ioline_t line)
 {
    assert(modeByline.contains(line)); 
-   DebugTrace("set line 0x%x to mode 0x%x\n", line, modeByline[line]);
+   //   DebugTrace("set line 0x%x to mode 0x%x\n", line, modeByline[line]);
    palSetLineMode(line, modeByline[line]);
 }
 

@@ -17,6 +17,10 @@ static constexpr SerialConfig repeaterCfg =  {
   .cr3 = 0           // pas de controle de flux hardware (CTS, RTS)
 };
 
+
+volatile uint32_t ledBlinkPeriod = 1000;
+
+
 static THD_WORKING_AREA(waBlinker, 304);	
 [[noreturn]] static void  blinker (void *arg)	
 {
@@ -25,7 +29,7 @@ static THD_WORKING_AREA(waBlinker, 304);
   
   while (true) {				
     palToggleLine(LINE_LED_GREEN);		
-    chThdSleepMilliseconds(100);		
+    chThdSleepMilliseconds(ledBlinkPeriod);		
   }
 }
 
@@ -35,16 +39,23 @@ static THD_WORKING_AREA(waAircast, 2048);
   (void)arg;					
   chRegSetThreadName("aircast");
   uint8_t buffer[DATAFRAME_LEN];
-  
+
+  // empty the queue
+  while (sdReadTimeout(&SD1, buffer, sizeof(buffer), TIME_MS2I(10)) != 0) {};
   while (true) {				
-    const size_t readLen = sdReadTimeout(&SD1, buffer, sizeof(buffer), frameDuration);
-    if (readLen != DATAFRAME_LEN)
-      continue;
+    sdRead(&SD1, buffer, sizeof(buffer));
 
     tda5150.startTransmit(TRANSMIT_CHAN_A | TRANSMIT_POWER_LEVEL_1 |
 			  TRANSMIT_ENCODING_OFF | TRANSMIT_DATASYNC_OFF);
     sdWrite(&SD1, buffer, sizeof(buffer));
     tda5150.endTransmit();
+    const TxstatMask status = tda5150.getTxStatus();
+    if (status & TXSTAT_MASK) {
+      ledBlinkPeriod = 200;
+      DebugTrace("transmit status mask = %x", status);
+    } else {
+       ledBlinkPeriod = 1000;
+    }
   }
 }
 
@@ -68,9 +79,12 @@ int main (void)
 		    0x10, 0x40, 0x00, 0x00, 0x10, 0x40, 0x00, 0x00, 
 		    0x10, 0x00, 0xFC, 0xBB, 0xDE, 0x51, 0x48, 0x20, 
 		    0x4C, 0x0B, 0x41, 0x00, 0x24, 0x58, 0xC0});
-  
-  chThdCreateStatic(waAircast, sizeof(waAircast), NORMALPRIO, &aircast, NULL);
-  
+  if (tda5150.cksumValid()) {
+    chThdCreateStatic(waAircast, sizeof(waAircast), NORMALPRIO, &aircast, NULL);
+  } else {
+    ledBlinkPeriod = 100;
+    DebugTrace("tda5150 checksum failed");
+  }
   
  
   chThdSleep(TIME_INFINITE);

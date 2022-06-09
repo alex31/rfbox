@@ -3,7 +3,6 @@
 #define TIED_CLOCK false
 
 static constexpr uint32_t UART_BAUD =  2400U;
-static constexpr size_t   DATAFRAME_LEN =  14U;
 static constexpr uint32_t DATAFRAME_FREQUENCY =  2U; // hertz
 
 union dataFrame {
@@ -18,3 +17,5 @@ union dataFrame {
   };
   uint8_t raw[14];
 };
+
+static constexpr size_t   DATAFRAME_LEN = sizeof(dataFrame);

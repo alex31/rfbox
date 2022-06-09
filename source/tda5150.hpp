@@ -91,20 +91,19 @@ enum class Tda5150State {UNINIT, READY, SENDING};
 
 class Tda5150 {
 private:
-  static constexpr SPIConfig spicfg {
+  SPIConfig spicfg {
     .circular = false,
-    .slave = false,
-    .data_cb = NULL,
-    .error_cb = NULL,
-  
-    // CPOL=0, CPHA = 1 : SCK idle is low, read is done on SCK falling edge
-    // SPI frequency 1.25Mhz :  < Max 2Mhz
-    .cr1 = SPI_CR1_CPHA |
-           SPI_CR1_BR_2 | SPI_CR1_BR_0 |
-           SPI_CR1_BIDIMODE,
-    .cr2 = 0
-  };
-  public:
+      .slave = false,
+      .data_cb = NULL,
+      .error_cb = [](SPIDriver *) {chSysHalt("spi hard fault");},
+      
+      // CPOL=0, CPHA = 1 : SCK idle is low, read is done on SCK falling edge
+      // SPI frequency 1.25Mhz :  < Max 2Mhz
+      .cr1 = SPI_CR1_CPHA | SPI_CR1_BIDIMODE |
+	     SPI_CR1_BR_2 | SPI_CR1_BR_0,
+      .cr2 = SPI_CR2_DS_2 | SPI_CR2_DS_1 | SPI_CR2_DS_0
+      };
+public:
   struct AddrVal {
     TdaSfr  addr;
     uint8_t val;
@@ -166,8 +165,9 @@ private:
 
   void select() {palSetLine(enable);}
   void unselect() {palClearLine(enable);}
-  void modeOut() {spid.spi->CR1 |= SPI_CR1_BIDIOE;}
-  void modeIn() {spid.spi->CR1 &= ~SPI_CR1_BIDIOE;}
+  void modeOut() {spicfg.cr1 |= SPI_CR1_BIDIOE; spiStart(&spid, &spicfg); select(); }
+  void modeIn() {spicfg.cr1 &= ~SPI_CR1_BIDIOE; spiStart(&spid, &spicfg); select(); }
+  void modeIdle() {unselect(); spiStop(&spid);}
   
   
   SPIDriver& spid;
