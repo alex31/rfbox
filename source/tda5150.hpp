@@ -4,7 +4,7 @@
 #include <hal.h>
 #include <array>
 #include "tiedGpios.hpp"
-#include "config.hpp"
+#include "common.hpp"
 
 /*
   Il faut en paramètre du constructeur une struct spiconfig, une struct SPIDriver
@@ -148,24 +148,22 @@ private:
     },
 #endif
     lcksum(0) {
-    initSpi();
-    initTda5150();
     state = Tda5150State::READY;
   }
+  void init(void) {initSpi();}
   void startTransmit(uint8_t mode);
   void endTransmit();
   bool cksumValid();
   TxstatMask getTxStatus(void) {return static_cast<TxstatMask>(readSfr(TdaSfr::TXSTAT));}
-  
-  private:
-  void initSpi();
-  void initTda5150();
-
   void writeSfr(const std::initializer_list<AddrVal>& values);
   void writeSfr(TdaSfr addr, const std::initializer_list<uint8_t>& values);
 
   void writeSfr(TdaSfr addr, uint8_t value);
   uint8_t readSfr(TdaSfr addr);
+  
+  private:
+  void initSpi();
+
   void select() {palSetLine(enable);}
   void unselect() {palClearLine(enable);}
   void modeOut() {spid.spi->CR1 |= SPI_CR1_BIDIOE;}

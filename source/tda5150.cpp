@@ -11,22 +11,12 @@ void Tda5150::initSpi()
 #endif
 }
 
-void Tda5150::initTda5150()
-{
-  // initialize all SFR registers
-
-  writeSfr(TdaSfr::TXCFG1, {0x10, 0x11});
-  writeSfr(TdaSfr::PLLINTD, 0x10);
-  writeSfr({{TdaSfr::PLLFRACB0, 0x1}, {TdaSfr::PLLFRACB1, 0x2}});
-  DebugTrace("status = %u",   readSfr(TdaSfr::TXCFG1));
-}
 
 void Tda5150::writeSfr(const std::initializer_list<AddrVal>& values)
 {
   for (const auto [a, v] : values) {
     writeSfr(a, v);
   }
-
 }
 
 void Tda5150::writeSfr(TdaSfr _addr, const std::initializer_list<uint8_t>& values)
