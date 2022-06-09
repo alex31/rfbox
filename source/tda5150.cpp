@@ -1,10 +1,12 @@
 #include "tda5150.hpp"
 #include "stdutil.h"
+#include "spi_lld_extra.h"
 #include <array>
 
 void Tda5150::initSpi()
 {
   unselect();
+  spiStart(&spid, &spicfg);
   tiedTxMosi.select(lineMosi);
 #if TIED_CLOCK
   tiedCkClk.select(lineClk);
@@ -21,7 +23,6 @@ void Tda5150::writeSfr(const std::initializer_list<AddrVal>& values)
 
 void Tda5150::writeSfr(TdaSfr _addr, const std::initializer_list<uint8_t>& values)
 {
-  std::array<uint8_t, 36> spiBuffer{};
   chDbgAssert(state == Tda5150State::READY, "not READY");
   uint8_t addr = static_cast<uint8_t>(_addr);
   
@@ -29,19 +30,15 @@ void Tda5150::writeSfr(TdaSfr _addr, const std::initializer_list<uint8_t>& value
 	      "incorrect sfr address range");
 
   addr &= 0b00111111;
-  modeOut();
+  select();
 
-  spiBuffer[0] = addr;
-  std::copy(values.begin(), values.end(), spiBuffer.begin() + 1);
-  for (size_t i=0; i<spiBuffer.size(); i++) {
-    DebugTrace("value[%u] = 0x%x", i, spiBuffer[i]);
-  }
-  spiSend(&spid, values.size() + 1, spiBuffer.data());
-  lcksum ^= addr;
-  for (const auto v : values)
-    lcksum ^= v;
-  
-  modeIdle();
+  spi_lld_polled_send(&spid, addr);
+  lchksum ^= addr;
+  for (uint8_t b : values) {
+    spi_lld_polled_send(&spid, b);
+    lchksum ^= b;
+  }  
+  unselect();
 }
 
 
@@ -53,12 +50,10 @@ uint8_t Tda5150::readSfr(TdaSfr _addr)
   chDbgAssert(addr <= 0x27, "incorrect register address range");
   addr &= 0b00111111;
   addr |= 0b01000000;
-  modeOut();
-  spiSend(&spid, sizeof(addr), &addr);
-  modeIdle();
-  modeIn();
-  spiReceive(&spid, sizeof(oneV), &oneV);
-  modeIdle();
+  select();
+  spi_lld_polled_send(&spid, addr);
+  oneV = spi_lld_polled_receive(&spid);
+  unselect();
   return oneV;
 }
 
@@ -71,8 +66,8 @@ void Tda5150::writeSfr(TdaSfr addr, uint8_t value)
 void Tda5150::startTransmit(uint8_t mode){
   chDbgAssert(state == Tda5150State::READY, "not READY");
   mode |= TRANSMIT_BITMASK;
-  modeOut();
-  spiSend(&spid, sizeof(mode), &mode);
+  select();
+  spi_lld_polled_send(&spid, mode);
   state = Tda5150State::SENDING;
   chThdSleepMicroseconds(100); // cf tda5150 ref manuel §2.4.3.4 Transmit Command
   tiedTxMosi.select(lineTx);
@@ -83,7 +78,7 @@ void Tda5150::startTransmit(uint8_t mode){
 
 void Tda5150::endTransmit(){
   chDbgAssert(state == Tda5150State::SENDING, "not SENDING");
-  modeIdle();
+  unselect();
   tiedTxMosi.select(lineMosi);
 #if TIED_CLOCK
   tiedCkClk.select(lineClk);
@@ -91,10 +86,15 @@ void Tda5150::endTransmit(){
   state = Tda5150State::READY;
 }
 
-bool  Tda5150::cksumValid()
+bool  Tda5150::chksumValid()
 {
-  uint8_t tdaCksum = readSfr(TdaSfr::SPICHKSUM);
-  const bool status = tdaCksum == lcksum;
-  lcksum = 0;
+  uint8_t tdaChksum = readSfr(TdaSfr::SPICHKSUM);
+  const bool status = tdaChksum == lchksum;
+#ifdef TRACE
+  if (tdaChksum != lchksum) {
+    DebugTrace("tdaChksum 0x%x != local 0x%x", tdaChksum, lchksum);
+  }
+#endif
+  lchksum = 0;
   return status;
 }

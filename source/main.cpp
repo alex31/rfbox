@@ -79,11 +79,11 @@ int main (void)
 		    0x10, 0x40, 0x00, 0x00, 0x10, 0x40, 0x00, 0x00, 
 		    0x10, 0x00, 0xFC, 0xBB, 0xDE, 0x51, 0x48, 0x20, 
 		    0x4C, 0x0B, 0x41, 0x00, 0x24, 0x58, 0xC0});
-  if (tda5150.cksumValid()) {
+  if (tda5150.chksumValid()) {
     chThdCreateStatic(waAircast, sizeof(waAircast), NORMALPRIO, &aircast, NULL);
   } else {
     ledBlinkPeriod = 100;
-    DebugTrace("tda5150 checksum failed");
+    DebugTrace("tda5150 chechksum failed");
   }
   
  

@@ -17,7 +17,7 @@
 	ø ecrire un buffer de registres SFR contigus 
 	ø lire un buffer de registres SFR contigus 
 	ø ecrire une liste de couple adresse SFR, valeur
-	ø check concordence entre cksum local et cksum distant
+	ø check concordence entre chksum local et chksum distant
 
   ° 
 
@@ -91,18 +91,18 @@ enum class Tda5150State {UNINIT, READY, SENDING};
 
 class Tda5150 {
 private:
-  SPIConfig spicfg {
+ static constexpr SPIConfig spicfg {
     .circular = false,
-      .slave = false,
-      .data_cb = NULL,
-      .error_cb = [](SPIDriver *) {chSysHalt("spi hard fault");},
+    .slave = false,
+    .data_cb = NULL,
+    .error_cb = [](SPIDriver *) {chSysHalt("spi hard fault");},
       
       // CPOL=0, CPHA = 1 : SCK idle is low, read is done on SCK falling edge
       // SPI frequency 1.25Mhz :  < Max 2Mhz
-      .cr1 = SPI_CR1_CPHA | SPI_CR1_BIDIMODE |
-	     SPI_CR1_BR_2 | SPI_CR1_BR_0,
-      .cr2 = SPI_CR2_DS_2 | SPI_CR2_DS_1 | SPI_CR2_DS_0
-      };
+    .cr1 = SPI_CR1_CPHA | SPI_CR1_BIDIMODE | SPI_CR1_BIDIOE |
+           SPI_CR1_BR_2 | SPI_CR1_BR_0,
+    .cr2 = SPI_CR2_DS_2 | SPI_CR2_DS_1 | SPI_CR2_DS_0
+ };
 public:
   struct AddrVal {
     TdaSfr  addr;
@@ -146,13 +146,13 @@ public:
        PAL_MODE_ALTERNATE(afTx) | PAL_STM32_OTYPE_PUSHPULL | PAL_STM32_OSPEED_HIGHEST}
     },
 #endif
-    lcksum(0) {
+    lchksum(0) {
     state = Tda5150State::READY;
   }
   void init(void) {initSpi();}
   void startTransmit(uint8_t mode);
   void endTransmit();
-  bool cksumValid();
+  bool chksumValid();
   TxstatMask getTxStatus(void) {return static_cast<TxstatMask>(readSfr(TdaSfr::TXSTAT));}
   void writeSfr(const std::initializer_list<AddrVal>& values);
   void writeSfr(TdaSfr addr, const std::initializer_list<uint8_t>& values);
@@ -165,9 +165,6 @@ public:
 
   void select() {palSetLine(enable);}
   void unselect() {palClearLine(enable);}
-  void modeOut() {spicfg.cr1 |= SPI_CR1_BIDIOE; spiStart(&spid, &spicfg); select(); }
-  void modeIn() {spicfg.cr1 &= ~SPI_CR1_BIDIOE; spiStart(&spid, &spicfg); select(); }
-  void modeIdle() {unselect(); spiStop(&spid);}
   
   
   SPIDriver& spid;
@@ -182,7 +179,7 @@ public:
 #if TIED_CLOCK
   TiedPins<2> tiedCkClk;
 #endif
-  uint8_t  lcksum;
+  uint8_t  lchksum;
   Tda5150State state = Tda5150State::UNINIT;
 };
 
