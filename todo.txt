@@ -1,3 +1,5 @@
+Au final, le BE na va pas utiliser de TDA5150, mais un module RF HopeRF 868MHz en SPI 4 fils, donc ce projet est arreté.
+
 TODO :
 
 mettre une vraie pullup pulldown (avec une breadbord de devboardm7) sur mosi pour voir ce qu'il se passe bordel
