@@ -18,6 +18,7 @@ void spi_lld_polled_send(SPIDriver *spip, uint16_t frame) {
    * Byte size access (uint8_t *) for transactions that are <= 8-bit.
    * Halfword size access (uint16_t) for transactions that are <= 8-bit.
    */
+  chDbgAssert(spip->state == SPI_READY, "spi invalid state");
   chDbgAssert(spip->spi->CR1 & SPI_CR1_BIDIMODE, "spi bidimode must be activated");
   if ((spip->config->cr2 & SPI_CR2_DS) <= (SPI_CR2_DS_2 |
                                            SPI_CR2_DS_1 |
@@ -57,8 +58,12 @@ uint16_t spi_lld_polled_receive(SPIDriver *spip) {
    * Byte size access (uint8_t *) for transactions that are <= 8-bit.
    * Halfword size access (uint16_t) for transactions that are <= 8-bit.
    */
+  chDbgAssert(spip->state == SPI_READY, "spi invalid state");
   chDbgAssert(spip->spi->CR1 & SPI_CR1_BIDIMODE, "spi bidimode must be activated");
-  spip->spi->CR1 &= ~SPI_CR1_BIDIOE;
+  /* uint32_t cr1 = spip->spi->CR1; */
+  /* spip->spi->CR1 = 0; */
+  /* spip->spi->CR1 = cr1 & ~SPI_CR1_BIDIOE; */
+  spip->spi->CR1 &= ~SPI_CR1_BIDIOE; /* this activate receive mode, sclk clocking */
   if ((spip->config->cr2 & SPI_CR2_DS) <= (SPI_CR2_DS_2 |
                                            SPI_CR2_DS_1 |
                                            SPI_CR2_DS_0)) {
@@ -76,6 +81,15 @@ uint16_t spi_lld_polled_receive(SPIDriver *spip) {
     frame = (uint16_t)*dr16p;
   }
 
-  spip->spi->CR1 |= SPI_CR1_BIDIOE;
+  spip->spi->CR1 |= SPI_CR1_BIDIOE; /* this stop sclk clocking */
   return frame;
+}
+
+void spi_lld_wait_until_not_busy(SPIDriver *spip) {
+  chDbgAssert(spip->state == SPI_READY, "spi invalid state");
+  chDbgAssert(spip->spi->CR1 & SPI_CR1_BIDIMODE, "spi bidimode must be activated");
+  /* Waiting for current frame completion */
+  while ((spip->spi->SR & SPI_SR_BSY) != 0U) {
+    /* Still busy.*/
+  }
 }

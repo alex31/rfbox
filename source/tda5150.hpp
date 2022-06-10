@@ -5,7 +5,7 @@
 #include <array>
 #include "tiedGpios.hpp"
 #include "common.hpp"
-
+#include "spi_lld_extra.h"
 /*
   Il faut en paramètre du constructeur une struct spiconfig, une struct SPIDriver
   la line de enable et celle qui est partagée par miso, mosi et data

@@ -1,5 +1,6 @@
 TODO :
 
+mettre une vraie pullup pulldown (avec une breadbord de devboardm7) sur mosi pour voir ce qu'il se passe bordel
 
 ======= appli complete =======
    

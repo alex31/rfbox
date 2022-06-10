@@ -37,7 +37,9 @@ void Tda5150::writeSfr(TdaSfr _addr, const std::initializer_list<uint8_t>& value
   for (uint8_t b : values) {
     spi_lld_polled_send(&spid, b);
     lchksum ^= b;
-  }  
+  }
+  spi_lld_wait_until_not_busy(&spid);
+  chSysPolledDelayX(US2RTC(STM32_SYSCLK, 2));
   unselect();
 }
 
@@ -53,6 +55,8 @@ uint8_t Tda5150::readSfr(TdaSfr _addr)
   select();
   spi_lld_polled_send(&spid, addr);
   oneV = spi_lld_polled_receive(&spid);
+  spi_lld_wait_until_not_busy(&spid);
+  chSysPolledDelayX(US2RTC(STM32_SYSCLK, 2));
   unselect();
   return oneV;
 }
@@ -68,6 +72,7 @@ void Tda5150::startTransmit(uint8_t mode){
   mode |= TRANSMIT_BITMASK;
   select();
   spi_lld_polled_send(&spid, mode);
+  spi_lld_wait_until_not_busy(&spid);
   state = Tda5150State::SENDING;
   chThdSleepMicroseconds(100); // cf tda5150 ref manuel §2.4.3.4 Transmit Command
   tiedTxMosi.select(lineTx);
@@ -78,6 +83,7 @@ void Tda5150::startTransmit(uint8_t mode){
 
 void Tda5150::endTransmit(){
   chDbgAssert(state == Tda5150State::SENDING, "not SENDING");
+  chSysPolledDelayX(US2RTC(STM32_SYSCLK, 2));
   unselect();
   tiedTxMosi.select(lineMosi);
 #if TIED_CLOCK
