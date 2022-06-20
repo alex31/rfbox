@@ -149,9 +149,7 @@ void EncoderModeLPTimer1::stop(void)
 
 void EncoderModeLPTimer1::reset(void)
 {
-  LPTIM1->CR &= ~LPTIM_CR_ENABLE;
-  LPTIM1->CR |= LPTIM_CR_ENABLE;
-  LPTIM1->CR |= LPTIM_CR_CNTSTRT;
+  topNordValue = LPTIM1->CNT;
 }
 
 void EncoderModeLPTimer1::start(void)
@@ -169,8 +167,20 @@ void EncoderModeLPTimer1::start(void)
 
 bool EncoderModeLPTimer1::cntIsUpdated(void)
 {
-  const uint16_t newV = LPTIM1->CNT;
-  const bool change = (newV != lastCnt);
-  lastCnt = newV;
+  uint16_t fv = LPTIM1->CNT;
+  while (fv != LPTIM1->CNT) {fv = LPTIM1->CNT;}
+  
+  const bool change = (fv != lastCnt);
+  lastCnt = fv;
   return change;
+}
+
+std::pair<bool, uint16_t> EncoderModeLPTimer1::getCnt(void)
+{
+  uint16_t fv = LPTIM1->CNT;
+  while (fv != LPTIM1->CNT) {fv = LPTIM1->CNT;}
+
+  const uint16_t counter = topNordValue >= fv ? topNordValue - fv : fv - topNordValue;
+  
+  return {cntIsUpdated(), counter};
 }

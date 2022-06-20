@@ -28,9 +28,7 @@ class EncoderModeLPTimer1 {
 public:
   EncoderModeLPTimer1(EncoderMode mode = EncoderMode::QUADRATURE) :
     encMode(mode) {  rccEnable();}
-  std::pair<bool, uint16_t> getCnt(void) {
-    return {cntIsUpdated(), LPTIM1->CNT};
-  }
+  std::pair<bool, uint16_t> getCnt(void);
   void start(void);
   void stop(void);
   void reset(void);
@@ -40,6 +38,7 @@ private:
   
   EncoderMode encMode;
   uint16_t lastCnt=0U;
+  volatile uint16_t topNordValue = 0;
 };
 
 
