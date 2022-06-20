@@ -3,7 +3,6 @@
 #include <ch.h>
 #include <hal.h>
 #include <utility>
-#include "lpTimerProxy.h"
 
 enum class EncoderMode {QUADRATURE, CH1_COUNTING};
 
@@ -28,11 +27,13 @@ private:
 class EncoderModeLPTimer1 {
 public:
   EncoderModeLPTimer1(EncoderMode mode = EncoderMode::QUADRATURE) :
-    encMode(mode) {}
+    encMode(mode) {  rccEnable();}
   std::pair<bool, uint16_t> getCnt(void) {
     return {cntIsUpdated(), LPTIM1->CNT};
   }
   void start(void);
+  void stop(void);
+  void reset(void);
 private:
   void rccEnable(void) {rccEnableAPB1R1(RCC_APB1ENR1_LPTIM1EN, true)};
   bool cntIsUpdated(void);

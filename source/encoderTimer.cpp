@@ -142,12 +142,21 @@ void EncoderModeTimer::rccEnable(void)
 };
 
 
+void EncoderModeLPTimer1::stop(void)
+{
+  LPTIM1->CR = 0;
+}
+
+void EncoderModeLPTimer1::reset(void)
+{
+  LPTIM1->CR &= ~LPTIM_CR_ENABLE;
+  LPTIM1->CR |= LPTIM_CR_ENABLE;
+  LPTIM1->CR |= LPTIM_CR_CNTSTRT;
+}
+
 void EncoderModeLPTimer1::start(void)
 {
-
-  rccEnable();
   chDbgAssert(encMode == EncoderMode::QUADRATURE, "only quadrature encoder mode is possible");
-  //  initLptim1Quadrature();
   LPTIM1->CFGR = (0b00 << LPTIM_CFGR_CKPOL_Pos);
   LPTIM1->CFGR |= LPTIM_CFGR_ENC;
   LPTIM1->CR = LPTIM_CR_ENABLE;
@@ -156,7 +165,6 @@ void EncoderModeLPTimer1::start(void)
   while(!(LPTIM1->ISR & LPTIM_ISR_ARROK)) {};
 
   LPTIM1->CR |= LPTIM_CR_CNTSTRT;
-
 }
 
 bool EncoderModeLPTimer1::cntIsUpdated(void)

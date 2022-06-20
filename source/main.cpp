@@ -28,7 +28,6 @@ static THD_WORKING_AREA(waLptim1, 304);
   chRegSetThreadName("lptim1");		
   lptim1d.start();
   while (true) {				
-    chThdSleepMilliseconds(200);
     auto [u, cnt] = lptim1d.getCnt();
     if (u) {
       DebugTrace("lptim1 CNT = %u", LPTIM1->CNT);
@@ -47,9 +46,16 @@ int main (void)
   consoleInit();
   chThdCreateStatic(waBlinker, sizeof(waBlinker), NORMALPRIO, &blinker, NULL);
   chThdCreateStatic(waLptim1, sizeof(waLptim1), NORMALPRIO, &lptim1, NULL);
+
+  palEnableLineEvent(LINE_ENCODER_ZERO, PAL_EVENT_MODE_FALLING_EDGE);
+  palSetLineCallback(LINE_ENCODER_ZERO,
+		     [] (void *) {
+		       lptim1d.reset();
+		     },
+		     NULL);
   
   consoleLaunch(); 
-
+  
   chThdSleep(TIME_INFINITE);
 }
 
