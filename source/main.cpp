@@ -2,23 +2,11 @@
 #include <hal.h>
 #include "stdutil.h"	
 #include "ttyConsole.hpp"	
-#include "tiedGpios.hpp"
-#include "radio.hpp"
-
-
-static constexpr sysinterval_t frameDuration =
-  (2U * TIME_MS2I(1000U / DATAFRAME_FREQUENCY)) / 3U;
-
-static constexpr SerialConfig repeaterCfg =  {
-  .speed = UART_BAUD,
-  .cr1 = 0,                     // pas de parité
-  .cr2 = USART_CR2_STOP1_BITS
-  | USART_CR2_LINEN, // 1 bit de stop, detection d'erreur de trame avancée
-  .cr3 = 0           // pas de controle de flux hardware (CTS, RTS)
-};
+#include "encoderTimer.hpp"	
 
 
 volatile uint32_t ledBlinkPeriod = 1000;
+EncoderModeLPTimer1 lptim1d;
 
 
 static THD_WORKING_AREA(waBlinker, 304);	
@@ -33,28 +21,17 @@ static THD_WORKING_AREA(waBlinker, 304);
   }
 }
 
-static THD_WORKING_AREA(waAircast, 2048);	
-[[noreturn]] static void  aircast (void *arg)	
+static THD_WORKING_AREA(waLptim1, 304);	
+[[noreturn]] static void  lptim1 (void *arg)	
 {
   (void)arg;					
-  chRegSetThreadName("aircast");
-  uint8_t buffer[DATAFRAME_LEN];
-
-  // empty the queue
-  while (sdReadTimeout(&SD1, buffer, sizeof(buffer), TIME_MS2I(10)) != 0) {};
+  chRegSetThreadName("lptim1");		
+  lptim1d.start();
   while (true) {				
-    sdRead(&SD1, buffer, sizeof(buffer));
-
-    tda5150.startTransmit(TRANSMIT_CHAN_A | TRANSMIT_POWER_LEVEL_1 |
-			  TRANSMIT_ENCODING_OFF | TRANSMIT_DATASYNC_OFF);
-    sdWrite(&SD1, buffer, sizeof(buffer));
-    tda5150.endTransmit();
-    const TxstatMask status = tda5150.getTxStatus();
-    if (status & TXSTAT_MASK) {
-      ledBlinkPeriod = 200;
-      DebugTrace("transmit status mask = %x", status);
-    } else {
-       ledBlinkPeriod = 1000;
+    chThdSleepMilliseconds(200);
+    auto [u, cnt] = lptim1d.getCnt();
+    if (u) {
+      DebugTrace("lptim1 CNT = %u", LPTIM1->CNT);
     }
   }
 }
@@ -69,24 +46,10 @@ int main (void)
   initHeap();	
   consoleInit();
   chThdCreateStatic(waBlinker, sizeof(waBlinker), NORMALPRIO, &blinker, NULL);
+  chThdCreateStatic(waLptim1, sizeof(waLptim1), NORMALPRIO, &lptim1, NULL);
+  
   consoleLaunch(); 
 
-  sdStart(&SD1, &repeaterCfg); 
-  tda5150.init();
-  tda5150.writeSfr(TdaSfr::TXCFG0,
-		   {0x06, 0x25, 0x12, 0xA1, 
-		    0xAB, 0x21, 0x7E, 0x5D, 0x0C, 0x40, 0x00, 0x00, 
-		    0x10, 0x40, 0x00, 0x00, 0x10, 0x40, 0x00, 0x00, 
-		    0x10, 0x00, 0xFC, 0xBB, 0xDE, 0x51, 0x48, 0x20, 
-		    0x4C, 0x0B, 0x41, 0x00, 0x24, 0x58, 0xC0});
-  if (tda5150.chksumValid()) {
-    chThdCreateStatic(waAircast, sizeof(waAircast), NORMALPRIO, &aircast, NULL);
-  } else {
-    ledBlinkPeriod = 100;
-    DebugTrace("tda5150 chechksum failed");
-  }
-  
- 
   chThdSleep(TIME_INFINITE);
 }
 

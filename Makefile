@@ -136,7 +136,11 @@ CHIBIOS  := $(RELATIVE)/$(notdir $(MY_DIRNAME))
 CONFDIR  := ./cfg
 BUILDDIR := ./build
 DEPDIR   := ./.dep
-STMSRC = $(RELATIVE)/COMMON/stm
+CUBEMX   := ./CubeMx/Core/Inc/
+STHAL_1  := ./CubeMx/Drivers/STM32L4xx_HAL_Driver/Inc
+STHAL_2  := ./CubeMx/Drivers/CMSIS/Device/ST/STM32L4xx/Include/
+CORE_SRC := ./CubeMx/Core/Src
+DRIVER_SRC := ./CubeMx/Drivers/STM32L4xx_HAL_Driver/Src
 VARIOUS = $(RELATIVE)/COMMON/various
 USBD_LIB = $(VARIOUS)/Chibios-USB-Devices
 ETL_LIB = ../../../../etl/include
@@ -169,7 +173,9 @@ CSRC = $(ALLCSRC) \
        $(VARIOUS)/rtcAccess.c \
        $(VARIOUS)/printf.c \
        $(VARIOUS)/microrl/microrlShell.c \
-       $(VARIOUS)/microrl/microrl.c
+       $(VARIOUS)/microrl/microrl.c \
+       $(CORE_SRC)/lptim.c \
+       $(DRIVER_SRC)/stm32l4xx_ll_gpio.c
 
 # C++ sources that can be compiled in ARM or THUMB mode depending on the global
 # setting.
@@ -182,7 +188,8 @@ ASMSRC = $(ALLASMSRC)
 ASMXSRC = $(ALLXASMSRC)
 
 # Inclusion directories.
-INCDIR = $(CONFDIR) $(ALLINC) $(VARIOUS) $(STMSRC) \
+INCDIR = $(CONFDIR) $(ALLINC) $(VARIOUS) $(CUBEMX) \
+         $(STHAL_1) $(STHAL_2) \
          $(USBD_LIB) $(ETL_LIB) 
 
 # Define C warning options here.
@@ -201,7 +208,7 @@ LD   = $(TRGT)g++
 
 # List all user C define here, like -D_DEBUG=1
 UDEFS = -DGIT_BRANCH="$(GIT_BRANCH)" -DGIT_TAG="$(GIT_TAG)" -DGIT_SHA="$(GIT_SHA)" \
-        -DBUILD="$(BUILD)" -DTRACE
+        -DBUILD="$(BUILD)" -DTRACE -DUSE_FULL_LL_DRIVER -DSTM32L432xx
 
 # Define ASM defines here
 UADEFS =
@@ -235,7 +242,7 @@ $(CONFDIR)/board.h: $(CONFDIR)/board.cfg
 
 stflash: all
 	@echo write $(BUILDDIR)/$(PROJECT).bin to flash memory
-	/usr/local/bin/st-flash write  $(BUILDDIR)/$(PROJECT).bin 0x08000000
+	/usr/bin/st-flash write  $(BUILDDIR)/$(PROJECT).bin 0x08000000
 	@echo Done
 
 flash: all

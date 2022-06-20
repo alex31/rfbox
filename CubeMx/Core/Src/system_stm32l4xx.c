@@ -88,7 +88,7 @@
   * @{
   */
 
-#include "stm32l4xx.h"
+#include "cmsis_stm32l4xx.h"
 
 /**
   * @}
