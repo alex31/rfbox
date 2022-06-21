@@ -49,21 +49,13 @@ static THD_WORKING_AREA(waLptim1, 304);
 	uint8_t portGrayCode = grayCode << 2;
 	// dispatch 6 bits code on Port A : 1,3,4,5,6,7
 	(portGrayCode |= ((portGrayCode & 0b100) >> 1)) &= 0b11111010;
-	std::string binGray(binary_fmt(grayCode, 8));
-	std::string binPort(binary_fmt(portGrayCode, 8));
+	//	std::string binGray(binary_fmt(grayCode, 8));
+	//	std::string binPort(binary_fmt(portGrayCode, 8));
 	// atomic 6 bits gray code update
 	palWriteGroup(GPIOA, 0b11111010, 0, portGrayCode); 
-	DebugTrace("lptim1 CNT = %u [%u] [g:0x%x -> 0x%x] {%s -> %s}",
-		   cnt, angle, grayCode, portGrayCode,
-		   binGray.c_str(), binPort.c_str());
-
-	// This is not atomic
-	// palWriteLine(LINE_GRAY_BIT0, (grayCode & (1 << 0)) ? PAL_HIGH : PAL_LOW);
-	// palWriteLine(LINE_GRAY_BIT1, (grayCode & (1 << 1)) ? PAL_HIGH : PAL_LOW);
-	// palWriteLine(LINE_GRAY_BIT2, (grayCode & (1 << 2)) ? PAL_HIGH : PAL_LOW);
-	// palWriteLine(LINE_GRAY_BIT3, (grayCode & (1 << 3)) ? PAL_HIGH : PAL_LOW);
-	// palWriteLine(LINE_GRAY_BIT4, (grayCode & (1 << 4)) ? PAL_HIGH : PAL_LOW);
-	// palWriteLine(LINE_GRAY_BIT5, (grayCode & (1 << 5)) ? PAL_HIGH : PAL_LOW);
+	// DebugTrace("lptim1 CNT = %u [%u] [g:0x%x -> 0x%x] {%s -> %s}",
+	// 	   cnt, angle, grayCode, portGrayCode,
+	// 	   binGray.c_str(), binPort.c_str());
       }
     }
     chThdSleepMilliseconds(1);
