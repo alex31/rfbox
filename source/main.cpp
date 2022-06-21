@@ -24,6 +24,7 @@ static THD_WORKING_AREA(waBlinker, 304);
   }
 }
 
+
 static THD_WORKING_AREA(waLptim1, 304);	
 [[noreturn]] static void  lptim1 (void *arg)	
 {
@@ -31,7 +32,8 @@ static THD_WORKING_AREA(waLptim1, 304);
   chRegSetThreadName("lptim1");		
   lptim1d.start();
   while (not lptim1d.zeroSetDone()) {
-    chThdSleepMilliseconds(1);
+    chThdSleepMilliseconds(100);
+    palToggleLine(LINE_NOT_ZEROED);
   }
 
   palClearLine(LINE_NOT_ZEROED);
@@ -88,6 +90,7 @@ int main (void)
 		     NULL);
   
   consoleLaunch(); 
+
   
   chThdSleep(TIME_INFINITE);
 }
