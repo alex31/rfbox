@@ -1,5 +1,5 @@
 #include "encoderTimer.hpp"
-
+#include <algorithm>
 void EncoderModeTimer::start(void)
 {
   rccEnable();
@@ -180,7 +180,14 @@ std::pair<bool, uint16_t> EncoderModeLPTimer1::getCnt(void)
   uint16_t fv = LPTIM1->CNT;
   while (fv != LPTIM1->CNT) {fv = LPTIM1->CNT;}
 
-  const uint16_t counter = topNordValue >= fv ? topNordValue - fv : fv - topNordValue;
-  
-  return {cntIsUpdated(), counter};
+  if (topNordValue < 0) {
+    return {false, 0};
+  } else {
+    const int32_t ifv = fv;
+    const uint16_t counter = topNordValue >= ifv ?
+      topNordValue - ifv :
+      2048U - std::clamp(ifv - topNordValue, 0L, 2048L);
+    
+    return {cntIsUpdated(), counter};
+  }
 }

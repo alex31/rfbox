@@ -32,13 +32,14 @@ public:
   void start(void);
   void stop(void);
   void reset(void);
+  bool zeroSetDone(void) {return topNordValue >= 0;}
 private:
   void rccEnable(void) {rccEnableAPB1R1(RCC_APB1ENR1_LPTIM1EN, true)};
   bool cntIsUpdated(void);
   
   EncoderMode encMode;
   uint16_t lastCnt=0U;
-  volatile uint16_t topNordValue = 0;
+  volatile int32_t topNordValue = -1;
 };
 
 
