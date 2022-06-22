@@ -7,19 +7,18 @@
 enum class EncoderMode {QUADRATURE, CH1_COUNTING};
 
 
-class EncoderModeTimer {
+class EncoderTIM1 {
 public:
-  EncoderModeTimer(stm32_tim_t *_timer, EncoderMode mode = EncoderMode::QUADRATURE) :
-    timer(_timer), encMode(mode) {start();}
+  EncoderTIM1(EncoderMode mode = EncoderMode::QUADRATURE) :
+    encMode(mode) {}
   std::pair<bool, uint16_t> getCnt(void) {
-    return {cntIsUpdated(), timer->CNT};
+    return {cntIsUpdated(), TIM1->CNT};
   }
-private:
   void start(void);
+private:
   void rccEnable(void);
   bool cntIsUpdated(void);
   
-  stm32_tim_t * const timer;
   EncoderMode encMode;
   uint16_t lastCnt=0U;
 };

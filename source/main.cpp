@@ -5,12 +5,15 @@
 #include "ttyConsole.hpp"	
 #include "encoderTimer.hpp"	
 
+
+static constexpr uint16_t angleOffset = 10 * 2048 / 360;
+
 uint8_t binaryToGray(uint8_t num);
 uint8_t grayToBinary(uint8_t num);
 
 volatile uint32_t ledBlinkPeriod = 1000;
 EncoderModeLPTimer1 lptim1d;
-
+EncoderTIM1 tim1Cnt(EncoderMode::CH1_COUNTING);
 
 static THD_WORKING_AREA(waBlinker, 304);	
 [[noreturn]] static void  blinker (void *arg)	
@@ -24,12 +27,32 @@ static THD_WORKING_AREA(waBlinker, 304);
   }
 }
 
-
-static THD_WORKING_AREA(waLptim1, 304);	
-[[noreturn]] static void  lptim1 (void *arg)	
+static THD_WORKING_AREA(waTraceTim1, 304);	
+[[noreturn]] static void  traceTim1 (void *arg)	
 {
   (void)arg;					
-  chRegSetThreadName("lptim1");		
+  chRegSetThreadName("traceTim1Cnt");		
+  tim1Cnt.start();
+
+#ifndef TRACE_TIM1
+  chThdSleep(TIME_INFINITE);
+#endif
+
+  while (true) {				
+    auto [u, cnt] = tim1Cnt.getCnt();
+    if (u) {
+      DebugTrace("tim1 CNT = %u", cnt);
+    }
+    chThdSleepMilliseconds(1);		
+  }
+}
+
+
+static THD_WORKING_AREA(waTraceLptim1, 304);	
+[[noreturn]] static void  traceLptim1 (void *arg)	
+{
+  (void)arg;					
+  chRegSetThreadName("traceLptim1");		
   lptim1d.start();
   while (not lptim1d.zeroSetDone()) {
     chThdSleepMilliseconds(100);
@@ -38,11 +61,16 @@ static THD_WORKING_AREA(waLptim1, 304);
 
   palClearLine(LINE_NOT_ZEROED);
   uint8_t lastCode = 0xFF;
+
+#ifndef TRACE_LPTIM1
+  chThdSleep(TIME_INFINITE);
+#endif
   
   while (true) {				
     auto [u, cnt] = lptim1d.getCnt();
     if (u) {
-      const uint8_t angle = (cnt * 36 / 2048);
+      cnt = (cnt + angleOffset) % 2048;
+      const uint8_t angle = cnt >> 5;
       const uint8_t grayCode = binaryToGray(angle);
       if (lastCode != grayCode) {
 	lastCode = grayCode;
@@ -72,7 +100,8 @@ int main (void)
   initHeap();	
   consoleInit();
   chThdCreateStatic(waBlinker, sizeof(waBlinker), NORMALPRIO, &blinker, NULL);
-  chThdCreateStatic(waLptim1, sizeof(waLptim1), NORMALPRIO - 1, &lptim1, NULL);
+  chThdCreateStatic(waTraceTim1, sizeof(waTraceTim1), NORMALPRIO, &traceTim1, NULL);
+  chThdCreateStatic(waTraceLptim1, sizeof(waTraceLptim1), NORMALPRIO - 1, &traceLptim1, NULL);
 
   palEnableLineEvent(LINE_ENCODER_ZERO, PAL_EVENT_MODE_FALLING_EDGE);
   palSetLineCallback(LINE_ENCODER_ZERO,
