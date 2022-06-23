@@ -22,11 +22,11 @@ ifeq "$(GCCVERSIONGTEQ10)" "1"
     USE_CPPOPT = -Wno-volatile -Wno-error=deprecated-declarations
 endif
 
-ifeq ($(USE_OPT),)
-  USE_OPT =  -O0  -ggdb3  -Wall -Wextra \
-	    -falign-functions=16 -fomit-frame-pointer \
-	    $(GCC_DIAG) 
-endif
+# ifeq ($(USE_OPT),)
+#   USE_OPT =  -O0  -ggdb3  -Wall -Wextra \
+# 	    -falign-functions=16 -fomit-frame-pointer \
+# 	    $(GCC_DIAG) -DTRACE
+# endif
 
 ifeq ($(USE_OPT),)
   USE_OPT =  -Ofast  -flto  -Wall -Wextra \
@@ -45,7 +45,13 @@ ifeq ($(USE_OPT),)
   USE_OPT =  -Os -flto -Wall -Wextra \
 	    -falign-functions=16 -fomit-frame-pointer \
 	     $(GCC_DIAG)  \
-            --specs=nano.specs
+            --specs=nano.specs \
+            -DCH_DBG_STATISTICS=1 \
+            -DCH_DBG_SYSTEM_STATE_CHECK=0 -DCH_DBG_ENABLE_CHECKS=0 \
+            -DCH_DBG_ENABLE_ASSERTS=0 -DCH_DBG_ENABLE_STACK_CHECK=0 \
+            -DCH_DBG_FILL_THREADS=0 \
+            -DCH_CFG_ST_TIMEDELTA=2 -DCH_CFG_TIME_QUANTUM=0 \
+            -DNOSHELL
 endif
 
 
@@ -210,7 +216,7 @@ LD   = $(TRGT)g++
 
 # List all user C define here, like -D_DEBUG=1
 UDEFS = -DGIT_BRANCH="$(GIT_BRANCH)" -DGIT_TAG="$(GIT_TAG)" -DGIT_SHA="$(GIT_SHA)" \
-        -DBUILD="$(BUILD)" -DTRACE -DUSE_FULL_LL_DRIVER -DSTM32L432xx
+        -DBUILD="$(BUILD)" 
 
 # Define ASM defines here
 UADEFS =
