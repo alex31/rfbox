@@ -6,7 +6,8 @@
 #include "encoderTimer.hpp"	
 
 
-static constexpr uint16_t angleOffset = 10 * 2048 / 360;
+static constexpr float angleOffset = 5.0f;
+static constexpr uint16_t cntOffset = angleOffset * 2048 / 360;
 
 uint8_t binaryToGray(uint8_t num);
 uint8_t grayToBinary(uint8_t num);
@@ -20,7 +21,7 @@ static THD_WORKING_AREA(waBlinker, 304);
 {
   (void)arg;					
   chRegSetThreadName("blinker");		
-  
+
   while (true) {				
     palToggleLine(LINE_LED_GREEN);		
     chThdSleepMilliseconds(ledBlinkPeriod);		
@@ -34,7 +35,7 @@ static THD_WORKING_AREA(waTraceTim1, 304);
   chRegSetThreadName("traceTim1Cnt");		
   tim1Cnt.start();
 
-#ifndef TRACE_TIM1
+#ifdef NOSHELL
   chThdSleep(TIME_INFINITE);
 #endif
 
@@ -62,14 +63,10 @@ static THD_WORKING_AREA(waTraceLptim1, 304);
   palClearLine(LINE_NOT_ZEROED);
   uint8_t lastCode = 0xFF;
 
-#ifndef TRACE_LPTIM1
-  chThdSleep(TIME_INFINITE);
-#endif
-  
   while (true) {				
     auto [u, cnt] = lptim1d.getCnt();
     if (u) {
-      cnt = (cnt + angleOffset) % 2048;
+      cnt = (cnt + cntOffset) % 2048;
       const uint8_t angle = cnt >> 5;
       const uint8_t grayCode = binaryToGray(angle);
       if (lastCode != grayCode) {
@@ -77,16 +74,18 @@ static THD_WORKING_AREA(waTraceLptim1, 304);
 	uint8_t portGrayCode = grayCode << 2;
 	// dispatch 6 bits code on Port A : 1,3,4,5,6,7
 	(portGrayCode |= ((portGrayCode & 0b100) >> 1)) &= 0b11111010;
-	//	std::string binGray(binary_fmt(grayCode, 8));
-	//	std::string binPort(binary_fmt(portGrayCode, 8));
 	// atomic 6 bits gray code update
-	palWriteGroup(GPIOA, 0b11111010, 0, portGrayCode); 
-	// DebugTrace("lptim1 CNT = %u [%u] [g:0x%x -> 0x%x] {%s -> %s}",
-	// 	   cnt, angle, grayCode, portGrayCode,
-	// 	   binGray.c_str(), binPort.c_str());
+	palWriteGroup(GPIOA, 0b11111010, 0, portGrayCode);
+#ifndef NOSHELL
+	std::string binGray(binary_fmt(grayCode, 8));
+	std::string binPort(binary_fmt(portGrayCode, 8));
+	DebugTrace("lptim1 CNT = %u [%u] [g:0x%x -> 0x%x] {%s -> %s}",
+		   cnt, angle, grayCode, portGrayCode,
+		   binGray.c_str(), binPort.c_str());
+#endif
       }
     }
-    chThdSleepMilliseconds(1);
+    chThdSleepMicroseconds(100);
   }
 }
 
@@ -97,8 +96,11 @@ int main (void)
 
   halInit();
   chSysInit();
-  initHeap();	
+  initHeap();
+#ifndef NOSHELL
   consoleInit();
+#endif
+  
   chThdCreateStatic(waBlinker, sizeof(waBlinker), NORMALPRIO, &blinker, NULL);
   chThdCreateStatic(waTraceTim1, sizeof(waTraceTim1), NORMALPRIO, &traceTim1, NULL);
   chThdCreateStatic(waTraceLptim1, sizeof(waTraceLptim1), NORMALPRIO - 1, &traceLptim1, NULL);
@@ -110,8 +112,9 @@ int main (void)
 		     },
 		     NULL);
   
+#ifndef NOSHELL
   consoleLaunch(); 
-
+#endif
   
   chThdSleep(TIME_INFINITE);
 }
@@ -128,7 +131,8 @@ uint8_t grayToBinary(uint8_t num)
     uint8_t mask = num;
     while (mask) {           // Each Gray code bit is exclusive-ored with all more significant bits.
         mask >>= 1;
-        num   ^= mask;
+        num ^= mask;
     }
     return num;
 }
+

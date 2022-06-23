@@ -21,7 +21,7 @@ void EncoderTIM1::start(void)
     TIM1->CCMR1 = 0xC1;      // f_DTS/16, N=8, CC1S=01
     TIM1->CNT = 0;           // Initialize counter
     TIM1->EGR = 1;           // generate an update event
-    TIM1->DIER = STM32_TIM_DIER_UIE; // update generate event
+    TIM1->DIER = STM32_TIM_DIER_UIE; // update generate IRQ
     TIM1->CR1 = 1;           // Enable the counter
   }
 }

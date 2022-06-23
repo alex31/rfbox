@@ -18,7 +18,7 @@
 
 
 /*
- * Setup for STMicroelectronics STM32 Nucleo32-L432KC board.
+ * Setup for STMicroelectronics STM32 Nucleo32-L432KC board WITHOUT SB16 and SB18.
  */
 
 /*

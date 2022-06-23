@@ -29,17 +29,25 @@ ifeq ($(USE_OPT),)
 endif
 
 ifeq ($(USE_OPT),)
+  USE_OPT =  -Ofast  -flto  -Wall -Wextra \
+	    -falign-functions=16 -fomit-frame-pointer \
+	     $(GCC_DIAG)   \
+            --specs=nano.specs \
+            -DCH_DBG_STATISTICS=1 \
+            -DCH_DBG_SYSTEM_STATE_CHECK=0 -DCH_DBG_ENABLE_CHECKS=0 \
+            -DCH_DBG_ENABLE_ASSERTS=0 -DCH_DBG_ENABLE_STACK_CHECK=0 \
+            -DCH_DBG_FILL_THREADS=0 \
+            -DCH_CFG_ST_TIMEDELTA=2 -DCH_CFG_TIME_QUANTUM=0 \
+            -DNOSHELL
+endif
+
+ifeq ($(USE_OPT),)
   USE_OPT =  -Os -flto -Wall -Wextra \
 	    -falign-functions=16 -fomit-frame-pointer \
 	     $(GCC_DIAG)  \
             --specs=nano.specs
 endif
-ifeq ($(USE_OPT),)
-  USE_OPT =  -Ofast  -flto  -Wall -Wextra \
-	    -falign-functions=16 -fomit-frame-pointer \
-	     $(GCC_DIAG)   \
-            --specs=nano.specs
-endif
+
 
 
 # C specific options here (added to USE_OPT).
