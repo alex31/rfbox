@@ -9,12 +9,14 @@ enum class EncoderMode {QUADRATURE, CH1_COUNTING};
 
 class EncoderTIM1 {
 public:
+  static volatile rtcnt_t diff_ts;
   EncoderTIM1(EncoderMode mode = EncoderMode::QUADRATURE) :
     encMode(mode) {}
   std::pair<bool, uint16_t> getCnt(void) {
     return {cntIsUpdated(), TIM1->CNT};
   }
   void start(void);
+  rtcnt_t getPulseTime(void) {return diff_ts;}
 private:
   void rccEnable(void);
   bool cntIsUpdated(void);

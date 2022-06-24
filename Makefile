@@ -22,11 +22,11 @@ ifeq "$(GCCVERSIONGTEQ10)" "1"
     USE_CPPOPT = -Wno-volatile -Wno-error=deprecated-declarations
 endif
 
-# ifeq ($(USE_OPT),)
-#   USE_OPT =  -O0  -ggdb3  -Wall -Wextra \
-# 	    -falign-functions=16 -fomit-frame-pointer \
-# 	    $(GCC_DIAG) -DTRACE
-# endif
+ifeq ($(USE_OPT),)
+  USE_OPT =  -O0  -ggdb3  -Wall -Wextra \
+        -falign-functions=16 -fomit-frame-pointer \
+         $(GCC_DIAG) -DTRACE
+endif
 
 ifeq ($(USE_OPT),)
   USE_OPT =  -Ofast  -flto  -Wall -Wextra \
@@ -153,8 +153,8 @@ DEPDIR   := ./.dep
 DRIVER_SRC := ./CubeMx/Drivers/STM32L4xx_HAL_Driver/Src
 VARIOUS = $(RELATIVE)/COMMON/various
 USBD_LIB = $(VARIOUS)/Chibios-USB-Devices
-ETL_LIB = ../../../../etl/include
-
+ETL_LIB = := ../../../../etl/include
+SSD1306DIR := $(CONFDIR)/GFXfonts
 # Licensing files.
 include $(CHIBIOS)/os/license/license.mk
 # Startup files.
@@ -198,7 +198,7 @@ ASMXSRC = $(ALLXASMSRC)
 
 # Inclusion directories.
 INCDIR = $(CONFDIR) $(ALLINC) $(VARIOUS) \
-         $(USBD_LIB) $(ETL_LIB) 
+         $(USBD_LIB) $(ETL_LIB) $(SSD1306DIR)
 
 # Define C warning options here.
 CWARN = -Wall -Wextra -Wundef -Wstrict-prototypes

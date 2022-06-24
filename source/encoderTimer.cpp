@@ -1,5 +1,9 @@
 #include "encoderTimer.hpp"
 #include <algorithm>
+#include  <utility>
+
+volatile rtcnt_t EncoderTIM1::diff_ts = 0;
+
 void EncoderTIM1::start(void)
 {
   rccEnable();
@@ -43,12 +47,15 @@ void EncoderTIM1::rccEnable(void)
 
 // when update is done after CNT reach ARR, this ISR is called
 // poor man frequency diviser ...
-CH_FAST_IRQ_HANDLER(STM32_TIM1_UP_TIM16_HANDLER) {
+CH_FAST_IRQ_HANDLER(STM32_TIM1_UP_TIM16_HANDLER) { 
+  static rtcnt_t last_ts = 0;
   uint32_t sr = TIM1->SR;
   sr &= (TIM1->DIER & STM32_TIM_DIER_IRQ_MASK);
   TIM1->SR = ~sr;
-  
   palToggleLine(LINE_WIND_SPEED_OUT);
+  const rtcnt_t now = chSysGetRealtimeCounterX();
+  EncoderTIM1::diff_ts = now - last_ts;
+  last_ts = now;
 }
 
 void EncoderModeLPTimer1::stop(void)
