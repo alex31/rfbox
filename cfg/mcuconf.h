@@ -271,5 +271,5 @@
 #define CH_HEAP_USE_TLSF 0 // if 0 or undef, chAlloc will be used
 #define CONSOLE_DEV_SD SD2
 #define CONSOLE_DEV_USB 0
-
+//#define CHPRINTF_USE_STDLIB true
 #endif /* MCUCONF_H */

@@ -1,8 +1,12 @@
 #include "encoderTimer.hpp"
+#include <ch.h>
+#include <hal.h>
 #include <algorithm>
 #include  <utility>
 
+
 volatile rtcnt_t EncoderTIM1::diff_ts = 0;
+virtual_timer_t EncoderTIM1::vt;
 
 void EncoderTIM1::start(void)
 {
@@ -42,12 +46,12 @@ void EncoderTIM1::rccEnable(void)
 {
   rccEnableTIM1(true);
   rccResetTIM1();
-  nvicEnableVector(STM32_TIM1_UP_TIM16_NUMBER, 1);
+  nvicEnableVector(STM32_TIM1_UP_TIM16_NUMBER, 4);
 };
 
 // when update is done after CNT reach ARR, this ISR is called
 // poor man frequency diviser ...
-CH_FAST_IRQ_HANDLER(STM32_TIM1_UP_TIM16_HANDLER) { 
+CH_IRQ_HANDLER(STM32_TIM1_UP_TIM16_HANDLER) {
   static rtcnt_t last_ts = 0;
   uint32_t sr = TIM1->SR;
   sr &= (TIM1->DIER & STM32_TIM_DIER_IRQ_MASK);
@@ -56,6 +60,13 @@ CH_FAST_IRQ_HANDLER(STM32_TIM1_UP_TIM16_HANDLER) {
   const rtcnt_t now = chSysGetRealtimeCounterX();
   EncoderTIM1::diff_ts = now - last_ts;
   last_ts = now;
+  chSysLockFromISR();
+  chVTResetI(&EncoderTIM1::vt);
+  chVTSetI(&EncoderTIM1::vt, TIME_S2I(1),
+	   [] (virtual_timer_t *, void *) {
+	     EncoderTIM1::diff_ts = 0;
+	  }, nullptr);
+  chSysUnlockFromISR();
 }
 
 void EncoderModeLPTimer1::stop(void)

@@ -17,7 +17,7 @@ namespace {
     .cr2 = 0 // Only the ADD10 bit can eventually be specified here (10-bit addressing mode)
   } ;
 
-  const GFXfont font = Lato_Heavy_14;
+  const GFXfont font = Lato_Heavy_18;
 
   THD_WORKING_AREA(waOledDisplay, 1024);	
   [[noreturn]] static void  oledDisplay (void *arg);	
@@ -44,19 +44,21 @@ namespace {
       ssd1306_MoveCursor(0, 25);
       ssd1306_Fill(BLACK);
       ssd1306_WriteFmt(font, WHITE, "CALIBRATE");
+      ssd1306_UpdateScreen();
       chThdSleepMilliseconds(500);
 
       ssd1306_MoveCursor(0, 16);
       ssd1306_Fill(WHITE);
       ssd1306_WriteFmt(font, BLACK, "Rotate");
-      ssd1306_MoveCursor(0, 16);
+      ssd1306_MoveCursor(0, 40);
       ssd1306_WriteFmt(font, BLACK, "Arrow");
+      ssd1306_UpdateScreen();
       chThdSleepMilliseconds(500);
     } while (not airDirectionIsCalibrated());
     
     while (true) {
       displayAirData();
-      chThdSleepMilliseconds(500);
+      chThdSleepMilliseconds(100);
     }
   }
   
@@ -65,13 +67,19 @@ namespace {
   {
     static int16_t hearbeatPos = 10;
     static int16_t hearbeatInc = 5;
-    
-    ssd1306_Fill(BLACK);
-    ssd1306_MoveCursor(0, 14);
-    ssd1306_WriteFmt(font, WHITE, "S=%.2f", getWindSpeed());
-    ssd1306_MoveCursor(0, 28);
-    ssd1306_WriteFmt(font, WHITE, "D=%u", getAngle() * 360U / 64U);
+    static uint32_t count = 0;
+
+    if (++count == 5) {
+      count = 0;
+      ssd1306_Fill(BLACK);
+      ssd1306_MoveCursor(0, 16);
+      ssd1306_WriteFmt(font, WHITE, "S= %04.1f m/s", getWindSpeed());
+      ssd1306_MoveCursor(0, 40);
+      ssd1306_WriteFmt(font, WHITE, "D= %03u deg", getAngle() * 360U / 64U);
+    }
+    ssd1306_DrawLine(0, 60, 127, 60, BLACK);
     ssd1306_DrawLine(hearbeatPos, 60, hearbeatPos + 20, 60, WHITE);
+    ssd1306_UpdateScreen();
     if ((hearbeatPos > 100) or (hearbeatPos < 10)) {
       hearbeatInc = -hearbeatInc;
     }

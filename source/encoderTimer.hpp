@@ -17,6 +17,7 @@ public:
   }
   void start(void);
   rtcnt_t getPulseTime(void) {return diff_ts;}
+  static virtual_timer_t vt;
 private:
   void rccEnable(void);
   bool cntIsUpdated(void);

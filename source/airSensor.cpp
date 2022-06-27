@@ -11,7 +11,7 @@ namespace {
   uint8_t binaryToGray(uint8_t num);
   uint8_t grayToBinary(uint8_t num);
 
-  constexpr float angleOffset = 5.0f;
+  constexpr float angleOffset = 146.0f;
   constexpr uint16_t cntOffset = angleOffset * 2048 / 360;
   volatile float currentSpeed = 0.0f;
   volatile uint32_t ledBlinkPeriod = 1000;
@@ -53,18 +53,24 @@ static THD_WORKING_AREA(waWindSpeed, 304);
     distance entre deux fronts en mètres : (0.05 * 0.5) / 8
     4563042
   */
+  
   while(true) {
     static constexpr float radius = 0.05f;
     static constexpr float correctiveFactor = 5.0f;
     static constexpr float edgeByRotation = 8.0f;
 
-    const float pulseDurationSecond = RTC2US(STM32_SYSCLK, tim1Cnt.getPulseTime()) / 1e6;
-    const float rps = 1.0 / (edgeByRotation * pulseDurationSecond);
-    currentSpeed = 2 * 3.14f * radius * correctiveFactor * rps;
+    const rtcnt_t pt =  tim1Cnt.getPulseTime();
+    if (pt != 0)  {
+      const float pulseDurationSecond = RTC2US(STM32_SYSCLK, pt) / 1e6;
+      const float rps = 1.0 / (edgeByRotation * pulseDurationSecond);
+      currentSpeed = 2 * 3.14f * radius * correctiveFactor * rps;
+    } else {
+      currentSpeed = 0;
+    }
 
     
     DebugTrace("windSpeed = [%lu] {%2.f} %.2f m/s",
-	       tim1Cnt.getPulseTime(), rps, currentSpeed);
+	       pt, rps, currentSpeed);
     chThdSleepMilliseconds(100);
   }
 }
