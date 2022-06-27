@@ -58,7 +58,7 @@ namespace {
     
     while (true) {
       displayAirData();
-      chThdSleepMilliseconds(100);
+      chThdSleepMilliseconds(50);
     }
   }
   

@@ -71,7 +71,7 @@ static THD_WORKING_AREA(waWindSpeed, 304);
     
     DebugTrace("windSpeed = [%lu] {%2.f} %.2f m/s",
 	       pt, rps, currentSpeed);
-    chThdSleepMilliseconds(100);
+    chThdSleepMilliseconds(50);
   }
 }
 
@@ -82,12 +82,6 @@ static THD_WORKING_AREA(waTraceLptim1, 304);
   (void)arg;					
   chRegSetThreadName("traceLptim1");		
   lptim1d.start();
-  while (not lptim1d.zeroSetDone()) {
-    chThdSleepMilliseconds(100);
-    palToggleLine(LINE_NOT_ZEROED);
-  }
-
-  palClearLine(LINE_NOT_ZEROED);
 
   auto cb =  [] (void *) {
     static uint8_t lastCode = 0xFF;
