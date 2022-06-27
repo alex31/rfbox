@@ -1,5 +1,15 @@
 #pragma once
 #include "ch.h"
+
+
+#ifdef __cplusplus
+extern "C" {
+#endif
+
+  
+
+
+
 #include "ssd1306_fonts.h"
 #include "ssd1306_conf.h"
 
@@ -48,7 +58,8 @@ void ssd1306_SetContrast(const uint8_t value); // Contrast increases as value in
  *     +-+-+-+-+
  */
 void ssd1306_WriteChar(uint8_t character, const GFXfont font, SSD1306Color color);
-void ssd1306_WriteString(char* str, const GFXfont font, SSD1306Color color);
+void ssd1306_WriteString(const char* str, const GFXfont font, SSD1306Color color);
+void ssd1306_WriteFmt(const GFXfont font, SSD1306Color color, const char *fmt, ...);
 
 /***
  *     +-+-+-+-+-+-+-+-+
@@ -64,3 +75,6 @@ void ssd1306_DrawPolyline(const SSD1306Pixel *vertexTable, uint16_t size, SSD130
 void ssd1306_DrawRectangle(uint8_t x1, uint8_t y1, uint8_t x2, uint8_t y2, SSD1306Color color);
 void ssd1306_DrawBitmap(uint8_t x, uint8_t y, const unsigned char* bitmap, uint8_t w, uint8_t h, SSD1306Color color);
 
+#ifdef __cplusplus
+}
+#endif

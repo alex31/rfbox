@@ -353,7 +353,7 @@ void ssd1306_WriteChar(uint8_t character, const GFXfont font, SSD1306Color color
  *     +-+-+-+-+-+-+-+-+ +-+-+-+-+-+-+
  */
 // Write full string to screenbuffer
-void ssd1306_WriteString(char* str, const GFXfont font, SSD1306Color color) {
+void ssd1306_WriteString(const char* str, const GFXfont font, SSD1306Color color) {
 
     while (*str) // Write until null-byte
     {
@@ -363,6 +363,21 @@ void ssd1306_WriteString(char* str, const GFXfont font, SSD1306Color color) {
 }
 
 /***
+ *     +-+-+-+-+-+-+-+-+ +-+-+-+-+-+-+
+ *     |E|c|r|i|t|u|r|e| |c|h|a|i|n|e|
+ *     +-+-+-+-+-+-+-+-+ +-+-+-+-+-+-+
+ */
+// Write full string with printf formating to screenbuffer
+void ssd1306_WriteFmt(const GFXfont font, SSD1306Color color, const char *fmt, ...)
+{
+   char buffer[40];
+   va_list ap;
+   va_start(ap, fmt);
+   chvsnprintf(buffer, sizeof(buffer), fmt, ap);
+   va_end(ap);
+   ssd1306_WriteString(buffer, font, color);
+}
+/***
  *     +-+-+-+-+-+-+-+ +-+-+-+-+-+-+-+
  *     |D|e|p|l|a|c|e| |C|u|r|s|e|u|r|
  *     +-+-+-+-+-+-+-+ +-+-+-+-+-+-+-+
@@ -370,8 +385,8 @@ void ssd1306_WriteString(char* str, const GFXfont font, SSD1306Color color) {
 // Move cursor
 void ssd1306_MoveCursor(uint8_t x, uint8_t y)
 {
-	cursor.x = x;
-    cursor.y = y;
+  cursor.x = x;
+  cursor.y = y;
 }
 
 /***

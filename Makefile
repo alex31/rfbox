@@ -23,13 +23,13 @@ ifeq "$(GCCVERSIONGTEQ10)" "1"
 endif
 
 ifeq ($(USE_OPT),)
-  USE_OPT =  -O0  -ggdb3  -Wall -Wextra \
-        -falign-functions=16 -fomit-frame-pointer \
-         $(GCC_DIAG) -DTRACE
+  USE_OPT =  -Og  -ggdb3 -Wall -Wextra \
+         -falign-functions=16 -fomit-frame-pointer \
+          $(GCC_DIAG) -DTRACE
 endif
 
 ifeq ($(USE_OPT),)
-  USE_OPT =  -Ofast  -flto  -Wall -Wextra \
+  USE_OPT =  -Os  -flto  -Wall -Wextra \
 	    -falign-functions=16 -fomit-frame-pointer \
 	     $(GCC_DIAG)   \
             --specs=nano.specs \
@@ -42,7 +42,7 @@ ifeq ($(USE_OPT),)
 endif
 
 ifeq ($(USE_OPT),)
-  USE_OPT =  -Os -flto -Wall -Wextra \
+  USE_OPT =  -Ofast -flto -Wall -Wextra \
 	    -falign-functions=16 -fomit-frame-pointer \
 	     $(GCC_DIAG)  \
             --specs=nano.specs \
@@ -58,7 +58,7 @@ endif
 
 # C specific options here (added to USE_OPT).
 ifeq ($(USE_COPT),)
-  USE_COPT = -std=gnu11  -Wunsuffixed-float-constants -Wstrict-prototypes 
+  USE_COPT = -std=gnu11  -Wunsuffixed-float-constants -Wstrict-prototypes
 endif
 
 # C++ specific options here (added to USE_OPT).

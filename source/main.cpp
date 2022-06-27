@@ -3,10 +3,8 @@
 #include <string>
 #include "stdutil.h"	
 #include "ttyConsole.hpp"	
-#include "encoderTimer.hpp"	
 #include "airSensor.hpp"	
-
-volatile uint32_t ledBlinkPeriod = 1000;
+#include "oledDisplay.hpp"
 
 static THD_WORKING_AREA(waBlinker, 304);	
 [[noreturn]] static void  blinker (void *arg)	
@@ -16,7 +14,7 @@ static THD_WORKING_AREA(waBlinker, 304);
 
   while (true) {				
     palToggleLine(LINE_LED_GREEN);		
-    chThdSleepMilliseconds(ledBlinkPeriod);		
+    chThdSleepMilliseconds(1000);		
   }
 }
 
@@ -37,6 +35,7 @@ int main (void)
   consoleLaunch(); 
 #endif
   airSensorStart();
+  oledStart();
   chThdSleep(TIME_INFINITE);
 }
 

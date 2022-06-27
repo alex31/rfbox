@@ -13,7 +13,7 @@ namespace {
 
   constexpr float angleOffset = 5.0f;
   constexpr uint16_t cntOffset = angleOffset * 2048 / 360;
-  float currentSpeed = 0.0f;
+  volatile float currentSpeed = 0.0f;
   volatile uint32_t ledBlinkPeriod = 1000;
   EncoderModeLPTimer1 lptim1d;
   EncoderTIM1 tim1Cnt(EncoderMode::CH1_COUNTING);
@@ -60,11 +60,11 @@ static THD_WORKING_AREA(waWindSpeed, 304);
 
     const float pulseDurationSecond = RTC2US(STM32_SYSCLK, tim1Cnt.getPulseTime()) / 1e6;
     const float rps = 1.0 / (edgeByRotation * pulseDurationSecond);
-    const float airSpeed = 2 * 3.14f * radius * correctiveFactor * rps;
+    currentSpeed = 2 * 3.14f * radius * correctiveFactor * rps;
 
     
     DebugTrace("windSpeed = [%lu] {%2.f} %.2f m/s",
-	       tim1Cnt.getPulseTime(), rps, airSpeed);
+	       tim1Cnt.getPulseTime(), rps, currentSpeed);
     chThdSleepMilliseconds(100);
   }
 }
@@ -158,6 +158,11 @@ float getWindSpeed (void)
   return currentSpeed;
 }
 
+
+bool airDirectionIsCalibrated(void)
+{
+  return lptim1d.zeroSetDone();
+}
 
 namespace {
   uint8_t binaryToGray(uint8_t num)
