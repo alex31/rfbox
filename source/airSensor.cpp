@@ -60,17 +60,18 @@ static THD_WORKING_AREA(waWindSpeed, 304);
     static constexpr float edgeByRotation = 8.0f;
 
     const rtcnt_t pt =  tim1Cnt.getPulseTime();
+    float rps = 0;
     if (pt != 0)  {
       const float pulseDurationSecond = RTC2US(STM32_SYSCLK, pt) / 1e6;
-      const float rps = 1.0 / (edgeByRotation * pulseDurationSecond);
+      rps = 1.0 / (edgeByRotation * pulseDurationSecond);
       currentSpeed = 2 * 3.14f * radius * correctiveFactor * rps;
     } else {
       currentSpeed = 0;
     }
 
     
-    DebugTrace("windSpeed = [%lu] {%2.f} %.2f m/s",
-	       pt, rps, currentSpeed);
+    //    DebugTrace("windSpeed = [%lu] {%2.f} %.2f m/s",
+    //	       pt, rps, currentSpeed);
     chThdSleepMilliseconds(50);
   }
 }

@@ -60,6 +60,7 @@ CH_IRQ_HANDLER(STM32_TIM1_UP_TIM16_HANDLER) {
   const rtcnt_t now = chSysGetRealtimeCounterX();
   EncoderTIM1::diff_ts = now - last_ts;
   last_ts = now;
+  OSAL_IRQ_PROLOGUE();
   chSysLockFromISR();
   chVTResetI(&EncoderTIM1::vt);
   chVTSetI(&EncoderTIM1::vt, TIME_S2I(1),
@@ -67,6 +68,7 @@ CH_IRQ_HANDLER(STM32_TIM1_UP_TIM16_HANDLER) {
 	     EncoderTIM1::diff_ts = 0;
 	  }, nullptr);
   chSysUnlockFromISR();
+  OSAL_IRQ_EPILOGUE();
 }
 
 void EncoderModeLPTimer1::stop(void)
