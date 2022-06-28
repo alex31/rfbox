@@ -10,8 +10,8 @@
 namespace {
   void displayAirData(void);
   constexpr uint32_t  I2C_FAST_400KHZ_DNF3_R30NS_F30NS_PCLK80MHZ_TIMINGR = 0x00A02689;
-  uint32_t stm32_cr1_dnf(uint8_t n)  {return ((n & 0x0f) << 8);}
-  static const I2CConfig i2ccfg_400 = {
+  constexpr uint32_t stm32_cr1_dnf(uint8_t n)  {return ((n & 0x0f) << 8);}
+  static constexpr I2CConfig i2ccfg_400 = {
     .timingr = I2C_FAST_400KHZ_DNF3_R30NS_F30NS_PCLK80MHZ_TIMINGR, // Refer to the STM32L4 reference manual
     .cr1 =  stm32_cr1_dnf(3U), // Digital noise filter disabled (timingr should be aware of that)
     .cr2 = 0 // Only the ADD10 bit can eventually be specified here (10-bit addressing mode)
@@ -21,14 +21,12 @@ namespace {
 
   THD_WORKING_AREA(waOledDisplay, 1024);	
   [[noreturn]] static void  oledDisplay (void *arg);	
- 
 }
-
 
 
 void oledStart(void)
 {
-  chThdCreateStatic(waOledDisplay, sizeof(waOledDisplay), NORMALPRIO, &oledDisplay, NULL);
+  chThdCreateStatic(waOledDisplay, sizeof(waOledDisplay), NORMALPRIO, &oledDisplay, nullptr);
 }
 
 

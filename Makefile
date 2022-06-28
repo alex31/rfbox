@@ -33,7 +33,7 @@ ifeq ($(USE_OPT),)
 	    -falign-functions=16 -fomit-frame-pointer \
 	     $(GCC_DIAG)   \
             --specs=nano.specs \
-            -DCH_DBG_STATISTICS=1 \
+            -DCH_DBG_STATISTICS=0 \
             -DCH_DBG_SYSTEM_STATE_CHECK=0 -DCH_DBG_ENABLE_CHECKS=0 \
             -DCH_DBG_ENABLE_ASSERTS=0 -DCH_DBG_ENABLE_STACK_CHECK=0 \
             -DCH_DBG_FILL_THREADS=0 \

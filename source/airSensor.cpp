@@ -21,26 +21,6 @@ namespace {
 
 
 
-static THD_WORKING_AREA(waTraceTim1, 304);	
-[[noreturn]] static void  traceTim1 (void *arg)	
-{
-  (void)arg;					
-  chRegSetThreadName("traceTim1Cnt");		
-  tim1Cnt.start();
-
-#ifdef NOSHELL
-  chThdSleep(TIME_INFINITE);
-#endif
-  chThdSleep(TIME_INFINITE);
-  while (true) {				
-    auto [u, cnt] = tim1Cnt.getCnt();
-    if (u) {
-      DebugTrace("tim1 CNT = %u", cnt);
-    }
-    chThdSleepMilliseconds(1);		
-  }
-}
-
 static THD_WORKING_AREA(waWindSpeed, 304);	
 [[noreturn]] static void  windSpeed (void *arg)	
 {
@@ -101,11 +81,12 @@ static THD_WORKING_AREA(waTraceLptim1, 304);
   };
 
   palEnableLineEvent(LINE_WIND_DIR_CHA_IT, PAL_EVENT_MODE_FALLING_EDGE);
-  palSetLineCallback(LINE_WIND_DIR_CHA_IT, cb, NULL);
+  palSetLineCallback(LINE_WIND_DIR_CHA_IT, cb, nullptr);
   
 #ifdef NOSHELL
   chThdSleep(TIME_INFINITE);
-#endif
+  while (true) {};
+#else
 
   uint8_t lastCode = 0xFF;
   while (true) {				
@@ -127,22 +108,23 @@ static THD_WORKING_AREA(waTraceLptim1, 304);
     }
     chThdSleepMilliseconds(100);
   }
+#endif
 }
 
 
 
 void airSensorStart (void)
 {
-  chThdCreateStatic(waTraceTim1, sizeof(waTraceTim1), NORMALPRIO, &traceTim1, NULL);
-  chThdCreateStatic(waWindSpeed, sizeof(waWindSpeed), NORMALPRIO, &windSpeed, NULL);
-  chThdCreateStatic(waTraceLptim1, sizeof(waTraceLptim1), NORMALPRIO - 1, &traceLptim1, NULL);
+  tim1Cnt.start();
+  chThdCreateStatic(waWindSpeed, sizeof(waWindSpeed), NORMALPRIO, &windSpeed, nullptr);
+  chThdCreateStatic(waTraceLptim1, sizeof(waTraceLptim1), NORMALPRIO, &traceLptim1, nullptr);
 
   palEnableLineEvent(LINE_ENCODER_ZERO, PAL_EVENT_MODE_FALLING_EDGE);
   palSetLineCallback(LINE_ENCODER_ZERO,
 		     [] (void *) {
 		       lptim1d.reset();
 		     },
-		     NULL);
+		     nullptr);
 }
 
 
