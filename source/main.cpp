@@ -4,6 +4,7 @@
 #include "ttyConsole.hpp"	
 #include "airSensor.hpp"	
 #include "oledDisplay.hpp"
+#include "windTestMode.hpp"
 
 int main (void)
 {
@@ -18,12 +19,11 @@ int main (void)
 #endif
   
   airSensorStart();
+  windTestStart();
   oledStart();
 
-  while (true) {				
-    palToggleLine(LINE_LED_GREEN);		
-    chThdSleepMilliseconds(1000);		
-  }
+  chThdSleep(TIME_INFINITE);
+  while(true) {};
 }
 
 
