@@ -39,17 +39,17 @@ static THD_WORKING_AREA(waWindTestMode, 304);
 {
   (void)arg;					
   chRegSetThreadName("windTestMode");
-  palEnableLineEvent(LINE_BUTTON_WINDTEST, PAL_EVENT_MODE_BOTH_EDGES);
+  palEnableLineEvent(LINE_BUTTON_TEST, PAL_EVENT_MODE_BOTH_EDGES);
   while(true) {
-    palWaitLineTimeout(LINE_BUTTON_WINDTEST, TIME_INFINITE);
-    uint32_t nlevel = palReadLine(LINE_BUTTON_WINDTEST);
+    palWaitLineTimeout(LINE_BUTTON_TEST, TIME_INFINITE);
+    uint32_t nlevel = palReadLine(LINE_BUTTON_TEST);
     uint32_t level;
 
     // anti bouncing
     do {
       chThdSleepMilliseconds(20);
       level = nlevel;
-      nlevel = palReadLine(LINE_BUTTON_WINDTEST);
+      nlevel = palReadLine(LINE_BUTTON_TEST);
     } while (nlevel != level);
     
     if (level == PAL_LOW)
@@ -103,7 +103,7 @@ namespace {
       pwmEnableChannel(&PWMD2, 1, newPeriod / 2);
     }
     
-    palSetLineMode(LINE_WIND_SPEED_OUT, PAL_MODE_ALTERNATE(WIND_SPEED_OUT_TIM_AF));
+    palSetLineMode(LINE_WS_OUT, PAL_MODE_ALTERNATE(WS_OUT_TIM_AF));
     testWindSpeed = currentSpeed;
     testMode = true;
   }
@@ -112,7 +112,7 @@ namespace {
   void leaveTestMode(void)
   {
     pwmDisableChannel(&PWMD2, 1);
-    palSetLineMode(LINE_WIND_SPEED_OUT, PAL_MODE_OUTPUT_PUSHPULL);
+    palSetLineMode(LINE_WS_OUT, PAL_MODE_OUTPUT_PUSHPULL);
     testMode = false;
   }
 }

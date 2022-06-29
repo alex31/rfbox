@@ -31,7 +31,6 @@ static THD_WORKING_AREA(waWindSpeed, 304);
     rendement :  50%
     8 fronts par tour
     distance entre deux fronts en mètres : (0.05 * 0.5) / 8
-    4563042
   */
   
   while(true) {
@@ -80,8 +79,8 @@ static THD_WORKING_AREA(waTraceLptim1, 304);
     }
   };
 
-  palEnableLineEvent(LINE_WIND_DIR_CHA_IT, PAL_EVENT_MODE_FALLING_EDGE);
-  palSetLineCallback(LINE_WIND_DIR_CHA_IT, cb, nullptr);
+  palEnableLineEvent(LINE_WD_INA_IT, PAL_EVENT_MODE_FALLING_EDGE);
+  palSetLineCallback(LINE_WD_INA_IT, cb, nullptr);
   
 #ifdef NOSHELL
   chThdSleep(TIME_INFINITE);
@@ -119,8 +118,8 @@ void airSensorStart (void)
   chThdCreateStatic(waWindSpeed, sizeof(waWindSpeed), NORMALPRIO, &windSpeed, nullptr);
   chThdCreateStatic(waTraceLptim1, sizeof(waTraceLptim1), NORMALPRIO, &traceLptim1, nullptr);
 
-  palEnableLineEvent(LINE_ENCODER_ZERO, PAL_EVENT_MODE_FALLING_EDGE);
-  palSetLineCallback(LINE_ENCODER_ZERO,
+  palEnableLineEvent(LINE_WD_INZ, PAL_EVENT_MODE_FALLING_EDGE);
+  palSetLineCallback(LINE_WD_INZ,
 		     [] (void *) {
 		       lptim1d.reset();
 		     },

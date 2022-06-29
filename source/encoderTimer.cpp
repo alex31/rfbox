@@ -56,7 +56,7 @@ CH_IRQ_HANDLER(STM32_TIM1_UP_TIM16_HANDLER) {
   uint32_t sr = TIM1->SR;
   sr &= (TIM1->DIER & STM32_TIM_DIER_IRQ_MASK);
   TIM1->SR = ~sr;
-  palToggleLine(LINE_WIND_SPEED_OUT);
+  palToggleLine(LINE_WS_OUT);
   const rtcnt_t now = chSysGetRealtimeCounterX();
   EncoderTIM1::diff_ts = now - last_ts;
   last_ts = now;
