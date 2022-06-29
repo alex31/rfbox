@@ -57,7 +57,7 @@ namespace {
     
     while (true) {
       displayAirData();
-      chThdSleepMilliseconds(50);
+      chThdSleepMilliseconds(20);
     }
   }
   
@@ -65,12 +65,12 @@ namespace {
   void displayAirData(void) 
   {
     static int16_t hearbeatPos = 10;
-    static int16_t hearbeatInc = 5;
+    static int16_t hearbeatInc = 2;
     static uint32_t count = 0;
     //    auto [bg, fg] = isInWindTestMode() ? {BLACK, WHITE} : {WHITE, BLACK}
-    auto [bg, fg] =   isInWindTestMode() ? std::pair(WHITE, BLACK) : std::pair(BLACK, WHITE);
+    const auto [bg, fg] =   isInWindTestMode() ? std::pair(WHITE, BLACK) : std::pair(BLACK, WHITE);
 
-    if (++count == 5) {
+    if (++count == 10) {
       count = 0;
       ssd1306_Fill(bg);
       ssd1306_MoveCursor(0, 16);

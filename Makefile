@@ -18,15 +18,14 @@ GCC_DIAG =  -Werror -Wno-error=unused-variable -Wno-error=format \
             -Wformat-overflow=2
 
 ifeq "$(GCCVERSIONGTEQ10)" "1"
-#    GCC_DIAG = -Wno-error=volatile 
     USE_CPPOPT = -Wno-volatile -Wno-error=deprecated-declarations
 endif
 
-ifeq ($(USE_OPT),)
-  USE_OPT =  -Og  -ggdb3 -Wall -Wextra \
-         -falign-functions=16 -fomit-frame-pointer \
-          $(GCC_DIAG) -DTRACE
-endif
+# ifeq ($(USE_OPT),)
+#   USE_OPT =  -Og  -ggdb3 -Wall -Wextra \
+#          -falign-functions=16 -fomit-frame-pointer \
+#           $(GCC_DIAG) -DTRACE
+# endif
 
 ifeq ($(USE_OPT),)
   USE_OPT =  -Os  -flto  -Wall -Wextra \
@@ -37,23 +36,8 @@ ifeq ($(USE_OPT),)
             -DCH_DBG_SYSTEM_STATE_CHECK=0 -DCH_DBG_ENABLE_CHECKS=0 \
             -DCH_DBG_ENABLE_ASSERTS=0 -DCH_DBG_ENABLE_STACK_CHECK=0 \
             -DCH_DBG_FILL_THREADS=0 \
-            -DCH_CFG_ST_TIMEDELTA=2 -DCH_CFG_TIME_QUANTUM=0 \
             -DNOSHELL
 endif
-
-ifeq ($(USE_OPT),)
-  USE_OPT =  -Ofast -flto -Wall -Wextra \
-	    -falign-functions=16 -fomit-frame-pointer \
-	     $(GCC_DIAG)  \
-            --specs=nano.specs \
-            -DCH_DBG_STATISTICS=1 \
-            -DCH_DBG_SYSTEM_STATE_CHECK=0 -DCH_DBG_ENABLE_CHECKS=0 \
-            -DCH_DBG_ENABLE_ASSERTS=0 -DCH_DBG_ENABLE_STACK_CHECK=0 \
-            -DCH_DBG_FILL_THREADS=0 \
-            -DCH_CFG_ST_TIMEDELTA=2 -DCH_CFG_TIME_QUANTUM=0 \
-            -DNOSHELL
-endif
-
 
 
 # C specific options here (added to USE_OPT).
@@ -78,7 +62,7 @@ endif
 
 # Enable this if you want link time optimizations (LTO)
 ifeq ($(USE_LTO),)
-  USE_LTO = no
+  USE_LTO = yes
 endif
 
 

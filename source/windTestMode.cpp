@@ -42,16 +42,16 @@ static THD_WORKING_AREA(waWindTestMode, 304);
   palEnableLineEvent(LINE_BUTTON_WINDTEST, PAL_EVENT_MODE_BOTH_EDGES);
   while(true) {
     palWaitLineTimeout(LINE_BUTTON_WINDTEST, TIME_INFINITE);
-    uint32_t level = palReadLine(LINE_BUTTON_WINDTEST);
-    uint32_t nlevel = level; 
+    uint32_t nlevel = palReadLine(LINE_BUTTON_WINDTEST);
+    uint32_t level;
+
+    // anti bouncing
     do {
       chThdSleepMilliseconds(20);
       level = nlevel;
       nlevel = palReadLine(LINE_BUTTON_WINDTEST);
     } while (nlevel != level);
     
-    DebugTrace("level = %lu %lu", level, palReadLine(LINE_BUTTON_WINDTEST));
-
     if (level == PAL_LOW)
       enterTestMode();
     else
@@ -79,7 +79,6 @@ float getTestWindSpeed(void)
 namespace {
   void enterTestMode(void)
   {
-    DebugTrace("ENTER test mode");
     static constexpr float radius = 0.05f;
     static constexpr float correctiveFactor = 5.0f;
     static constexpr float edgeByRotation = 8.0f;
@@ -97,8 +96,7 @@ namespace {
     } else {
       const float rps = currentSpeed / (2 * 3.14f * radius * correctiveFactor);
       const float pulseDurationSecond = 1 / (rps * edgeByRotation);
-      const uint32_t newFreq = 0.5f / pulseDurationSecond;
-      DebugTrace("newFreq = %lu", newFreq);
+      const float newFreq = 0.5f / pulseDurationSecond;
       const pwmcnt_t newPeriod = PWMD2.config->frequency / newFreq;
       pwmChangePeriod(&PWMD2, newPeriod);
 
@@ -113,7 +111,6 @@ namespace {
   
   void leaveTestMode(void)
   {
-    DebugTrace("LEAVE test mode");
     pwmDisableChannel(&PWMD2, 1);
     palSetLineMode(LINE_WIND_SPEED_OUT, PAL_MODE_OUTPUT_PUSHPULL);
     testMode = false;
