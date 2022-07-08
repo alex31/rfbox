@@ -79,8 +79,8 @@ static THD_WORKING_AREA(waTraceLptim1, 304);
     }
   };
 
-  palEnableLineEvent(LINE_WD_INA_IT, PAL_EVENT_MODE_FALLING_EDGE);
-  palSetLineCallback(LINE_WD_INA_IT, cb, nullptr);
+  palEnableLineEvent(LINE_WD_INA, PAL_EVENT_MODE_FALLING_EDGE);
+  palSetLineCallback(LINE_WD_INA, cb, nullptr);
   
 #ifdef NOSHELL
   chThdSleep(TIME_INFINITE);
