@@ -82,8 +82,8 @@
 #define	PB02                           2U
 #define	PB03_WS_OUT                    3U
 #define	PB04_BUTTON_TEST               4U
-#define	PB05_WS_INB                    5U
-#define	PB06                           6U
+#define	PB05_WD_INB                    5U
+#define	PB06__NOT_USED                 6U
 #define	PB07_WD_INA                    7U
 #define	PB08                           8U
 #define	PB09                           9U
@@ -183,7 +183,8 @@
 
 #define	LINE_WS_OUT                    PAL_LINE(GPIOB, 3U)
 #define	LINE_BUTTON_TEST               PAL_LINE(GPIOB, 4U)
-#define	LINE_WS_INB                    PAL_LINE(GPIOB, 5U)
+#define	LINE_WD_INB                    PAL_LINE(GPIOB, 5U)
+#define	LINE__NOT_USED                 PAL_LINE(GPIOB, 6U)
 #define	LINE_WD_INA                    PAL_LINE(GPIOB, 7U)
 
 #define	LINE_RCC_OSC32_IN              PAL_LINE(GPIOC, 14U)
@@ -359,8 +360,8 @@
 					 PIN_MODE_ANALOG(PB02) | \
 					 PIN_MODE_OUTPUT(PB03_WS_OUT) | \
 					 PIN_MODE_INPUT(PB04_BUTTON_TEST) | \
-					 PIN_MODE_ALTERNATE(PB05_WS_INB) | \
-					 PIN_MODE_ANALOG(PB06) | \
+					 PIN_MODE_ALTERNATE(PB05_WD_INB) | \
+					 PIN_MODE_INPUT(PB06__NOT_USED) | \
 					 PIN_MODE_ALTERNATE(PB07_WD_INA) | \
 					 PIN_MODE_ANALOG(PB08) | \
 					 PIN_MODE_ANALOG(PB09) | \
@@ -376,8 +377,8 @@
 					 PIN_OTYPE_PUSHPULL(PB02) | \
 					 PIN_OTYPE_PUSHPULL(PB03_WS_OUT) | \
 					 PIN_OTYPE_OPENDRAIN(PB04_BUTTON_TEST) | \
-					 PIN_OTYPE_PUSHPULL(PB05_WS_INB) | \
-					 PIN_OTYPE_PUSHPULL(PB06) | \
+					 PIN_OTYPE_PUSHPULL(PB05_WD_INB) | \
+					 PIN_OTYPE_OPENDRAIN(PB06__NOT_USED) | \
 					 PIN_OTYPE_PUSHPULL(PB07_WD_INA) | \
 					 PIN_OTYPE_PUSHPULL(PB08) | \
 					 PIN_OTYPE_PUSHPULL(PB09) | \
@@ -393,8 +394,8 @@
 					 PIN_OSPEED_SPEED_VERYLOW(PB02) | \
 					 PIN_OSPEED_SPEED_VERYLOW(PB03_WS_OUT) | \
 					 PIN_OSPEED_SPEED_VERYLOW(PB04_BUTTON_TEST) | \
-					 PIN_OSPEED_SPEED_HIGH(PB05_WS_INB) | \
-					 PIN_OSPEED_SPEED_VERYLOW(PB06) | \
+					 PIN_OSPEED_SPEED_HIGH(PB05_WD_INB) | \
+					 PIN_OSPEED_SPEED_VERYLOW(PB06__NOT_USED) | \
 					 PIN_OSPEED_SPEED_HIGH(PB07_WD_INA) | \
 					 PIN_OSPEED_SPEED_VERYLOW(PB08) | \
 					 PIN_OSPEED_SPEED_VERYLOW(PB09) | \
@@ -410,8 +411,8 @@
 					 PIN_PUPDR_FLOATING(PB02) | \
 					 PIN_PUPDR_FLOATING(PB03_WS_OUT) | \
 					 PIN_PUPDR_PULLUP(PB04_BUTTON_TEST) | \
-					 PIN_PUPDR_FLOATING(PB05_WS_INB) | \
-					 PIN_PUPDR_FLOATING(PB06) | \
+					 PIN_PUPDR_FLOATING(PB05_WD_INB) | \
+					 PIN_PUPDR_FLOATING(PB06__NOT_USED) | \
 					 PIN_PUPDR_FLOATING(PB07_WD_INA) | \
 					 PIN_PUPDR_FLOATING(PB08) | \
 					 PIN_PUPDR_FLOATING(PB09) | \
@@ -427,8 +428,8 @@
 					 PIN_ODR_LEVEL_HIGH(PB02) | \
 					 PIN_ODR_LEVEL_LOW(PB03_WS_OUT) | \
 					 PIN_ODR_LEVEL_LOW(PB04_BUTTON_TEST) | \
-					 PIN_ODR_LEVEL_LOW(PB05_WS_INB) | \
-					 PIN_ODR_LEVEL_HIGH(PB06) | \
+					 PIN_ODR_LEVEL_LOW(PB05_WD_INB) | \
+					 PIN_ODR_LEVEL_LOW(PB06__NOT_USED) | \
 					 PIN_ODR_LEVEL_LOW(PB07_WD_INA) | \
 					 PIN_ODR_LEVEL_HIGH(PB08) | \
 					 PIN_ODR_LEVEL_HIGH(PB09) | \
@@ -444,8 +445,8 @@
 					 PIN_AFIO_AF(PB02, 0) | \
 					 PIN_AFIO_AF(PB03_WS_OUT, 0) | \
 					 PIN_AFIO_AF(PB04_BUTTON_TEST, 0) | \
-					 PIN_AFIO_AF(PB05_WS_INB, 1) | \
-					 PIN_AFIO_AF(PB06, 0) | \
+					 PIN_AFIO_AF(PB05_WD_INB, 1) | \
+					 PIN_AFIO_AF(PB06__NOT_USED, 0) | \
 					 PIN_AFIO_AF(PB07_WD_INA, 1))
 
 #define VAL_GPIOB_AFRH			(PIN_AFIO_AF(PB08, 0) | \
@@ -462,8 +463,8 @@
 					 PIN_ASCR_DISABLED(PB02) | \
 					 PIN_ASCR_DISABLED(PB03_WS_OUT) | \
 					 PIN_ASCR_DISABLED(PB04_BUTTON_TEST) | \
-					 PIN_ASCR_DISABLED(PB05_WS_INB) | \
-					 PIN_ASCR_DISABLED(PB06) | \
+					 PIN_ASCR_DISABLED(PB05_WD_INB) | \
+					 PIN_ASCR_DISABLED(PB06__NOT_USED) | \
 					 PIN_ASCR_DISABLED(PB07_WD_INA) | \
 					 PIN_ASCR_DISABLED(PB08) | \
 					 PIN_ASCR_DISABLED(PB09) | \
@@ -479,8 +480,8 @@
 					 PIN_LOCKR_DISABLED(PB02) | \
 					 PIN_LOCKR_DISABLED(PB03_WS_OUT) | \
 					 PIN_LOCKR_DISABLED(PB04_BUTTON_TEST) | \
-					 PIN_LOCKR_DISABLED(PB05_WS_INB) | \
-					 PIN_LOCKR_DISABLED(PB06) | \
+					 PIN_LOCKR_DISABLED(PB05_WD_INB) | \
+					 PIN_LOCKR_DISABLED(PB06__NOT_USED) | \
 					 PIN_LOCKR_DISABLED(PB07_WD_INA) | \
 					 PIN_LOCKR_DISABLED(PB08) | \
 					 PIN_LOCKR_DISABLED(PB09) | \
@@ -1055,8 +1056,8 @@
 #define AF_LINE_SWCLK                    0U
 #define AF_PA15_VCP_RX                   3U
 #define AF_LINE_VCP_RX                   3U
-#define AF_PB05_WS_INB                   1U
-#define AF_LINE_WS_INB                   1U
+#define AF_PB05_WD_INB                   1U
+#define AF_LINE_WD_INB                   1U
 #define AF_PB07_WD_INA                   1U
 #define AF_LINE_WD_INA                   1U
 #define AF_PC14_RCC_OSC32_IN             0U
