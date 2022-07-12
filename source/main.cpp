@@ -21,9 +21,9 @@ static const SPIConfig spiCfg = {
   .error_cb = NULL,
   /* HW dependent part.*/
   .ssline = LINE_RADIO_CS,
-  /* ??? Khz, ?? bits word, CPHA=?, CPOL=? */
+  /* 2.5 Mhz, 8 bits word, CPHA=1, CPOL=0 */
   .cr1 = SPI_CR1_CPHA |SPI_CR1_BR_2,
-  .cr2 = 0
+  .cr2 = SPI_CR2_DS_2 | SPI_CR2_DS_1 | SPI_CR2_DS_0 
 };
 
 

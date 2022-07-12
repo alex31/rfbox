@@ -16,7 +16,7 @@ namespace DIP {
 
   uint8_t getChannel()
   {
-    return rl(LINE_DIP1_CH0) | (rl(LINE_DIP2_CH1) << 1) |
-      (rl(LINE_DIP3_CH2) << 2)  | (rl(LINE_DIP4_CH3) << 3);
+    return rl(LINE_DIP1_CH0) | (rl(LINE_DIP2_CH1) << 1U) |
+      (rl(LINE_DIP3_CH2) << 2U)  | (rl(LINE_DIP4_CH3) << 3U);
   }
 }
