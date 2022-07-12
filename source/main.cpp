@@ -1,23 +1,62 @@
 #include <ch.h>
 #include <hal.h>
+#include <algorithm>
+
 #include "stdutil.h"	
 #include "ttyConsole.hpp"	
+#include "notGate.hpp"
+#include "rfm69.hpp"
+#include "dip.hpp"
+
+
+
+Rfm69OokRadio radio(SPID1);
+constexpr uint32_t carrierFrequency = 868'000'000;
+constexpr int8_t amplificationLevelDb = 18;
+
+static const SPIConfig spiCfg = {
+  .circular = false,
+  .slave = false,
+  .data_cb = NULL,
+  .error_cb = NULL,
+  /* HW dependent part.*/
+  .ssline = LINE_RADIO_CS,
+  /* ??? Khz, ?? bits word, CPHA=?, CPOL=? */
+  .cr1 = SPI_CR1_CPHA |SPI_CR1_BR_2,
+  .cr2 = 0
+};
+
+
+
+static THD_WORKING_AREA(waBlinker, 304);
+static void blinker (void *arg)		
+{
+  (void)arg;				
+  chRegSetThreadName("blinker");	
+  
+  while (true) {			
+    palToggleLine(LINE_LED_GREEN);		
+    chThdSleepMilliseconds(1000);	
+  }
+}
+
 
 int main (void)
 {
-
   halInit();
   chSysInit();
+  initHeap();		
 
-#ifndef NOSHELL
-  initHeap();
-  consoleInit();
-  consoleLaunch(); 
-#endif
-  
-
+  consoleInit();	
+  consoleLaunch();
+  notGateStart();
+  chThdCreateStatic(waBlinker, sizeof(waBlinker), NORMALPRIO, &blinker, NULL);
+  radio.init(spiCfg);
+  radio.setRfParam(DIP::getDip0() == PAL_LOW ? OpModeMode::RX : OpModeMode::TX,
+		   carrierFrequency,
+		   amplificationLevelDb);
+  // main thread does nothing
   chThdSleep(TIME_INFINITE);
-  while(true) {};
 }
 
 

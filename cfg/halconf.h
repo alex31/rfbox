@@ -86,7 +86,7 @@
  * @brief   Enables the I2C subsystem.
  */
 #if !defined(HAL_USE_I2C) || defined(__DOXYGEN__)
-#define HAL_USE_I2C                         TRUE
+#define HAL_USE_I2C                         FALSE
 #endif
 
 /**
@@ -121,7 +121,7 @@
  * @brief   Enables the PWM subsystem.
  */
 #if !defined(HAL_USE_PWM) || defined(__DOXYGEN__)
-#define HAL_USE_PWM                         TRUE
+#define HAL_USE_PWM                         FALSE
 #endif
 
 /**
@@ -163,7 +163,7 @@
  * @brief   Enables the SPI subsystem.
  */
 #if !defined(HAL_USE_SPI) || defined(__DOXYGEN__)
-#define HAL_USE_SPI                         FALSE
+#define HAL_USE_SPI                         TRUE
 #endif
 
 /**
@@ -201,6 +201,31 @@
 #define HAL_USE_WSPI                        FALSE
 #endif
 
+/**
+ * @brief   Enables the COMMUNITY subsystem.
+ */
+#if !defined(HAL_USE_COMMUNITY) || defined(__DOXYGEN__)
+#define HAL_USE_COMMUNITY                        TRUE
+#endif
+
+/**
+ * @brief   Enables the OPAMP subsystem.
+ */
+#if !defined(HAL_USE_OPAMP) || defined(__DOXYGEN__)
+#define HAL_USE_OPAMP                        FALSE
+#endif
+
+
+/**
+ * @brief   Enables the COMP subsystem.
+ */
+#if !defined(HAL_USE_COMP) || defined(__DOXYGEN__)
+#define HAL_USE_COMP                        TRUE
+#endif
+
+
+
+
 /*===========================================================================*/
 /* PAL driver related settings.                                              */
 /*===========================================================================*/
@@ -210,7 +235,7 @@
  * @note    Disabling this option saves both code and data space.
  */
 #if !defined(PAL_USE_CALLBACKS) || defined(__DOXYGEN__)
-#define PAL_USE_CALLBACKS                   TRUE
+#define PAL_USE_CALLBACKS                   FALSE
 #endif
 
 /**
@@ -490,7 +515,7 @@
  * @note    Disabling this option saves both code and data space.
  */
 #if !defined(SPI_SELECT_MODE) || defined(__DOXYGEN__)
-#define SPI_SELECT_MODE                     SPI_SELECT_MODE_NONE
+#define SPI_SELECT_MODE                     SPI_SELECT_MODE_LINE
 #endif
 
 /*===========================================================================*/

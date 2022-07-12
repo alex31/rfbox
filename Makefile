@@ -137,6 +137,7 @@ DEPDIR   := ./.dep
 DRIVER_SRC := ./CubeMx/Drivers/STM32L4xx_HAL_Driver/Src
 VARIOUS = $(RELATIVE)/COMMON/various
 USBD_LIB = $(VARIOUS)/Chibios-USB-Devices
+COMMUNITY = $(VARIOUS)
 ETL_LIB = := ../../../../etl/include
 SSD1306DIR := $(CONFDIR)/GFXfonts
 # Licensing files.
@@ -153,6 +154,9 @@ include $(CHIBIOS)/os/rt/rt.mk
 include $(CHIBIOS)/os/common/ports/ARMv7-M/compilers/GCC/mk/port.mk
 # Auto-build files in ./source recursively.
 include $(CHIBIOS)/tools/mk/autobuild.mk
+# HAL contrib
+include  $(COMMUNITY)/hal/ports/STM32/STM32L4x2/platform.mk
+include  $(COMMUNITY)/hal/hal_community.mk
 # Other files (optional).
 
 
