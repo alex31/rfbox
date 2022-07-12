@@ -2,9 +2,6 @@
 #include <hal.h>
 #include "stdutil.h"	
 #include "ttyConsole.hpp"	
-#include "airSensor.hpp"	
-#include "oledDisplay.hpp"
-#include "windTestMode.hpp"
 
 int main (void)
 {
@@ -18,9 +15,6 @@ int main (void)
   consoleLaunch(); 
 #endif
   
-  airSensorStart();
-  windTestStart();
-  oledStart();
 
   chThdSleep(TIME_INFINITE);
   while(true) {};
