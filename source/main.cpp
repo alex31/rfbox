@@ -13,11 +13,13 @@
 Rfm69OokRadio radio(SPID1, LINE_RADIO_RESET);
 
 namespace {
-constexpr uint32_t carrierFrequencyLow = 868'000'000;
-constexpr uint32_t carrierFrequencyHigh = 870'000'000;
-constexpr int8_t   ampLevelDbLow = -13;
-constexpr int8_t   ampLevelDbHigh = 18;
-
+  constexpr uint32_t carrierFrequencyLow = 868'000'000;
+  constexpr uint32_t carrierFrequencyHigh = 870'000'000;
+  constexpr int8_t   ampLevelDbLow = -13;
+  constexpr int8_t   ampLevelDbHigh = 18;
+  constexpr uint32_t baudLow = 4800;
+  constexpr uint32_t baudHigh = 19200;
+  
   const SPIConfig spiCfg = {
     .circular = false,
     .slave = false,
@@ -70,7 +72,8 @@ int main (void)
   // main thread does nothing
   DIP::start();
   if (DIP::getDip(DIPSWITCH::TEST)) {
-      ModeTest::start(opMode);
+    ModeTest::start(opMode,
+		    DIP::getDip(DIPSWITCH::BAUD) ? baudLow : baudHigh);
     }
   chThdSleep(TIME_INFINITE);
 }

@@ -6,7 +6,7 @@
 
 namespace {
   const ioline_t diplines[] = {LINE_DIP0_RXTX, LINE_DIP1_POWER, LINE_DIP2_FREQ,
-    LINE_DIP3_MODE, LINE_DIP4_UNUSED };
+    LINE_DIP3_MODE, LINE_DIP4_BAUD };
 
   THD_WORKING_AREA(waSurvey, 304);
   void survey (void *arg)		
@@ -37,7 +37,7 @@ namespace DIP {
   {
     return rl(LINE_DIP0_RXTX) | rl(LINE_DIP1_POWER) << 1U |
       (rl(LINE_DIP2_FREQ) << 2U) | (rl(LINE_DIP3_MODE) << 3U)  |
-      (rl(LINE_DIP4_UNUSED) << 4U);
+      (rl(LINE_DIP4_BAUD) << 4U);
   }
 
   msg_t getDip(DIPSWITCH ds)
