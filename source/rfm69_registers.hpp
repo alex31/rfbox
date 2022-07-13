@@ -69,7 +69,7 @@ constexpr auto operator-(Rfm69RegIndex a, Rfm69RegIndex b) noexcept
 static_assert(static_cast<uint8_t>(Rfm69RegIndex::AesKey) == 0x3E);
 static_assert(static_cast<uint8_t>(Rfm69RegIndex::DioMapping) == 0x25);
 
-enum class OpModeMode : uint8_t {SLEEP, STDBY, FS, TX, RX};
+enum class OpMode : uint8_t {SLEEP, STDBY, FS, TX, RX};
 enum class DataModul : uint8_t {
   FSK_NOSHAPING=0b00000, FSK_BT_1P0=0b01000,
   FSK_BT_0P5=0b10000,FSK_BT_0P3=0b11000,
@@ -174,7 +174,7 @@ struct Rfm69Rmap {
     struct {
     uint8_t :2;     // bits 0-1 unused
       
-      OpModeMode opMode_mode:3;
+      OpMode opMode_mode:3;
       bool opMode_listenAbort:1;
       bool opMode_listenOn:1;
       bool opMode_sequencerOff:1;

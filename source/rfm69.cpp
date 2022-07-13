@@ -8,8 +8,18 @@ namespace {
   static constexpr uint8_t writeMask = 0x80;
 }
 
+void Rfm69Spi::reset(void)
+{
+  palSetLine(lineReset);
+  palSetLineMode(lineReset, PAL_MODE_OUTPUT_PUSHPULL);
+  chThdSleepMilliseconds(1);
+  palSetLineMode(lineReset, PAL_MODE_INPUT);
+  chThdSleepMilliseconds(20);
+}
+
 Rfm69Status Rfm69Spi::init(const SPIConfig& spiCfg)
 {
+  reset();
   Rfm69Status status = Rfm69Status::OK;
   spiStart(&spid, &spiCfg);
   cacheRead(Rfm69RegIndex::First, reg.raw.size());
@@ -54,7 +64,9 @@ Rfm69Status Rfm69OokRadio::init(const SPIConfig& spiCfg)
   if ((status = calibrate()) != Rfm69Status::OK)
     goto end;
   
-  rfm69.reg.opMode_mode = OpModeMode::FS;
+  rfm69.reg.opMode_mode = OpMode::FS;
+  rfm69.reg.opMode_sequencerOff = 0; // sequencer is activated
+  rfm69.reg.opMode_listenOn = 0; // sequencer is activated
   rfm69.reg.datamodul_dataMode = DataMode::CONTINUOUS_NOSYNC;
   rfm69.reg.datamodul_shaping = DataModul::OOK_NOSHAPING;
   rfm69.reg.dioMapping_io3 = 0b01; // TX_READY or RX_READY on DIO3
@@ -69,7 +81,7 @@ Rfm69Status Rfm69OokRadio::calibrate()
   systime_t ts = chVTGetSystemTimeX();
   
   const auto saveMode = rfm69.reg.opMode_mode;
-  rfm69.reg.opMode_mode = OpModeMode::STDBY;
+  rfm69.reg.opMode_mode = OpMode::STDBY;
   rfm69.cacheWrite(Rfm69RegIndex::OpMode);
   
   rfm69.reg.osc1_calibStart = true;
@@ -92,13 +104,14 @@ Rfm69Status Rfm69OokRadio::calibrate()
   words : that mean that frame must begin with 4 0xFF before sync beacon
 
  */
-Rfm69Status Rfm69OokRadio::setRfParam(OpModeMode mode,
+Rfm69Status Rfm69OokRadio::setRfParam(OpMode _mode,
 				      uint32_t frequencyCarrier,
 				      int8_t amplificationLevelDb)
 {
   setFrequencyCarrier(frequencyCarrier);
 
-  if (mode == OpModeMode::TX) {
+  mode = _mode;
+  if (mode == OpMode::TX) {
     setPowerAmp(0b001, RampTime::US_20, amplificationLevelDb);
   } else {
     setReceptionTuning();
@@ -108,11 +121,27 @@ Rfm69Status Rfm69OokRadio::setRfParam(OpModeMode mode,
 
   // optional : to be tested, optimisation of floor threshold
   // works only in tne absence of module emitting !!
-  // if (mode == OpModeMode::RX)
+  // if (mode == OpMode::RX)
   //  calibrateRssiThresh();
   
-  return  Rfm69Status::OK;
+  return  waitReady();
 }
+
+Rfm69Status Rfm69OokRadio::waitReady(void)
+{
+  systime_t start = chVTGetSystemTimeX();
+  while (chTimeDiffX(start, chVTGetSystemTimeX()) < TIME_MS2I(1000)) {
+    rfm69.cacheRead(Rfm69RegIndex::IrqFlags1, 2);
+    if ((mode == OpMode::RX) and rfm69.reg.irqFlags_rxReady)
+      return Rfm69Status::OK;
+    if ((mode == OpMode::TX) and rfm69.reg.irqFlags_txReady)
+      return Rfm69Status::OK;
+    chThdSleepMilliseconds(1);
+  }
+  return Rfm69Status::TIMOUT;
+}
+
+
 
 void Rfm69OokRadio::setPowerAmp(uint8_t pmask, RampTime rt, int8_t gain)
 {

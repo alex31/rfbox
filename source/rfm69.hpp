@@ -14,7 +14,7 @@ enum class Rfm69Status {OK, INIT_ERROR, TIMOUT};
 
 class Rfm69Spi {
 public:
-  Rfm69Spi(SPIDriver& _spid) : spid(_spid) {};
+  Rfm69Spi(SPIDriver& _spid, ioline_t _lineReset) : spid(_spid), lineReset(_lineReset) {};
   Rfm69Status init(const SPIConfig& spiCfg);
 
   void cacheWrite(Rfm69RegIndex idx, size_t len = 1);
@@ -24,7 +24,9 @@ public:
   // setter getters code with the numerous bitfields
   
 private:
+  void reset(void);
   SPIDriver& spid;
+  ioline_t  lineReset;
 };
 
 
@@ -39,15 +41,17 @@ class Rfm69OokRadio {
 public:
   
 public:
-  Rfm69OokRadio(SPIDriver& spid) :
-    rfm69(spid) {};
+  Rfm69OokRadio(SPIDriver& spid, ioline_t lineReset) :
+    rfm69(spid, lineReset) {};
   Rfm69Status init(const SPIConfig& spiCfg);
-  Rfm69Status setRfParam(OpModeMode mode, uint32_t frequencyCarrier,
+  Rfm69Status setRfParam(OpMode _mode, uint32_t frequencyCarrier,
 			 int8_t amplificationLevelDb);
-  Rfm69Status calibrate();
+  Rfm69Status waitReady(void);
+  Rfm69Status calibrate(void);
   
 protected:
   Rfm69Spi rfm69;
+  OpMode mode {OpMode::SLEEP};
 
   void calibrateRssiThresh(void);
   void setFrequencyCarrier(uint32_t frequencyCarrier);
