@@ -1,2 +1,2 @@
 
-ecrire des modes de test en fonction de la valeur des DIPS
+

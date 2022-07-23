@@ -21,6 +21,7 @@ namespace {
   void newError(const ErrorString& es);
   
   OpMode opMode = OpMode::SLEEP;
+  ModeTest::Report report;
 }
 
 
@@ -45,6 +46,15 @@ namespace ModeTest {
     } else {
       chSysHalt("invalid opMode");
     }
+  }
+
+  Report getReport()
+  {
+    report.lock();
+    ModeTest::Report ret = report;
+    report.unlock();
+    report.reset();
+    return ret;
   }
   
 }
@@ -86,30 +96,36 @@ namespace {
   void autonomousTestRead (void *)		
   {
     chRegSetThreadName("autonomousTestRead");	
-    uint32_t nbConsecutiveError = 0;
     uint8_t expectedByte = 0;
     
     while (true) {
       const int c = sdGetTimeout(&SD1, TIME_MS2I(200));
       if (c < 0) {
 	newError("timeout");
+	report.timeout = true;
 	continue;
       }
 
+      report.timeout = false;
+
       if (c != expectedByte) {
-	nbConsecutiveError++;
-	char error[48];
-	snprintf(error, sizeof(error), "expect {%c} got {%c} [%lu errors]",
-		 expectedByte, c,  nbConsecutiveError);
-	newError(error);
-	if(++expectedByte == 160)
-	  expectedByte = 0;
+	if (c != 0xaa) {
+	  report.nbError++;
+	  char error[48];
+	  snprintf(error, sizeof(error), "expect {0x%x} got {0x%x}"
+		   " [%lu errors]",
+		   expectedByte, c,  report.nbError);
+	  newError(error);
+	  expectedByte = c+1;
+	  if(expectedByte == 160)
+	    expectedByte = 0;
+	} 
       } else {
 	if(++expectedByte == 160) {
 	  expectedByte = 0;
+	  report.hasReceivedFrame = true;
 	  newError("frame completed");
 	}
- 	nbConsecutiveError = 0;
       }
       
     }
