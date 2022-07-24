@@ -199,23 +199,26 @@ void Rfm69OokRadio::setReceptionTuning(void)
 // 27 step to be tested in maximum one second : 35 ms for each step
 void Rfm69OokRadio::calibrateRssiThresh(void)
 {
+  palSetLineMode(LINE_VCP_TX, PAL_MODE_INPUT);
   auto isDioStableLow = [] { 
-    const bool low = palReadLine(LINE_NOT_GATE_IN) == PAL_LOW;
+    const bool low = palReadLine(LINE_VCP_TX) == PAL_LOW;
     if (low) {
-      const bool stable = palWaitLineTimeout(LINE_NOT_GATE_IN, TIME_MS2I(35)) == MSG_TIMEOUT;
+      const bool stable = palWaitLineTimeout(LINE_VCP_TX, TIME_MS2I(35)) == MSG_TIMEOUT;
       return stable;
     } else {
       return false;
     }
   };
   
-  palEnableLineEvent(LINE_NOT_GATE_IN, PAL_EVENT_MODE_BOTH_EDGES);
+  palEnableLineEvent(LINE_VCP_TX, PAL_EVENT_MODE_BOTH_EDGES);
   for (rfm69.reg.rssiThresh = 0xE4; rfm69.reg.rssiThresh != 0x00; rfm69.reg.rssiThresh++) {
     rfm69.cacheWrite(Rfm69RegIndex::RssiThresh, 1);
     if (isDioStableLow())
       break;
   }
-  palDisableLineEvent(LINE_NOT_GATE_IN);
+  palDisableLineEvent(LINE_VCP_TX);
+  palSetLineMode(LINE_VCP_TX, PAL_MODE_ALTERNATE(AF_LINE_VCP_TX) |
+		 PAL_STM32_OTYPE_OPENDRAIN);
 
   rfm69.reg.ookPeak_threshDec = ThresholdDec::EIGHT_TIMES;
   rfm69.reg.ookPeak_threshStep = ThresholdStep::DB_0P5;

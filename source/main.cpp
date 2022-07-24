@@ -4,7 +4,6 @@
 
 #include "stdutil.h"	
 #include "ttyConsole.hpp"	
-#include "notGate.hpp"
 #include "rfm69.hpp"
 #include "dip.hpp"
 #include "modeTest.hpp"
@@ -56,7 +55,6 @@ int main (void)
 
   consoleInit();	
   consoleLaunch();
-  notGateStart();
   chThdCreateStatic(waBlinker, sizeof(waBlinker), NORMALPRIO, &blinker, NULL);
 
   if (radio.init(spiCfg) != Rfm69Status::OK) {
