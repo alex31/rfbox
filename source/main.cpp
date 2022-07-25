@@ -63,15 +63,15 @@ int main (void)
   const OpMode opMode = DIP::getDip(DIPSWITCH::RXTX) ? OpMode::RX : OpMode::TX;
   if (radio.setRfParam(opMode,
 		       DIP::getDip(DIPSWITCH::FREQ) ? carrierFrequencyLow : carrierFrequencyHigh,
-		       DIP::getDip(DIPSWITCH::POWER) ? ampLevelDbLow : ampLevelDbHigh)
+		       DIP::getDip(DIPSWITCH::PWRLVL) ? ampLevelDbLow : ampLevelDbHigh)
       != Rfm69Status::OK) {
     DebugTrace("radio.setRfParam failed");
   }
   // main thread does nothing
   DIP::start();
-  if (DIP::getDip(DIPSWITCH::TEST)) {
+  if (DIP::getDip(DIPSWITCH::BER)) {
     ModeTest::start(opMode,
-		    DIP::getDip(DIPSWITCH::BAUD) ? baudLow : baudHigh);
+		    DIP::getDip(DIPSWITCH::BERBAUD) ? baudLow : baudHigh);
     }
   chThdSleep(TIME_INFINITE);
 }

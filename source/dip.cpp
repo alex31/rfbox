@@ -5,8 +5,8 @@
 
 
 namespace {
-  const ioline_t diplines[] = {LINE_DIP0_RXTX, LINE_DIP1_POWER, LINE_DIP2_FREQ,
-    LINE_DIP3_MODE, LINE_DIP4_BAUD };
+  const ioline_t diplines[] = {LINE_DIP0_RFENABLE, LINE_DIP1_RXTX, LINE_DIP2_PWRLVL,
+    LINE_DIP3_FREQ, LINE_DIP4_BER, LINE_DIP5_BERBAUD};
 
   THD_WORKING_AREA(waSurvey, 304);
   void survey (void *arg)		
@@ -30,14 +30,14 @@ namespace {
 
 namespace DIP {
   inline msg_t rl(ioline_t l) {
-    return palReadLine(l) == PAL_LOW ? 0U : 1U;
+    return palReadLine(l) == PAL_LOW ? 1U : 0U;
   }
 
   inline uint8_t getAllDips()
   {
-    return rl(LINE_DIP0_RXTX) | rl(LINE_DIP1_POWER) << 1U |
-      (rl(LINE_DIP2_FREQ) << 2U) | (rl(LINE_DIP3_MODE) << 3U)  |
-      (rl(LINE_DIP4_BAUD) << 4U);
+    return rl(LINE_DIP0_RFENABLE) | rl(LINE_DIP1_RXTX) << 1U |
+      (rl(LINE_DIP2_PWRLVL) << 2U) | (rl(LINE_DIP3_FREQ) << 3U)  |
+      (rl(LINE_DIP4_BER) << 4U) | (rl(LINE_DIP5_BERBAUD) << 5U);
   }
 
   msg_t getDip(DIPSWITCH ds)

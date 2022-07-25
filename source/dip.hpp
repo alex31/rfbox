@@ -2,7 +2,7 @@
 #include <ch.h>
 #include <hal.h>
 
-enum class DIPSWITCH {RXTX, POWER, FREQ, TEST, BAUD, ALL};
+enum class DIPSWITCH {RFENABLE, RXTX, PWRLVL, FREQ, BER, BERBAUD, ALL};
 
 namespace DIP {
   msg_t getDip(DIPSWITCH ds = DIPSWITCH::ALL);
