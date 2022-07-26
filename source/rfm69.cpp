@@ -1,5 +1,6 @@
 #include "rfm69.hpp"
 #include "stdutil.h"
+#include "notGate.hpp"
 
 #define SWAP_ENDIAN24(x) __builtin_bswap32(static_cast<uint32_t>(x) << 8)
 
@@ -22,7 +23,7 @@ Rfm69Status Rfm69Spi::init(const SPIConfig& spiCfg)
   reset();
   Rfm69Status status = Rfm69Status::OK;
   spiStart(&spid, &spiCfg);
-  cacheRead(Rfm69RegIndex::First, reg.raw.size());
+  cacheRead(Rfm69RegIndex::First, sizeof(reg.raw));
   const auto bitRate = SWAP_ENDIAN16(reg.bitrate);
   if (bitRate != 0x1a0b) {
     DebugTrace("initial reg.bitRate value 0x%x"
@@ -39,7 +40,7 @@ void Rfm69Spi::cacheRead(Rfm69RegIndex idx, size_t len)
   spiSelect(&spid);
   uint8_t slaveAddr = static_cast<uint8_t>(idx) | readMask;
   spiSend(&spid, 1, &slaveAddr);
-  spiReceive(&spid, len, reg.raw.data());
+  spiReceive(&spid, len, reg.raw + static_cast<uint8_t>(idx));
   spiUnselect(&spid);
 }
 
@@ -48,7 +49,7 @@ void Rfm69Spi::cacheWrite(Rfm69RegIndex idx, size_t len)
   spiSelect(&spid);
   uint8_t slaveAddr = static_cast<uint8_t>(idx) | writeMask;
   spiSend(&spid, 1, &slaveAddr);
-  spiSend(&spid, len, reg.raw.data());
+  spiSend(&spid, len, reg.raw + static_cast<uint8_t>(idx));
   spiUnselect(&spid);
 }
 
@@ -88,12 +89,12 @@ Rfm69Status Rfm69OokRadio::calibrate()
   rfm69.cacheWrite(Rfm69RegIndex::Osc1);
   do {
     rfm69.cacheRead(Rfm69RegIndex::Osc1);
-  } while ((not rfm69.reg.osc1_calibDone) &&
+  } while ((not rfm69.reg.osc1_calibDone) or
 	   (chTimeDiffX(chVTGetSystemTimeX(), ts) < TIME_S2I(1)));
 
   rfm69.reg.opMode_mode = saveMode;
   rfm69.cacheWrite(Rfm69RegIndex::Osc1);
-  
+
   return rfm69.reg.osc1_calibDone ? Rfm69Status::OK : Rfm69Status::TIMOUT;
 }
 
@@ -111,27 +112,32 @@ Rfm69Status Rfm69OokRadio::setRfParam(OpMode _mode,
   setFrequencyCarrier(frequencyCarrier);
 
   mode = _mode;
+  GATE::setMode(GATE::MODE::HiZ);
   if (mode == OpMode::TX) {
+    GATE::setMode(GATE::MODE::TX);
     setPowerAmp(0b001, RampTime::US_20, amplificationLevelDb);
   } else {
+    GATE::setMode(GATE::MODE::RX);
     setReceptionTuning();
   }  
   rfm69.reg.opMode_mode = mode;
   rfm69.cacheWrite(Rfm69RegIndex::OpMode, 1);
 
   // optional : to be tested, optimisation of floor threshold
-  // works only in tne absence of module emitting !!
-  // if (mode == OpMode::RX)
-  //  calibrateRssiThresh();
-  
-  return  waitReady();
+  // works only in the absence of module emitting !!
+  if (mode == OpMode::RX)
+    calibrateRssiThresh();
+
+  const auto status = waitReady();
+  DebugTrace("status = %lx", static_cast<uint32_t>(status));
+  return status;
 }
 
 Rfm69Status Rfm69OokRadio::waitReady(void)
 {
   systime_t start = chVTGetSystemTimeX();
   while (chTimeDiffX(start, chVTGetSystemTimeX()) < TIME_MS2I(1000)) {
-    rfm69.cacheRead(Rfm69RegIndex::IrqFlags1, 2);
+    rfm69.cacheRead(Rfm69RegIndex::First, sizeof(rfm69.reg.raw));
     if ((mode == OpMode::RX) and rfm69.reg.irqFlags_rxReady)
       return Rfm69Status::OK;
     if ((mode == OpMode::TX) and rfm69.reg.irqFlags_txReady)
@@ -145,7 +151,7 @@ Rfm69Status Rfm69OokRadio::waitReady(void)
 
 void Rfm69OokRadio::setPowerAmp(uint8_t pmask, RampTime rt, int8_t gain)
 {
-  chDbgAssert((gain >= -13) and (gain <= -18),
+  chDbgAssert((gain >= -13) and (gain <= 18),
 	      "out of bound amplifier level");
   
   rfm69.reg.paLevel_pa0On = (pmask & 0b001) != 0;
@@ -160,7 +166,7 @@ void Rfm69OokRadio::setPowerAmp(uint8_t pmask, RampTime rt, int8_t gain)
 
 void Rfm69OokRadio::setFrequencyCarrier(uint32_t frequencyCarrier)
 {
-  chDbgAssert((frequencyCarrier > 100'000) and (frequencyCarrier < 1'000'000),
+  chDbgAssert((frequencyCarrier > 100'000'000) and (frequencyCarrier < 1'000'000'000),
 	      "out of bound frequency carrier");
   rfm69.reg.frf = SWAP_ENDIAN24(frequencyCarrier / synthStepHz);
   rfm69.cacheWrite(Rfm69RegIndex::Frf, 3);
@@ -199,25 +205,32 @@ void Rfm69OokRadio::setReceptionTuning(void)
 // 27 step to be tested in maximum one second : 35 ms for each step
 void Rfm69OokRadio::calibrateRssiThresh(void)
 {
-  palSetLineMode(LINE_VCP_TX, PAL_MODE_INPUT);
-  auto isDioStableLow = [] { 
-    const bool low = palReadLine(LINE_VCP_TX) == PAL_LOW;
+  palSetLineMode(LINE_EXTVCP_TX, PAL_MODE_INPUT);
+  auto isDioStableLow = [] {
+#ifdef DIO2_DIRECT
+    const bool low = palReadLine(LINE_EXTVCP_TX) == PAL_LOW; // no inverting driver
+#else
+    const bool low = palReadLine(LINE_EXTVCP_TX) == PAL_HIGH; // after the inverting driver
+#endif
+    DebugTrace("level = %s", low ? "LOW" : "HIGH");
     if (low) {
-      const bool stable = palWaitLineTimeout(LINE_VCP_TX, TIME_MS2I(35)) == MSG_TIMEOUT;
+      const bool stable = palWaitLineTimeout(LINE_EXTVCP_TX, TIME_MS2I(35)) == MSG_TIMEOUT;
+      DebugTrace("stable = %s", stable ? "YES" : "NO");
       return stable;
     } else {
       return false;
     }
   };
   
-  palEnableLineEvent(LINE_VCP_TX, PAL_EVENT_MODE_BOTH_EDGES);
-  for (rfm69.reg.rssiThresh = 0xE4; rfm69.reg.rssiThresh != 0x00; rfm69.reg.rssiThresh++) {
+  palEnableLineEvent(LINE_EXTVCP_TX, PAL_EVENT_MODE_BOTH_EDGES);
+  for (rfm69.reg.rssiThresh = 0xE4; rfm69.reg.rssiThresh != 0xFF; rfm69.reg.rssiThresh++) {
+    DebugTrace("rfm69.reg.rssiThresh = %d", rfm69.reg.rssiThresh);
     rfm69.cacheWrite(Rfm69RegIndex::RssiThresh, 1);
     if (isDioStableLow())
       break;
   }
-  palDisableLineEvent(LINE_VCP_TX);
-  palSetLineMode(LINE_VCP_TX, PAL_MODE_ALTERNATE(AF_LINE_VCP_TX) |
+  palDisableLineEvent(LINE_EXTVCP_TX);
+  palSetLineMode(LINE_EXTVCP_TX, PAL_MODE_ALTERNATE(AF_LINE_EXTVCP_TX) |
 		 PAL_STM32_OTYPE_OPENDRAIN);
 
   rfm69.reg.ookPeak_threshDec = ThresholdDec::EIGHT_TIMES;

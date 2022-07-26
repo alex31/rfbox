@@ -9,8 +9,10 @@
 #include "stdutil.h"
 #include "printf.h"
 #include "ttyConsole.hpp"
-#include "etl/string.h"
+#include "dip.hpp"
+#include <etl/string.h>
 #include <etl/vector.h>
+
 
 #ifdef CONSOLE_DEV_SD
 
@@ -21,7 +23,7 @@
 // declaration des prototypes de fonction
 // ces declarations sont necessaires pour remplir le tableau commands[] ci-dessous
 using cmd_func_t =  void  (BaseSequentialStream *lchp, int argc,const char * const argv[]);
-static cmd_func_t cmd_mem, cmd_uid, cmd_restart, cmd_param;
+static cmd_func_t cmd_mem, cmd_uid, cmd_restart, cmd_param, cmd_dip;
 #if CH_DBG_STATISTICS
 static cmd_func_t cmd_threads;
 #endif
@@ -33,6 +35,7 @@ static const ShellCommand commands[] = {
 #if  CH_DBG_STATISTICS
   {"threads", cmd_threads},	// affiche pour chaque thread le taux d'utilisation de la pile et du CPU
 #endif
+  {"dip", cmd_dip},		// affiche le numéro d'identification unique du MCU
   {"uid", cmd_uid},		// affiche le numéro d'identification unique du MCU
   {"param", cmd_param},		// fonction à but pedagogique qui affiche les
 				//   paramètres qui lui sont passés
@@ -174,6 +177,15 @@ static void cmd_uid(BaseSequentialStream *lchp, int argc,const char* const argv[
   for (uint32_t i=0; i< UniqProcessorIdLen; i++)
     chprintf(lchp, "[%x] ", UniqProcessorId[i]);
   chprintf(lchp, "\r\n");
+}
+
+static void cmd_dip(BaseSequentialStream *, int ,const char* const []) {
+  DIP::getDip(DIPSWITCH::RFENABLE);
+  DIP::getDip(DIPSWITCH::RXTX);
+  DIP::getDip(DIPSWITCH::PWRLVL);
+  DIP::getDip(DIPSWITCH::FREQ);
+  DIP::getDip(DIPSWITCH::BER);
+  DIP::getDip(DIPSWITCH::BERBAUD);
 }
 
 

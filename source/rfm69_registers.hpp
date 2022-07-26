@@ -61,8 +61,8 @@ enum class Rfm69RegIndex : uint8_t {
 
 constexpr auto operator-(Rfm69RegIndex a, Rfm69RegIndex b) noexcept
 {
-    return static_cast<std::underlying_type_t<Rfm69RegIndex>>(b) -
-      static_cast<std::underlying_type_t<Rfm69RegIndex>>(a);
+    return static_cast<std::underlying_type_t<Rfm69RegIndex>>(a) -
+      static_cast<std::underlying_type_t<Rfm69RegIndex>>(b);
 }
 
 
@@ -169,9 +169,9 @@ enum class FadingMargin  : uint8_t {
 
 
 struct Rfm69Rmap {
-  uint8_t fifo;   // not really a register : special case
   union {
     struct {
+    uint8_t fifo;   // not really a register : special case
     uint8_t :2;     // bits 0-1 unused
       
       OpMode opMode_mode:3;
@@ -277,24 +277,33 @@ struct Rfm69Rmap {
       uint8_t dioMapping_io5 :2;
       uint8_t dioMapping_io4 :2;
 
-      
-      bool irqFlags_modeReady :1;
-      bool irqFlags_rxReady :1;
-      bool irqFlags_txReady :1;
-      bool irqFlags_pllLock :1;
-      bool irqFlags_rssi :1;
-      bool irqFlags_timeOut :1;
-      bool irqFlags_autoMode :1;
-      bool irqFlags_syncAddressMatch :1;
+      union {
+	struct {
+	  bool irqFlags_syncAddressMatch :1;
+	  bool irqFlags_autoMode :1;
+	  bool irqFlags_timeOut :1;
+	  bool irqFlags_rssi :1;
+	  bool irqFlags_pllLock :1;
+	  bool irqFlags_txReady :1;
+	  bool irqFlags_rxReady :1;
+	  bool irqFlags_modeReady :1;
+	};
+	uint8_t irqFlags1;
+      };
 
-    uint8_t :1; // unused
-      bool irqFlags_crcOk :1; 
-      bool irqFlags_payloadReady :1; 
-      bool irqFlags_packetSent :1; 
-      bool irqFlags_fifoOverrun :1; 
-      bool irqFlags_fifoLevel :1; 
-      bool irqFlags_fifoNotEmpty :1; 
-      bool irqFlags_fifoFull :1; 
+      union {
+	struct {
+	uint8_t :1; // unused
+	  bool irqFlags_crcOk :1; 
+	  bool irqFlags_payloadReady :1; 
+	  bool irqFlags_packetSent :1; 
+	  bool irqFlags_fifoOverrun :1; 
+	  bool irqFlags_fifoLevel :1; 
+	  bool irqFlags_fifoNotEmpty :1; 
+	  bool irqFlags_fifoFull :1; 
+ 	};
+	uint8_t irqFlags2;
+      };
       
       uint8_t rssiThresh;
       uint8_t rxTimeout1;
@@ -358,7 +367,7 @@ struct Rfm69Rmap {
     uint8_t :8; // unused
       uint8_t testAfc;
     } __attribute__((packed));
-    std::array<uint8_t, 0x71> raw;
+    uint8_t raw[0x72];
   };
 };
 

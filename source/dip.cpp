@@ -42,10 +42,14 @@ namespace DIP {
 
   msg_t getDip(DIPSWITCH ds)
   {
-    if (ds == DIPSWITCH::ALL)
+    if (ds == DIPSWITCH::ALL) {
       return getAllDips();
-    else
-      return rl(diplines[static_cast<size_t>(ds)]);
+    } else {
+      const size_t idx = static_cast<size_t>(ds);
+      const msg_t dipLevel = rl(diplines[idx]);
+      DebugTrace("dip %u level is %s", idx, dipLevel ? "ON" : "OFF");
+      return dipLevel;
+    }
   }
 
 

@@ -12,7 +12,11 @@ namespace {
   static  SerialConfig meteoSerialConfig =  {
     .speed = 4800,
     .cr1 = 0,
-    .cr2 = USART_CR2_STOP1_BITS | USART_CR2_LINEN,
+    .cr2 = USART_CR2_STOP1_BITS | USART_CR2_LINEN
+#ifdef DIO2_DIRECT
+    | USART_CR2_TXINV | USART_CR2_RXINV
+#endif
+    ,
     .cr3 = 0
   };
 
@@ -33,7 +37,8 @@ namespace ModeTest {
     
     opMode = _opMode;
     meteoSerialConfig.speed = baud;
-    if (opMode == OpMode::TX) 
+    // DIO is connected on UART1_TX
+    if (opMode == OpMode::RX) 
       meteoSerialConfig.cr2 |= USART_CR2_SWAP;
 
     sdStart(&SD1, &meteoSerialConfig);
