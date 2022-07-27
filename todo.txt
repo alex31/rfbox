@@ -1,10 +1,4 @@
 
-° Il n'y a plus de notgate_rx : il faut utiliser VCP_TX PA02 en le mettant en input pour la
-calibration puis en le remettant ensuite en usart.
-
-° il faut utiliser l'uart1 + un usb serial externe pour le shell et le debug en
-  phase de mise au point
-
 ° il faut faire un tableau des modes et de l'utilisation des broches correspondantes
 
 

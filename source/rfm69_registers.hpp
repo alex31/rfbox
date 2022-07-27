@@ -171,9 +171,9 @@ enum class FadingMargin  : uint8_t {
 struct Rfm69Rmap {
   union {
     struct {
-    uint8_t fifo;   // not really a register : special case
-    uint8_t :2;     // bits 0-1 unused
+      uint8_t fifo;   // not really a register : special case
       
+    uint8_t :2;     // bits 0-1 unused
       OpMode opMode_mode:3;
       bool opMode_listenAbort:1;
       bool opMode_listenOn:1;
@@ -306,8 +306,8 @@ struct Rfm69Rmap {
       };
       
       uint8_t rssiThresh;
-      uint8_t rxTimeout1;
-      uint8_t rxTimeout2;
+      uint8_t rxTimeout1_rxStart;
+      uint8_t rxTimeout2_rssiThresh;
       uint16_t preambleSize; // big endian
 
       uint8_t syncConfig_tol :3;
@@ -324,11 +324,9 @@ struct Rfm69Rmap {
       DCFree packetConfig_dcFree :2;
       PacketFormat packetConfig_packetFormat :1;
 
-
-      
       uint8_t payloadLength;
-      uint8_t nodeAdrs;
-      uint8_t broadcastAdrs;
+      uint8_t nodeAddress;
+      uint8_t broadcastAddress;
       
       IntermediateMode autoModes_intermediateMode :2;
       ExitCondition autoModes_exitCondition :3;
@@ -355,7 +353,7 @@ struct Rfm69Rmap {
       uint8_t temp_value;
       
     uint64_t :64;   // unused
-      TestLna testLna :8;
+      TestLna testLna_sensitivityBoost :8;
     uint8_t :8; // unused
       TestPa1 testPa1;
     uint8_t :8; // unused

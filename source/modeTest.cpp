@@ -100,7 +100,7 @@ namespace {
 
   void autonomousTestRead (void *)		
   {
-    chRegSetThreadName("autonomousTestRead");	
+    chRegSetThreadName("autonomousTestRead");
     uint8_t expectedByte = 0;
     
     while (true) {

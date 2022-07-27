@@ -77,6 +77,23 @@ Rfm69Status Rfm69OokRadio::init(const SPIConfig& spiCfg)
   return status;
 }
 
+float Rfm69OokRadio::getRssi()
+{
+  systime_t ts = chVTGetSystemTimeX();
+  
+  rfm69.reg.rssiConfig_start = true;
+  rfm69.cacheWrite(Rfm69RegIndex::RssiConfig);
+  do {
+    rfm69.cacheRead(Rfm69RegIndex::RssiConfig, 2);
+  } while ((not rfm69.reg.rssiConfig_done) or
+	   (chTimeDiffX(chVTGetSystemTimeX(), ts) < TIME_S2I(1)));
+
+  if (rfm69.reg.rssiConfig_done) 
+    return (-rfm69.reg.rssi / 2.0f);
+  else
+    return -1e6;
+}
+
 Rfm69Status Rfm69OokRadio::calibrate()
 {
   systime_t ts = chVTGetSystemTimeX();
@@ -121,7 +138,7 @@ Rfm69Status Rfm69OokRadio::setRfParam(OpMode _mode,
     setReceptionTuning();
   }  
   rfm69.reg.opMode_mode = mode;
-  rfm69.cacheWrite(Rfm69RegIndex::OpMode, 1);
+  rfm69.cacheWrite(Rfm69RegIndex::OpMode);
 
   // optional : to be tested, optimisation of floor threshold
   // works only in the absence of module emitting !!
@@ -176,28 +193,32 @@ void Rfm69OokRadio::setFrequencyCarrier(uint32_t frequencyCarrier)
 void Rfm69OokRadio::setReceptionTuning(void)
 {
   
-  rfm69.reg.ookPeak_type = ThresholdType::PEAK;
-  rfm69.cacheWrite(Rfm69RegIndex::OokPeak, 1);
+  //rfm69.reg.ookPeak_type = ThresholdType::PEAK;
+  rfm69.reg.ookPeak_type = ThresholdType::FIXED;
+  rfm69.cacheWrite(Rfm69RegIndex::OokPeak);
+
+  rfm69.reg.ookFix_threshold = 0;
+  rfm69.cacheWrite(Rfm69RegIndex::OokFix);
   
   rfm69.reg.afcCtrl_lowBetaOn = false;
-  rfm69.cacheWrite(Rfm69RegIndex::AfcCtrl, 1);
+  rfm69.cacheWrite(Rfm69RegIndex::AfcCtrl);
   
   rfm69.reg.testDagc = FadingMargin::IMPROVE_LOW_BETA_OFF;
-  rfm69.cacheWrite(Rfm69RegIndex::TestDagc, 1);
+  rfm69.cacheWrite(Rfm69RegIndex::TestDagc);
   
   // settings for RxBw = 20Khz in OOK
   rfm69.reg.rxBw_mant =  BandwithMantissa::MANT_24;
   rfm69.reg.rxBw_exp = 3;
   rfm69.reg.rxBw_dccFreq = 2; // default 4 % of rxbx -> 800hz
-  rfm69.cacheWrite(Rfm69RegIndex::RxBw, 1);
+  rfm69.cacheWrite(Rfm69RegIndex::RxBw);
   
   // in case of false '1', raise the value to 0xFF 
   rfm69.reg.rssiThresh = 0xE4; // cf datasheet p61
-  rfm69.cacheWrite(Rfm69RegIndex::RssiThresh, 1);
+  rfm69.cacheWrite(Rfm69RegIndex::RssiThresh);
   
   // automatic frequency correction activated
   //rfm69.reg.afc_autoOn = true;
-  //rfm69.cacheWrite(Rfm69RegIndex::AfcFei, 1);
+  //rfm69.cacheWrite(Rfm69RegIndex::AfcFei);
 }
 
 
@@ -205,6 +226,8 @@ void Rfm69OokRadio::setReceptionTuning(void)
 // 27 step to be tested in maximum one second : 35 ms for each step
 void Rfm69OokRadio::calibrateRssiThresh(void)
 {
+  const float rssi = getRssi();
+  DebugTrace("RSSI = %.1f", rssi);
   palSetLineMode(LINE_EXTVCP_TX, PAL_MODE_INPUT);
   auto isDioStableLow = [] {
 #ifdef DIO2_DIRECT
@@ -223,17 +246,17 @@ void Rfm69OokRadio::calibrateRssiThresh(void)
   };
   
   palEnableLineEvent(LINE_EXTVCP_TX, PAL_EVENT_MODE_BOTH_EDGES);
-  for (rfm69.reg.rssiThresh = 0xE4; rfm69.reg.rssiThresh != 0xFF; rfm69.reg.rssiThresh++) {
+  for (uint16_t t = 0xE4; t <= 0xFF; t++) {
+    rfm69.reg.rssiThresh = t;
     DebugTrace("rfm69.reg.rssiThresh = %d", rfm69.reg.rssiThresh);
-    rfm69.cacheWrite(Rfm69RegIndex::RssiThresh, 1);
+    rfm69.cacheWrite(Rfm69RegIndex::RssiThresh);
     if (isDioStableLow())
       break;
   }
   palDisableLineEvent(LINE_EXTVCP_TX);
-  palSetLineMode(LINE_EXTVCP_TX, PAL_MODE_ALTERNATE(AF_LINE_EXTVCP_TX) |
-		 PAL_STM32_OTYPE_OPENDRAIN);
+  palSetLineMode(LINE_EXTVCP_TX, PAL_MODE_ALTERNATE(AF_LINE_EXTVCP_TX));
 
-  rfm69.reg.ookPeak_threshDec = ThresholdDec::EIGHT_TIMES;
-  rfm69.reg.ookPeak_threshStep = ThresholdStep::DB_0P5;
-  rfm69.cacheWrite(Rfm69RegIndex::OokPeak, 1);
+  // rfm69.reg.ookPeak_threshDec = ThresholdDec::EIGHT_TIMES;
+  // rfm69.reg.ookPeak_threshStep = ThresholdStep::DB_0P5;
+  // rfm69.cacheWrite(Rfm69RegIndex::OokPeak);
 }

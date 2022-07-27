@@ -48,7 +48,7 @@ public:
 			 int8_t amplificationLevelDb);
   Rfm69Status waitReady(void);
   Rfm69Status calibrate(void);
-  
+  float getRssi();
 protected:
   Rfm69Spi rfm69;
   OpMode mode {OpMode::SLEEP};
