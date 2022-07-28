@@ -5,8 +5,8 @@
 
 
 namespace {
-  const ioline_t diplines[] = {LINE_DIP0_RFENABLE, LINE_DIP1_RXTX, LINE_DIP2_PWRLVL,
-    LINE_DIP3_FREQ, LINE_DIP4_BER, LINE_DIP5_BERBAUD};
+  const ioline_t diplines[] = {LINE_DIP0_RFENABLE, LINE_DIP1_FREQ, LINE_DIP2_BER,
+    LINE_DIP3_BERBAUD, LINE_DIP4_RXTX, LINE_DIP5_PWRLVL};
 
   THD_WORKING_AREA(waSurvey, 304);
   void survey (void *arg)		
@@ -29,24 +29,25 @@ namespace {
 
 
 namespace DIP {
-  inline msg_t rl(ioline_t l) {
-    return palReadLine(l) == PAL_LOW ? 1U : 0U;
+  inline bool rl(ioline_t l) {
+    return palReadLine(l) == PAL_LOW ? false : true;
   }
 
   inline uint8_t getAllDips()
   {
-    return rl(LINE_DIP0_RFENABLE) | rl(LINE_DIP1_RXTX) << 1U |
-      (rl(LINE_DIP2_PWRLVL) << 2U) | (rl(LINE_DIP3_FREQ) << 3U)  |
-      (rl(LINE_DIP4_BER) << 4U) | (rl(LINE_DIP5_BERBAUD) << 5U);
+    return rl(LINE_DIP0_RFENABLE) | rl(LINE_DIP1_FREQ) << 1U |
+      (rl(LINE_DIP2_BER) << 2U) | (rl(LINE_DIP3_BERBAUD) << 3U)  |
+      (rl(LINE_DIP4_RXTX) << 4U) | (rl(LINE_DIP5_PWRLVL) << 5U);
   }
 
-  msg_t getDip(DIPSWITCH ds)
+  bool getDip(DIPSWITCH ds)
   {
     if (ds == DIPSWITCH::ALL) {
       return getAllDips();
     } else {
       const size_t idx = static_cast<size_t>(ds);
-      const msg_t dipLevel = rl(diplines[idx]);
+      chDbgAssert(idx <= static_cast<size_t>(DIPSWITCH::ALL), "out of bound");
+      const bool dipLevel = rl(diplines[idx]);
       DebugTrace("dip %u level is %s", idx, dipLevel ? "ON" : "OFF");
       return dipLevel;
     }
