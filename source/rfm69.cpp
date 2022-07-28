@@ -154,7 +154,7 @@ Rfm69Status Rfm69OokRadio::waitReady(void)
 {
   systime_t start = chVTGetSystemTimeX();
   while (chTimeDiffX(start, chVTGetSystemTimeX()) < TIME_MS2I(1000)) {
-    rfm69.cacheRead(Rfm69RegIndex::First, sizeof(rfm69.reg.raw));
+    rfm69.cacheRead(Rfm69RegIndex::IrqFlags1);
     if ((mode == OpMode::RX) and rfm69.reg.irqFlags_rxReady)
       return Rfm69Status::OK;
     if ((mode == OpMode::TX) and rfm69.reg.irqFlags_txReady)
