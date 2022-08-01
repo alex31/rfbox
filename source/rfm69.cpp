@@ -37,20 +37,24 @@ Rfm69Status Rfm69Spi::init(const SPIConfig& spiCfg)
 
 void Rfm69Spi::cacheRead(Rfm69RegIndex idx, size_t len)
 {
+  spiAcquireBus(&spid);
   spiSelect(&spid);
   uint8_t slaveAddr = static_cast<uint8_t>(idx) | readMask;
   spiSend(&spid, 1, &slaveAddr);
   spiReceive(&spid, len, reg.raw + static_cast<uint8_t>(idx));
   spiUnselect(&spid);
+  spiReleaseBus(&spid);
 }
 
 void Rfm69Spi::cacheWrite(Rfm69RegIndex idx, size_t len)
 {
+  spiAcquireBus(&spid);
   spiSelect(&spid);
   uint8_t slaveAddr = static_cast<uint8_t>(idx) | writeMask;
   spiSend(&spid, 1, &slaveAddr);
   spiSend(&spid, len, reg.raw + static_cast<uint8_t>(idx));
   spiUnselect(&spid);
+  spiReleaseBus(&spid);
 }
 
 
@@ -142,8 +146,12 @@ Rfm69Status Rfm69OokRadio::setRfParam(OpMode _mode,
 
   // optional : to be tested, optimisation of floor threshold
   // works only in the absence of module emitting !!
-  if (mode == OpMode::RX)
+  if (mode == OpMode::RX) {
+    // desactivate AGC, use minimal gain (to be tested)
+    setLna(LnaGain::MINUS_48, LnaInputImpedance::OHMS_50);
     calibrateRssiThresh();
+    DebugTrace("current lna gain = %d", getLnaGain());
+  }
 
   const auto status = waitReady();
   DebugTrace("status = %lx", static_cast<uint32_t>(status));
@@ -259,4 +267,25 @@ void Rfm69OokRadio::calibrateRssiThresh(void)
   // rfm69.reg.ookPeak_threshDec = ThresholdDec::EIGHT_TIMES;
   // rfm69.reg.ookPeak_threshStep = ThresholdStep::DB_0P5;
   // rfm69.cacheWrite(Rfm69RegIndex::OokPeak);
+}
+
+void Rfm69OokRadio::setLna(LnaGain gain, LnaInputImpedance imp)
+{
+  rfm69.reg.lna_gain = gain;
+  rfm69.reg.lna_zIn  = imp;
+  rfm69.cacheWrite(Rfm69RegIndex::Lna);
+}
+
+int8_t Rfm69OokRadio::getLnaGain(void)
+{
+  rfm69.cacheRead(Rfm69RegIndex::Lna);
+  switch(rfm69.reg.lna_currentGain) {
+  case LnaGain::HIGHEST : return 0;
+  case LnaGain::MINUS_6 : return -6;
+  case LnaGain::MINUS_12 : return -12;
+  case LnaGain::MINUS_24 : return -24;
+  case LnaGain::MINUS_36 : return -36;
+  case LnaGain::MINUS_48 : return -48;
+  default:		   return 127;
+  }
 }

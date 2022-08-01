@@ -56,5 +56,7 @@ protected:
   void calibrateRssiThresh(void);
   void setFrequencyCarrier(uint32_t frequencyCarrier);
   void setPowerAmp(uint8_t pmask, RampTime rt, int8_t gain);
+  void setLna(LnaGain gain, LnaInputImpedance imp);
+  int8_t getLnaGain(void);
   void setReceptionTuning(void);
 };

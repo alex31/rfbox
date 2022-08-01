@@ -226,7 +226,7 @@ struct Rfm69Rmap {
     uint32_t :32; // reserved
       
       LnaGain lna_gain :3;
-      bool lna_currentGainOn:3;
+      LnaGain lna_currentGain:3;
     uint8_t :1; // unused
       LnaInputImpedance lna_zIn:1;
 
