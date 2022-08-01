@@ -30,21 +30,6 @@ namespace {
     .cr1 = SPI_CR1_BR_2,
     .cr2 = SPI_CR2_DS_2 | SPI_CR2_DS_1 | SPI_CR2_DS_0 
   };
-  
-  
-  
-  THD_WORKING_AREA(waBlinker, 304);
-  void blinker (void *arg)		
-  {
-    (void)arg;				
-    chRegSetThreadName("blinker");	
-    
-    while (true) {			
-      palToggleLine(LINE_LED_GREEN);		
-      chThdSleepMilliseconds(1000);	
-    }
-  }
-
 }
 
 int main (void)
@@ -55,7 +40,6 @@ int main (void)
 
   consoleInit();	
   consoleLaunch();
-  chThdCreateStatic(waBlinker, sizeof(waBlinker), NORMALPRIO, &blinker, NULL);
 
   if (radio.init(spiCfg) != Rfm69Status::OK) {
     DebugTrace("radio.init failed");

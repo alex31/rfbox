@@ -171,7 +171,8 @@ CSRC = $(ALLCSRC) \
        $(VARIOUS)/rtcAccess.c \
        $(VARIOUS)/printf.c \
        $(VARIOUS)/microrl/microrlShell.c \
-       $(VARIOUS)/microrl/microrl.c 
+       $(VARIOUS)/microrl/microrl.c  \
+       $(VARIOUS)/ssd1306.c 
 
 
 # C++ sources that can be compiled in ARM or THUMB mode depending on the global

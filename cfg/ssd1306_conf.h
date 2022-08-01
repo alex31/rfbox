@@ -1,6 +1,9 @@
 // Private configuration file for the SSD1306 driver.
 #pragma once
 
+//=== SSD1306 I2C Peripheral ===
+#define SSD1306_I2CD		  I2CD3
+
 //=== SSD1306 I2C Slave Address ===
 #define SSD1306_I2C_ADDR		0x3C // 7 bits address (SA0 = 0)
 //#define SSD1306_I2C_ADDR        0x3D // 7 bits address (SA0 = 1)
