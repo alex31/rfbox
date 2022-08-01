@@ -1,6 +1,6 @@
 #include "rfm69.hpp"
 #include "stdutil.h"
-#include "notGate.hpp"
+#include "buffer.hpp"
 
 #define SWAP_ENDIAN24(x) __builtin_bswap32(static_cast<uint32_t>(x) << 8)
 
@@ -127,18 +127,24 @@ Rfm69Status Rfm69OokRadio::calibrate()
 
  */
 Rfm69Status Rfm69OokRadio::setRfParam(OpMode _mode,
+				      UARTMode _umode,
 				      uint32_t frequencyCarrier,
 				      int8_t amplificationLevelDb)
 {
   setFrequencyCarrier(frequencyCarrier);
 
   mode = _mode;
-  GATE::setMode(GATE::MODE::HiZ);
+  umode = _umode;
+  BUFFER::setMode(BUFFER::MODE::HiZ);
   if (mode == OpMode::TX) {
-    GATE::setMode(GATE::MODE::TX);
+    BUFFER::setMode(umode == UARTMode::STRAIGHT ?
+		    BUFFER::MODE::TX :
+		    BUFFER::MODE::INVERTED_TX);
     setPowerAmp(0b001, RampTime::US_20, amplificationLevelDb);
   } else {
-    GATE::setMode(GATE::MODE::RX);
+    BUFFER::setMode(umode == UARTMode::STRAIGHT ?
+		    BUFFER::MODE::RX :
+		    BUFFER::MODE::INVERTED_RX);
     setReceptionTuning();
   }  
   rfm69.reg.opMode_mode = mode;

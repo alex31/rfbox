@@ -4,12 +4,10 @@
 
 #include "stdutil.h"	
 #include "ttyConsole.hpp"	
-#include "rfm69.hpp"
 #include "dip.hpp"
 #include "modeTest.hpp"
+#include "radio.hpp"
 
-
-Rfm69OokRadio radio(SPID1, LINE_RADIO_RESET);
 
 namespace {
   constexpr uint32_t carrierFrequencyLow = 868'000'000;
@@ -19,17 +17,6 @@ namespace {
   constexpr uint32_t baudLow = 4800;
   constexpr uint32_t baudHigh = 19200;
   
-  const SPIConfig spiCfg = {
-    .circular = false,
-    .slave = false,
-    .data_cb = NULL,
-    .error_cb = NULL,
-    /* HW dependent part.*/
-    .ssline = LINE_RADIO_CS,
-    /* 2.5 Mhz, 8 bits word, CPOL=0,  CPHA=0 */
-    .cr1 = SPI_CR1_BR_2,
-    .cr2 = SPI_CR2_DS_2 | SPI_CR2_DS_1 | SPI_CR2_DS_0 
-  };
 }
 
 int main (void)
@@ -41,9 +28,8 @@ int main (void)
   consoleInit();	
   consoleLaunch();
 
-  if (radio.init(spiCfg) != Rfm69Status::OK) {
-    DebugTrace("radio.init failed");
-  }
+  RADIO::init();
+  
   const OpMode opMode = DIP::getDip(DIPSWITCH::RXTX) ? OpMode::RX : OpMode::TX;
   if (opMode == OpMode::RX) 
     DebugTrace("mode RX");
@@ -61,11 +47,12 @@ int main (void)
     DebugTrace("high power");
    
   
-  if (radio.setRfParam(opMode,
+  if (RADIO::radio.setRfParam(opMode,
+		       UARTMode::INVERTED,
 		       DIP::getDip(DIPSWITCH::FREQ) ? carrierFrequencyLow : carrierFrequencyHigh,
 		       DIP::getDip(DIPSWITCH::PWRLVL) ? ampLevelDbLow : ampLevelDbHigh)
       != Rfm69Status::OK) {
-    DebugTrace("radio.setRfParam failed");
+    DebugTrace("RADIO::radio.setRfParam failed");
   }
   // main thread does nothing
   DIP::start();
