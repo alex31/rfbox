@@ -1,5 +1,6 @@
 #include "rfm69.hpp"
 #include "stdutil.h"
+#include "operations.hpp"
 
 #define SWAP_ENDIAN24(x) __builtin_bswap32(static_cast<uint32_t>(x) << 8)
 
@@ -234,14 +235,8 @@ void Rfm69OokRadio::setReceptionTuning(void)
 // 27 step to be tested in maximum one second : 35 ms for each step
 void Rfm69OokRadio::calibrateRssiThresh(void)
 {
-  const float rssi = getRssi();
-  DebugTrace("RSSI = %.1f", rssi);
   auto isDioStableLow = [] {
-#ifdef DIO2_DIRECT
-    const bool low = palReadLine(LINE_EXTVCP_TX) == PAL_LOW; // no inverting driver
-#else
-    const bool low = palReadLine(LINE_EXTVCP_TX) == PAL_HIGH; // after the inverting driver
-#endif
+    const bool low = palReadLine(LINE_EXTVCP_TX) == PAL_LOW; 
     DebugTrace("level = %s", low ? "LOW" : "HIGH");
     if (low) {
       const bool stable = palWaitLineTimeout(LINE_EXTVCP_TX, TIME_MS2I(35)) == MSG_TIMEOUT;
@@ -251,6 +246,10 @@ void Rfm69OokRadio::calibrateRssiThresh(void)
       return false;
     }
   };
+
+  const float rssi = getRssi();
+  DebugTrace("RSSI = %.1f", rssi);
+  Ope::setMode(Ope::Mode::RF_CALIBRATE_RSSI, 0, 0);
   
   palEnableLineEvent(LINE_EXTVCP_TX, PAL_EVENT_MODE_BOTH_EDGES);
   for (uint16_t t = 0xE4; t <= 0xFF; t++) {

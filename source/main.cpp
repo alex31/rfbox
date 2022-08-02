@@ -27,25 +27,42 @@ int main (void)
   else
     DebugTrace("mode TX");
 
-  if (DIP::getDip(DIPSWITCH::FREQ))
-    DebugTrace("low frequency");
+  const bool rfEnable = DIP::getDip(DIPSWITCH::RFENABLE);
+  if (rfEnable) 
+    DebugTrace("RF Enable");
   else
-    DebugTrace("high frequency");
+    DebugTrace("RF Disable");
 
-  if (DIP::getDip(DIPSWITCH::PWRLVL))
-     DebugTrace("low power");
-  else
-    DebugTrace("high power");
-   
+  const uint32_t frequencyCarrier = DIP::getDip(DIPSWITCH::FREQ) ?
+    carrierFrequencyHigh : carrierFrequencyLow;
+
+  const int8_t amplificationLevelDb = DIP::getDip(DIPSWITCH::PWRLVL) ?
+    ampLevelDbLow : ampLevelDbHigh;
+  const bool berMode = DIP::getDip(DIPSWITCH::BER);
+  const uint32_t baud = DIP::getDip(DIPSWITCH::BERBAUD) ? baudLow : baudHigh;
   
+  DebugTrace("carrier frequency %lu @ %d Db level", frequencyCarrier, amplificationLevelDb);
 
+  Ope::Mode opMode = Ope::Mode::NONE;
+  if (not rfEnable) {
+    opMode = rfMode == RfMode::RX ? Ope::Mode::NORF_RX : Ope::Mode::NORF_TX;
+  } else { // rfEnable
+    if (berMode) {
+      opMode = rfMode == RfMode::RX ? Ope::Mode::RF_RX_INTERNAL : Ope::Mode::RF_TX_INTERNAL;
+    } else { // not in ber mode : regular mode
+      opMode = rfMode == RfMode::RX ? Ope::Mode::RF_RX_EXTERNAL : Ope::Mode::RF_TX_EXTERNAL;
+    }
+  }
+  chDbgAssert(opMode != Ope::Mode::NONE, "internal logic error");
+  DebugTrace("Ope::opMode = %u", static_cast<uint16_t>(opMode));
+  Ope::setMode(opMode, frequencyCarrier, amplificationLevelDb);
   // main thread does nothing
   DIP::start();
-  if (DIP::getDip(DIPSWITCH::BER)) {
-    DebugTrace("start BER mode");
-    ModeTest::start(rfMode,
-		    DIP::getDip(DIPSWITCH::BERBAUD) ? baudLow : baudHigh);
-    }
+  if (berMode) {
+    DebugTrace("start BER mode @ %lu baud",  baud);
+    ModeTest::start(rfMode, baud);
+  }
+  
   chThdSleep(TIME_INFINITE);
 }
 

@@ -1,11 +1,8 @@
-
-° il faut faire un tableau des modes :
-  + utilisation des broches correspondantes
-  + données affichée
-  + threads lancés
+° gerer l'affichage OLED
 
 /*
--DDIO2_DIRECT -DINVERT_UART
+#define DIO2_DIRECT true or false
+#define INVERT_UART_LEVEL true or false
 */
 
 
@@ -29,6 +26,7 @@
 ° broche VCP_RX en input floating
 ° broche VCP_TX en output pushpull HI-SPEED
 ° ISR EXTI : surveille VCP_RX et recopie sur VCP_TX
+|1234567890123456|
 ------------------
 |RX RF:Off       |
 |BE Reception    |
@@ -42,6 +40,7 @@
 ° RFM en mode RX
 ° broche VCP_TX en input floating
 ° ISR EXTI : surveille la stabilité de VCP_TX 
+|1234567890123456|
 ------------------
 |RX RF:On Extern |
 |Source Extern   |
@@ -54,6 +53,7 @@
 ° buffer conf Rx (prise en compte INVERT_UART)
 ° RFM en mode RX
 ° broche VCP_TX en input floating
+|1234567890123456|
 ------------------
 |RX RF:On        |
 |Extern Sink     |
@@ -66,6 +66,7 @@
 ° buffer conf Tx (prise en compte INVERT_UART)
 ° RFM en mode TX
 ° broche VCP_TX en input floating
+|1234567890123456|
 ------------------
 |TX RF:On        |
 |Extern Source   |
@@ -79,6 +80,7 @@
 ° RFM en mode RX
 ° broche VCP_TX en usart, mode swap, inversée ou non (macro à definir)
 Q peut on lancer une recup RSSI pendant une acquisition en mode continu asynchrone ?
+|1234567890123456|
 ------------------
 |RX RF:On        |
 |BER xxx/100     | -> ou "no data" si aucune reception
@@ -93,6 +95,7 @@ Q peut on lancer une recup RSSI pendant une acquisition en mode continu asynchro
    externe ne soit pas branchée
 ° RFM en mode TX
 ° broche VCP_TX en usart, pas de swap, inversée ou non (macro à definir)
+|1234567890123456|
 ------------------
 |TX RF:On        |
 |Mode BER        |

@@ -4,6 +4,7 @@
 #include "stdutil.h"
 #include "rfm69.hpp"
 #include "etl/string.h"
+#include "hardwareConf.hpp"
 
 namespace {
   using ErrorString = etl::string<48>;
@@ -13,7 +14,7 @@ namespace {
     .speed = 4800,
     .cr1 = 0,
     .cr2 = USART_CR2_STOP1_BITS | USART_CR2_LINEN
-#ifdef DIO2_DIRECT
+#if DIO2_DIRECT && INVERT_UART_LEVEL
     | USART_CR2_TXINV | USART_CR2_RXINV
 #endif
     ,

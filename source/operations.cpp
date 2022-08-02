@@ -18,46 +18,56 @@ namespace {
   void buffer_RF_TX_EXTERNAL();
   void buffer_RF_RX_INTERNAL();
   ElectricalStatus buffer_RF_TX_INTERNAL();
+
+  void startRxTxEcho(void);
+  void stopRxTxEcho(void);
 }
 
-namespace OPE {
-  Status setMode(MODE opMode, 
+namespace Ope {
+  Status setMode(Mode opMode, 
 		 uint32_t frequencyCarrier,
 		 int8_t amplificationLevelDb) {
     Status status = Status::OK;
     RfMode rfMode = RfMode::SLEEP;
-    BUFFER::setMode(BUFFER::MODE::HiZ);
-    
+    Buffer::setMode(Buffer::Mode::HiZ);
+    stopRxTxEcho();
     switch (opMode) {
-    case MODE::NORF_TX:
+    case Mode::NONE:
+      return Status::INTERNAL_ERROR;
+      break ;
+
+    case Mode::NORF_TX:
       buffer_NORF_TX();
       break ;
       
-    case MODE::NORF_RX:
+    case Mode::NORF_RX:
       buffer_NORF_RX();
+      startRxTxEcho();
       break ;
       
-    case MODE::RF_CALIBRATE_RSSI:
+    case Mode::RF_CALIBRATE_RSSI:
       rfMode = RfMode::RX;
       buffer_RF_CALIBRATE_RSSI();
+      return status; // calibrate rssi is a special case where whe should not call
+      // setRfParam
       break ;
       
-    case MODE::RF_RX_EXTERNAL:
+    case Mode::RF_RX_EXTERNAL:
       rfMode = RfMode::RX;
       buffer_RF_RX_EXTERNAL();
       break ;
       
-    case MODE::RF_TX_EXTERNAL:
+    case Mode::RF_TX_EXTERNAL:
       rfMode = RfMode::TX;
       buffer_RF_TX_EXTERNAL();
       break ;
       
-    case MODE::RF_RX_INTERNAL:
+    case Mode::RF_RX_INTERNAL:
       rfMode = RfMode::RX;
       buffer_RF_RX_INTERNAL();
       break ;
       
-    case MODE::RF_TX_INTERNAL:
+    case Mode::RF_TX_INTERNAL:
       rfMode = RfMode::TX;
       if (buffer_RF_TX_INTERNAL() != ElectricalStatus::FREE) {
 	status = Status::DATA_LINE_HOLD;
@@ -84,7 +94,7 @@ namespace {
   {
     palSetLineMode(LINE_EXTVCP_TX, PAL_MODE_INPUT);
 #if DIO2_DIRECT
-    BUFFER::setMode(BUFFER::MODE::TX);
+    Buffer::setMode(Buffer::Mode::TX);
 #endif
   }
 
@@ -94,7 +104,7 @@ namespace {
     palSetLineMode(LINE_EXTVCP_TX,
 		   PAL_MODE_OUTPUT_PUSHPULL | PAL_STM32_OSPEED_HIGHEST);
 #if DIO2_DIRECT
-    BUFFER::setMode(BUFFER::MODE::RX);
+    Buffer::setMode(Buffer::Mode::RX);
 #endif
   }
   
@@ -102,27 +112,27 @@ namespace {
   {
     palSetLineMode(LINE_EXTVCP_TX, PAL_MODE_INPUT);
 #if DIO2_DIRECT == 0
-    BUFFER::setMode(BUFFER::MODE::RX);
+    Buffer::setMode(Buffer::Mode::RX);
 #endif
   }
   
   void buffer_RF_RX_EXTERNAL()
   {
     palSetLineMode(LINE_EXTVCP_TX, PAL_MODE_INPUT);
-#if INVERT_UART == 0
-    BUFFER::setMode(BUFFER::MODE::RX);
+#if INVERT_UART_LEVEL == 0
+    Buffer::setMode(Buffer::Mode::RX);
 #else
-    BUFFER::setMode(BUFFER::MODE::INVERTED_RX);
+    Buffer::setMode(Buffer::Mode::INVERTED_RX);
 #endif
   }
   
   void buffer_RF_TX_EXTERNAL()
   {
     palSetLineMode(LINE_EXTVCP_TX, PAL_MODE_INPUT);
-#if INVERT_UART == 0
-    BUFFER::setMode(BUFFER::MODE::TX);
+#if INVERT_UART_LEVEL == 0
+    Buffer::setMode(Buffer::Mode::TX);
 #else
-    BUFFER::setMode(BUFFER::MODE::INVERTED_TX);
+    Buffer::setMode(Buffer::Mode::INVERTED_TX);
 #endif
   }
   
@@ -130,7 +140,7 @@ namespace {
   {
     palSetLineMode(LINE_EXTVCP_TX, PAL_MODE_ALTERNATE(AF_LINE_EXTVCP_TX));
 #if DIO2_DIRECT == 0
-    BUFFER::setMode(INVERT_UART ? BUFFER::MODE::INVERTED_RX : BUFFER::MODE::RX);
+    Buffer::setMode(INVERT_UART_LEVEL ? Buffer::Mode::INVERTED_RX : Buffer::Mode::RX);
 #endif
   }
   
@@ -148,9 +158,24 @@ namespace {
       if (palReadLine(LINE_EXTVCP_TX) != PAL_LOW)
 	return ElectricalStatus::HOLD;
     }
-    BUFFER::setMode(INVERT_UART ? BUFFER::MODE::INVERTED_TX : BUFFER::MODE::TX);
+    Buffer::setMode(INVERT_UART_LEVEL ? Buffer::Mode::INVERTED_TX : Buffer::Mode::TX);
 #endif    
 
     return ElectricalStatus::FREE;
+  }
+
+
+  void startRxTxEcho(void)
+  {
+    auto cb = [] (void *) {
+      palWriteLine(LINE_EXTVCP_TX, palReadLine(LINE_EXTVCP_RX));
+    };
+    palEnableLineEvent(LINE_EXTVCP_RX, PAL_EVENT_MODE_BOTH_EDGES);
+    palSetLineCallback(LINE_EXTVCP_RX, cb, NULL);
+  }
+
+  void stopRxTxEcho(void)
+  {
+    palDisableLineEvent(LINE_EXTVCP_RX);
   }
 }
