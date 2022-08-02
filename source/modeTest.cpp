@@ -24,7 +24,7 @@ namespace {
   void autonomousTestRead (void *);
   void newError(const ErrorString& es);
   
-  OpMode opMode = OpMode::SLEEP;
+  RfMode rfMode = RfMode::SLEEP;
   ModeTest::Report report;
 }
 
@@ -32,24 +32,24 @@ namespace {
 
 namespace ModeTest {
 
-  void start(OpMode _opMode, uint32_t baud)
+  void start(RfMode _rfMode, uint32_t baud)
   {
     
-    opMode = _opMode;
+    rfMode = _rfMode;
     meteoSerialConfig.speed = baud;
     // DIO is connected on UART1_TX
-    if (opMode == OpMode::RX) 
+    if (rfMode == RfMode::RX) 
       meteoSerialConfig.cr2 |= USART_CR2_SWAP;
 
     sdStart(&SD1, &meteoSerialConfig);
-    if (opMode == OpMode::TX) {
+    if (rfMode == RfMode::TX) {
       chThdCreateStatic(waAutonomousTest, sizeof(waAutonomousTest),
 			NORMALPRIO, &autonomousTestWrite, nullptr);
-    } else  if (opMode == OpMode::RX) {
+    } else  if (rfMode == RfMode::RX) {
       chThdCreateStatic(waAutonomousTest, sizeof(waAutonomousTest),
 			NORMALPRIO, &autonomousTestRead, nullptr);
     } else {
-      chSysHalt("invalid opMode");
+      chSysHalt("invalid rfMode");
     }
   }
 

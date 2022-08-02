@@ -13,7 +13,7 @@ namespace OPE {
     RF_TX_INTERNAL
   };
   
-  OPE::Status setMode(MODE opMode, OpMode mode,
+  OPE::Status setMode(MODE opMode, RfMode mode,
 		      uint32_t frequencyCarrier,
 		      int8_t amplificationLevelDb);
 }

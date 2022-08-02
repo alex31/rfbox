@@ -68,13 +68,13 @@ Rfm69Status Rfm69OokRadio::init(const SPIConfig& spiCfg)
   if ((status = calibrate()) != Rfm69Status::OK)
     goto end;
   
-  rfm69.reg.opMode_mode = OpMode::FS;
+  rfm69.reg.opMode_mode = RfMode::FS;
   rfm69.reg.opMode_sequencerOff = 0; // sequencer is activated
   rfm69.reg.opMode_listenOn = 0; // sequencer is activated
   rfm69.reg.datamodul_dataMode = DataMode::CONTINUOUS_NOSYNC;
   rfm69.reg.datamodul_shaping = DataModul::OOK_NOSHAPING;
   rfm69.reg.dioMapping_io3 = 0b01; // TX_READY or RX_READY on DIO3
-  rfm69.cacheWrite(Rfm69RegIndex::OpMode,
+  rfm69.cacheWrite(Rfm69RegIndex::RfMode,
 		   Rfm69RegIndex::AesKey - Rfm69RegIndex::First);
  end:
   return status;
@@ -102,8 +102,8 @@ Rfm69Status Rfm69OokRadio::calibrate()
   systime_t ts = chVTGetSystemTimeX();
   
   const auto saveMode = rfm69.reg.opMode_mode;
-  rfm69.reg.opMode_mode = OpMode::STDBY;
-  rfm69.cacheWrite(Rfm69RegIndex::OpMode);
+  rfm69.reg.opMode_mode = RfMode::STDBY;
+  rfm69.cacheWrite(Rfm69RegIndex::RfMode);
   
   rfm69.reg.osc1_calibStart = true;
   rfm69.cacheWrite(Rfm69RegIndex::Osc1);
@@ -125,31 +125,31 @@ Rfm69Status Rfm69OokRadio::calibrate()
   words : that mean that frame must begin with 4 0xFF before sync beacon
 
  */
-Rfm69Status Rfm69OokRadio::setRfParam(OpMode _mode,
+Rfm69Status Rfm69OokRadio::setRfParam(RfMode _mode,
 				      uint32_t frequencyCarrier,
 				      int8_t amplificationLevelDb)
 {
   mode = _mode;
-  if (mode == OpMode::TX) {
+  if (mode == RfMode::TX) {
     setFrequencyCarrier(frequencyCarrier);
     setPowerAmp(0b001, RampTime::US_20, amplificationLevelDb);
-  } else  if (mode == OpMode::RX) {
+  } else  if (mode == RfMode::RX) {
     setFrequencyCarrier(frequencyCarrier);
     setReceptionTuning();
   }  
   rfm69.reg.opMode_mode = mode;
-  rfm69.cacheWrite(Rfm69RegIndex::OpMode);
+  rfm69.cacheWrite(Rfm69RegIndex::RfMode);
 
   // optional : to be tested, optimisation of floor threshold
   // works only in the absence of module emitting !!
-  if (mode == OpMode::RX) {
+  if (mode == RfMode::RX) {
     // desactivate AGC, use minimal gain (to be tested)
     setLna(LnaGain::MINUS_48, LnaInputImpedance::OHMS_50);
     calibrateRssiThresh();
     DebugTrace("current lna gain = %d", getLnaGain());
   }
   
-  if ((mode != OpMode::TX) and (mode != OpMode::RX)) {
+  if ((mode != RfMode::TX) and (mode != RfMode::RX)) {
     chThdSleepMilliseconds(10); // time to shutdown
     return Rfm69Status::OK;
   }
@@ -163,9 +163,9 @@ Rfm69Status Rfm69OokRadio::waitReady(void)
   systime_t start = chVTGetSystemTimeX();
   while (chTimeDiffX(start, chVTGetSystemTimeX()) < TIME_MS2I(1000)) {
     rfm69.cacheRead(Rfm69RegIndex::IrqFlags1);
-    if ((mode == OpMode::RX) and rfm69.reg.irqFlags_rxReady)
+    if ((mode == RfMode::RX) and rfm69.reg.irqFlags_rxReady)
       return Rfm69Status::OK;
-    if ((mode == OpMode::TX) and rfm69.reg.irqFlags_txReady)
+    if ((mode == RfMode::TX) and rfm69.reg.irqFlags_txReady)
       return Rfm69Status::OK;
     chThdSleepMilliseconds(1);
   }

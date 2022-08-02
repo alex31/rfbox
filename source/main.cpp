@@ -21,8 +21,8 @@ int main (void)
 
   RADIO::init();
   
-  const OpMode opMode = DIP::getDip(DIPSWITCH::RXTX) ? OpMode::RX : OpMode::TX;
-  if (opMode == OpMode::RX) 
+  const RfMode rfMode = DIP::getDip(DIPSWITCH::RXTX) ? RfMode::RX : RfMode::TX;
+  if (rfMode == RfMode::RX) 
     DebugTrace("mode RX");
   else
     DebugTrace("mode TX");
@@ -43,7 +43,7 @@ int main (void)
   DIP::start();
   if (DIP::getDip(DIPSWITCH::BER)) {
     DebugTrace("start BER mode");
-    ModeTest::start(opMode,
+    ModeTest::start(rfMode,
 		    DIP::getDip(DIPSWITCH::BERBAUD) ? baudLow : baudHigh);
     }
   chThdSleep(TIME_INFINITE);

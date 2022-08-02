@@ -22,6 +22,6 @@ namespace ModeTest {
     }
 
   };
-  void start(OpMode opMode, uint32_t baud);
+  void start(RfMode rfMode, uint32_t baud);
   Report getReport();
 }

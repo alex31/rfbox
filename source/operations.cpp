@@ -25,7 +25,7 @@ namespace OPE {
 		 uint32_t frequencyCarrier,
 		 int8_t amplificationLevelDb) {
     Status status = Status::OK;
-    OpMode rfMode = OpMode::SLEEP;
+    RfMode rfMode = RfMode::SLEEP;
     BUFFER::setMode(BUFFER::MODE::HiZ);
     
     switch (opMode) {
@@ -38,27 +38,27 @@ namespace OPE {
       break ;
       
     case MODE::RF_CALIBRATE_RSSI:
-      rfMode = OpMode::RX;
+      rfMode = RfMode::RX;
       buffer_RF_CALIBRATE_RSSI();
       break ;
       
     case MODE::RF_RX_EXTERNAL:
-      rfMode = OpMode::RX;
+      rfMode = RfMode::RX;
       buffer_RF_RX_EXTERNAL();
       break ;
       
     case MODE::RF_TX_EXTERNAL:
-      rfMode = OpMode::TX;
+      rfMode = RfMode::TX;
       buffer_RF_TX_EXTERNAL();
       break ;
       
     case MODE::RF_RX_INTERNAL:
-      rfMode = OpMode::RX;
+      rfMode = RfMode::RX;
       buffer_RF_RX_INTERNAL();
       break ;
       
     case MODE::RF_TX_INTERNAL:
-      rfMode = OpMode::TX;
+      rfMode = RfMode::TX;
       if (buffer_RF_TX_INTERNAL() != ElectricalStatus::FREE) {
 	status = Status::DATA_LINE_HOLD;
 	goto end;

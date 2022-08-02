@@ -43,17 +43,17 @@ public:
   Rfm69OokRadio(SPIDriver& spid, ioline_t lineReset) :
     rfm69(spid, lineReset) {};
   Rfm69Status init(const SPIConfig& spiCfg);
-  Rfm69Status setRfParam(OpMode _mode, 
+  Rfm69Status setRfParam(RfMode _mode, 
 			 uint32_t frequencyCarrier,
 			 int8_t amplificationLevelDb);
   Rfm69Status waitReady(void);
   Rfm69Status calibrate(void);
   float getRssi();
-  OpMode getMode() {return mode;}
+  RfMode getMode() {return mode;}
 
 protected:
   Rfm69Spi rfm69;
-  OpMode mode {OpMode::SLEEP};
+  RfMode mode {RfMode::SLEEP};
   void calibrateRssiThresh(void);
   void setFrequencyCarrier(uint32_t frequencyCarrier);
   void setPowerAmp(uint8_t pmask, RampTime rt, int8_t gain);
