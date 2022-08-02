@@ -1,6 +1,5 @@
 #include "rfm69.hpp"
 #include "stdutil.h"
-#include "buffer.hpp"
 
 #define SWAP_ENDIAN24(x) __builtin_bswap32(static_cast<uint32_t>(x) << 8)
 
@@ -127,24 +126,15 @@ Rfm69Status Rfm69OokRadio::calibrate()
 
  */
 Rfm69Status Rfm69OokRadio::setRfParam(OpMode _mode,
-				      UARTMode _umode,
 				      uint32_t frequencyCarrier,
 				      int8_t amplificationLevelDb)
 {
-  setFrequencyCarrier(frequencyCarrier);
-
   mode = _mode;
-  umode = _umode;
-  BUFFER::setMode(BUFFER::MODE::HiZ);
   if (mode == OpMode::TX) {
-    BUFFER::setMode(umode == UARTMode::STRAIGHT ?
-		    BUFFER::MODE::TX :
-		    BUFFER::MODE::INVERTED_TX);
+    setFrequencyCarrier(frequencyCarrier);
     setPowerAmp(0b001, RampTime::US_20, amplificationLevelDb);
-  } else {
-    BUFFER::setMode(umode == UARTMode::STRAIGHT ?
-		    BUFFER::MODE::RX :
-		    BUFFER::MODE::INVERTED_RX);
+  } else  if (mode == OpMode::RX) {
+    setFrequencyCarrier(frequencyCarrier);
     setReceptionTuning();
   }  
   rfm69.reg.opMode_mode = mode;
@@ -158,7 +148,11 @@ Rfm69Status Rfm69OokRadio::setRfParam(OpMode _mode,
     calibrateRssiThresh();
     DebugTrace("current lna gain = %d", getLnaGain());
   }
-
+  
+  if ((mode != OpMode::TX) and (mode != OpMode::RX)) {
+    chThdSleepMilliseconds(10); // time to shutdown
+    return Rfm69Status::OK;
+  }
   const auto status = waitReady();
   DebugTrace("status = %lx", static_cast<uint32_t>(status));
   return status;
@@ -242,7 +236,6 @@ void Rfm69OokRadio::calibrateRssiThresh(void)
 {
   const float rssi = getRssi();
   DebugTrace("RSSI = %.1f", rssi);
-  palSetLineMode(LINE_EXTVCP_TX, PAL_MODE_INPUT);
   auto isDioStableLow = [] {
 #ifdef DIO2_DIRECT
     const bool low = palReadLine(LINE_EXTVCP_TX) == PAL_LOW; // no inverting driver
@@ -268,7 +261,6 @@ void Rfm69OokRadio::calibrateRssiThresh(void)
       break;
   }
   palDisableLineEvent(LINE_EXTVCP_TX);
-  palSetLineMode(LINE_EXTVCP_TX, PAL_MODE_ALTERNATE(AF_LINE_EXTVCP_TX));
 
   // rfm69.reg.ookPeak_threshDec = ThresholdDec::EIGHT_TIMES;
   // rfm69.reg.ookPeak_threshStep = ThresholdStep::DB_0P5;

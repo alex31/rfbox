@@ -1,7 +1,104 @@
 
-° il faut faire un tableau des modes et de l'utilisation des broches correspondantes
+° il faut faire un tableau des modes :
+  + utilisation des broches correspondantes
+  + données affichée
+  + threads lancés
+
+/*
+-DDIO2_DIRECT -DINVERT_UART
+*/
 
 
+1/ BE MCU goût emission : (rf disable, mode TX)
+# NORF_TX
+° si DIO2_DIRECT : buffer conf TX sinon : buffer conf HiZ
+° RFM en mode sleep
+° broche VCP_TX en input floating
+|1234567890123456|
+------------------
+|TX RF:Off       |
+|BE Emission     |
+|mode USB-Série  |
+|                |
+------------------
+
+2/ BE MCU goût reception : (rf disable, mode RX)
+# NORF_RX
+° si DIO2_DIRECT : buffer conf RX sinon : buffer conf HiZ
+° RFM en mode sleep
+° broche VCP_RX en input floating
+° broche VCP_TX en output pushpull HI-SPEED
+° ISR EXTI : surveille VCP_RX et recopie sur VCP_TX
+------------------
+|RX RF:Off       |
+|BE Reception    |
+|mode USB-Série  |
+|                |
+------------------
+
+3/ Calibration RSSI threshold
+# RF_CALIBRATE_RSSI
+° si DIO2_DIRECT : buffer conf HiZ sinon : buffer conf Rx 
+° RFM en mode RX
+° broche VCP_TX en input floating
+° ISR EXTI : surveille la stabilité de VCP_TX 
+------------------
+|RX RF:On Extern |
+|Source Extern   |
+|Lna Gain(x) -xxx| -> x -> A or F ; xxx -> actual gain
+|RSSI -xxx       | actual RSSI level
+------------------
+
+4/ Reception source externe
+# RF_RX_EXTERNAL
+° buffer conf Rx (prise en compte INVERT_UART)
+° RFM en mode RX
+° broche VCP_TX en input floating
+------------------
+|RX RF:On        |
+|Extern Sink     |
+|Lna Gain(x) -xxx| -> x -> A or F ; xxx -> actual gain
+|RSSI -xxx       | actual RSSI level
+------------------
+
+5/ Emission source externe
+# RF_TX_EXTERNAL
+° buffer conf Tx (prise en compte INVERT_UART)
+° RFM en mode TX
+° broche VCP_TX en input floating
+------------------
+|TX RF:On        |
+|Extern Source   |
+|                |
+|                |
+------------------
+
+6/ Reception source interne BER
+# RF_RX_INTERNAL
+° si DIO2_DIRECT : buffer conf HiZ sinon : buffer conf Rx (prise en compte INVERT_UART)
+° RFM en mode RX
+° broche VCP_TX en usart, mode swap, inversée ou non (macro à definir)
+Q peut on lancer une recup RSSI pendant une acquisition en mode continu asynchrone ?
+------------------
+|RX RF:On        |
+|BER xxx/100     | -> ou "no data" si aucune reception
+|Lna Gain(x) -xxx| -> x -> A or F ; xxx -> actual gain
+|RSSI -xxx       | actual RSSI level
+------------------
+
+7/ Emission source interne BER
+# RF_TX_INTERNAL
+°  si DIO2_DIRECT : buffer conf HiZ sinon : buffer conf Tx (prise en compte INVERT_UART)
+   *** -> dans le cas ou on est pas en DIO2_DIRECT : vérification que source
+   externe ne soit pas branchée
+° RFM en mode TX
+° broche VCP_TX en usart, pas de swap, inversée ou non (macro à definir)
+------------------
+|TX RF:On        |
+|Mode BER        |
+|                |
+|                |
+------------------
 
 
 

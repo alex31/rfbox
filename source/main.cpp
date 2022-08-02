@@ -7,17 +7,8 @@
 #include "dip.hpp"
 #include "modeTest.hpp"
 #include "radio.hpp"
-
-
-namespace {
-  constexpr uint32_t carrierFrequencyLow = 868'000'000;
-  constexpr uint32_t carrierFrequencyHigh = 870'000'000;
-  constexpr int8_t   ampLevelDbLow = 0;
-  constexpr int8_t   ampLevelDbHigh = 18;
-  constexpr uint32_t baudLow = 4800;
-  constexpr uint32_t baudHigh = 19200;
-  
-}
+#include "operations.hpp"
+#include "hardwareConf.hpp"
 
 int main (void)
 {
@@ -47,13 +38,7 @@ int main (void)
     DebugTrace("high power");
    
   
-  if (RADIO::radio.setRfParam(opMode,
-		       UARTMode::INVERTED,
-		       DIP::getDip(DIPSWITCH::FREQ) ? carrierFrequencyLow : carrierFrequencyHigh,
-		       DIP::getDip(DIPSWITCH::PWRLVL) ? ampLevelDbLow : ampLevelDbHigh)
-      != Rfm69Status::OK) {
-    DebugTrace("RADIO::radio.setRfParam failed");
-  }
+
   // main thread does nothing
   DIP::start();
   if (DIP::getDip(DIPSWITCH::BER)) {
