@@ -30,7 +30,17 @@ private:
 
 
  
-
+#define GSET_DECL(name, bft, bfn, regi)	\
+  void set##name(bft v) \
+  { \
+    rfm69.reg.bfn = v; \
+    rfm69.cacheWrite(Rfm69RegIndex::regi, 1U); \
+  } \
+  bft get##name(void) \
+  { \
+    rfm69.cacheRead(Rfm69RegIndex::regi, 1U); \
+    return rfm69.reg.bfn; \
+  } \
 
 
 class Rfm69OokRadio {
@@ -54,10 +64,20 @@ public:
 protected:
   Rfm69Spi rfm69;
   RfMode mode {RfMode::SLEEP};
+  
+  GSET_DECL(Dagc, FadingMargin, testDagc, TestDagc);
+  GSET_DECL(LowBetaOn, bool, afcCtrl_lowBetaOn, AfcCtrl);
+  GSET_DECL(OokFix_threshold, uint8_t, ookFix_threshold, OokFix);
+  GSET_DECL(Rssi_threshold, uint8_t, rssiThresh, RssiThresh);
+  GSET_DECL(Afc_autoOn, bool, afc_autoOn, AfcFei);
+
   void calibrateRssiThresh(void);
   void setFrequencyCarrier(uint32_t frequencyCarrier);
   void setPowerAmp(uint8_t pmask, RampTime rt, int8_t gain);
   void setLna(LnaGain gain, LnaInputImpedance imp);
   int8_t getLnaGain(void);
   void setReceptionTuning(void);
+  void setOokPeak(ThresholdType t, ThresholdDec d, ThresholdStep s);
+  void setRxBw(BandwithMantissa, uint8_t exp, uint8_t dccFreq);
 };
+
