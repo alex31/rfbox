@@ -70,6 +70,7 @@ protected:
   GSET_DECL(OokFix_threshold, uint8_t, ookFix_threshold, OokFix);
   GSET_DECL(Rssi_threshold, uint8_t, rssiThresh, RssiThresh);
   GSET_DECL(Afc_autoOn, bool, afc_autoOn, AfcFei);
+  GSET_DECL(Ocp_on, bool, ocp_on, Ocp);
 
   void calibrateRssiThresh(void);
   void setFrequencyCarrier(uint32_t frequencyCarrier);
