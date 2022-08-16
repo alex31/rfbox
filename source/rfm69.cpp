@@ -6,16 +6,15 @@
 #define SWAP_ENDIAN24(x) __builtin_bswap32(static_cast<uint32_t>(x) << 8)
 
 namespace {
-  static constexpr uint8_t readMask = 0;
-  static constexpr uint8_t writeMask = 0x80;
+  constexpr uint8_t readMask = 0;
+  constexpr uint8_t writeMask = 0x80;
 }
 
 void Rfm69Spi::reset(void)
 {
-  palSetLineMode(lineReset, PAL_MODE_OUTPUT_PUSHPULL);
   palSetLine(lineReset);
+  palSetLineMode(lineReset, PAL_MODE_OUTPUT_PUSHPULL);
   chThdSleepMicroseconds(100);
-  palClearLine(lineReset);
   palSetLineMode(lineReset, PAL_MODE_INPUT_ANALOG);
   chThdSleepMilliseconds(10);
 }
@@ -32,7 +31,6 @@ Rfm69Status Rfm69Spi::init(const SPIConfig& spiCfg)
 	       "!= documented init value 0x1a0b", bitRate);
     status = Rfm69Status::INIT_ERROR;
   }
-    
 
   return status;
 }
@@ -98,7 +96,7 @@ Rfm69Status Rfm69OokRadio::calibrate()
   if (hasToSaveRestore) {
     rfm69.reg.opMode_mode = RfMode::STDBY;
     rfm69.cacheWrite(Rfm69RegIndex::RfMode);
-    chThdSleepMilliseconds(50);
+    waitReady();
   }
   
   rfm69.reg.osc1_calibStart = true;
@@ -110,7 +108,8 @@ Rfm69Status Rfm69OokRadio::calibrate()
 
   if (hasToSaveRestore) {
     rfm69.reg.opMode_mode = saveMode;
-    rfm69.cacheWrite(Rfm69RegIndex::Osc1);
+    rfm69.cacheWrite(Rfm69RegIndex::RfMode);
+    waitReady();
   }
 
   return rfm69.reg.osc1_calibDone ? Rfm69Status::OK : Rfm69Status::TIMOUT;
@@ -128,6 +127,13 @@ Rfm69Status Rfm69OokRadio::setRfParam(RfMode _mode,
 				      int8_t amplificationLevelDb)
 {
   mode = _mode;
+  if (rxReadySurveyThd != nullptr) {
+    chThdTerminate(rxReadySurveyThd);
+    while (not chThdTerminatedX(rxReadySurveyThd)) {
+      chThdSleepMilliseconds(10);
+    }
+  }
+
   if (mode == RfMode::TX) {
     setFrequencyCarrier(frequencyCarrier);
     setPowerAmp(0b001, RampTime::US_20, amplificationLevelDb);
@@ -144,7 +150,9 @@ Rfm69Status Rfm69OokRadio::setRfParam(RfMode _mode,
   DebugTrace("wait status for mode[%lx] = %lx",
 	     static_cast<uint32_t>(mode),
 	     static_cast<uint32_t>(status));
-  
+  if (status != Rfm69Status::OK)
+    goto exit;
+
   // optional : to be tested, optimisation of floor threshold
   // works only in the absence of module emitting !!
   if (mode == RfMode::RX) {
@@ -153,10 +161,12 @@ Rfm69Status Rfm69OokRadio::setRfParam(RfMode _mode,
     //    calibrateRssiThresh();
     DebugTrace("current lna gain = %d ... RSSI = %.1f",
 	       getLnaGain(), getRssi());
+    rxReadySurveyThd = chThdCreateStatic(waSurvey, sizeof(waSurvey),
+					 NORMALPRIO, &rxReadySurvey, this);
     chThdSleepSeconds(2);
   }
   
-  
+ exit:
   return status;
 }
 
@@ -233,11 +243,13 @@ void Rfm69OokRadio::setFrequencyCarrier(uint32_t frequencyCarrier)
 void Rfm69OokRadio::setReceptionTuning(void)
 {
   // should try ThresholdType::FIXED;
-  setOokPeak(ThresholdType::AVERAGE, ThresholdDec::SIXTEEN_TIMES,
-	     ThresholdStep::DB_2);
+  // setOokPeak(ThresholdType::AVERAGE, ThresholdDec::SIXTEEN_TIMES,
+  // 	     ThresholdStep::DB_2);
+  setOokPeak(ThresholdType::PEAK, ThresholdDec::ONE,
+	     ThresholdStep::DB_0P5);
   setOokFix_threshold(0);
-  setLowBetaOn(true);
-  setDagc(FadingMargin::IMPROVE_LOW_BETA_ON);
+  setLowBetaOn(false);
+  setDagc(FadingMargin::IMPROVE_LOW_BETA_OFF);
   
   // settings for RxBw = 20Khz in OOK
   setRxBw(BandwithMantissa::MANT_24, 4, 2/* default 4 % of rxbx -> 800hz*/);
@@ -304,3 +316,28 @@ int8_t Rfm69OokRadio::getLnaGain(void)
   default:		   return 127;
   }
 }
+
+void Rfm69OokRadio::rxReadySurvey(void *arg)
+{
+  Rfm69OokRadio *radio = static_cast<Rfm69OokRadio *>(arg);
+  uint32_t successiveRxNotReady = 0;
+  
+  chRegSetThreadName("RX Ready survey");
+  while (not chThdShouldTerminateX()) {
+    const bool rxReady = radio->getRxReady();
+    if (not rxReady)
+      successiveRxNotReady++;
+    else
+      successiveRxNotReady = 0;
+    
+    if (successiveRxNotReady > 20) {
+      DebugTrace("RxReady false for 1 second: force calibration");
+      radio->calibrate();
+      chThdSleepMilliseconds(200);
+    }
+    chThdSleepMilliseconds(50);
+  }
+  chThdExit(MSG_OK);
+}
+
+THD_WORKING_AREA(Rfm69OokRadio::waSurvey, 512);

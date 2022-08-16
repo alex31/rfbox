@@ -28,20 +28,23 @@ private:
   ioline_t  lineReset;
 };
 
-
- 
-#define GSET_DECL(name, bft, bfn, regi)	\
-  void set##name(bft v) \
-  { \
-    rfm69.reg.bfn = v; \
-    rfm69.cacheWrite(Rfm69RegIndex::regi, 1U); \
-  } \
+#define GET_DECL(name, bft, bfn, regi)		\
   bft get##name(void) \
   { \
     rfm69.cacheRead(Rfm69RegIndex::regi, 1U); \
     return rfm69.reg.bfn; \
-  } \
+  }
 
+#define SET_DECL(name, bft, bfn, regi)	\
+  void set##name(bft v) \
+  { \
+    rfm69.reg.bfn = v; \
+    rfm69.cacheWrite(Rfm69RegIndex::regi, 1U); \
+  }
+
+#define GSET_DECL(name, bft, bfn, regi)	\
+  GET_DECL(name, bft, bfn, regi) \
+  SET_DECL(name, bft, bfn, regi)
 
 class Rfm69OokRadio {
   static constexpr uint32_t xtalHz = 32e6;
@@ -60,10 +63,13 @@ public:
   Rfm69Status calibrate(void);
   float getRssi();
   RfMode getMode() {return mode;}
-
+  GSET_DECL(RfMode, RfMode, opMode_mode, Ocp);
+  GET_DECL(RxReady, bool, irqFlags_rxReady, IrqFlags1);
 protected:
   Rfm69Spi rfm69;
   RfMode mode {RfMode::SLEEP};
+  thread_t *rxReadySurveyThd = nullptr;
+  static THD_WORKING_AREA(waSurvey, 512);
   
   GSET_DECL(Dagc, FadingMargin, testDagc, TestDagc);
   GSET_DECL(LowBetaOn, bool, afcCtrl_lowBetaOn, AfcCtrl);
@@ -80,5 +86,6 @@ protected:
   void setReceptionTuning(void);
   void setOokPeak(ThresholdType t, ThresholdDec d, ThresholdStep s);
   void setRxBw(BandwithMantissa, uint8_t exp, uint8_t dccFreq);
+  static void rxReadySurvey(void *arg);
 };
 
