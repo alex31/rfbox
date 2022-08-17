@@ -2,12 +2,15 @@
 #include "stdutil.h"
 #include "operations.hpp"
 #include "hardwareConf.hpp"
+#include <cstring>
 
 #define SWAP_ENDIAN24(x) __builtin_bswap32(static_cast<uint32_t>(x) << 8)
 
 namespace {
-  constexpr uint8_t readMask = 0;
+  constexpr uint8_t readMask =  0x0;
   constexpr uint8_t writeMask = 0x80;
+  MUTEX_DECL(calMtx);
+  Rfm69Rmap regCheck;
 }
 
 void Rfm69Spi::reset(void)
@@ -38,23 +41,40 @@ Rfm69Status Rfm69Spi::init(const SPIConfig& spiCfg)
 void Rfm69Spi::cacheRead(Rfm69RegIndex idx, size_t len)
 {
   spiAcquireBus(&spid);
-  spiSelect(&spid);
-  uint8_t slaveAddr = static_cast<uint8_t>(idx) | readMask;
-  spiSend(&spid, 1, &slaveAddr);
-  spiReceive(&spid, len, reg.raw + static_cast<uint8_t>(idx));
-  spiUnselect(&spid);
+  do {
+    spiSelect(&spid);
+    const uint8_t slaveAddr = static_cast<uint8_t>(idx) | readMask;
+    spiSend(&spid, 1, &slaveAddr);
+    spiReceive(&spid, len, const_cast<uint8_t *>(reg.raw) +
+	       static_cast<uint32_t>(idx));
+    spiUnselect(&spid);
+    memcpy(&regCheck, const_cast<Rfm69Rmap *>(&reg), sizeof(reg));
+    spiSelect(&spid);
+    spiSend(&spid, 1, &slaveAddr);
+    spiReceive(&spid, len, const_cast<uint8_t *>(reg.raw) +
+	       static_cast<uint32_t>(idx));
+    spiUnselect(&spid);
+    chThdSleepMicroseconds(1);
+  }
+  while (memcmp(&regCheck, const_cast<Rfm69Rmap *>(&reg),
+		sizeof(reg)) != 0);
+   // chThdSleepMicroseconds(10);
   spiReleaseBus(&spid);
+  // chThdSleepMicroseconds(10);
 }
 
 void Rfm69Spi::cacheWrite(Rfm69RegIndex idx, size_t len)
 {
   spiAcquireBus(&spid);
   spiSelect(&spid);
-  uint8_t slaveAddr = static_cast<uint8_t>(idx) | writeMask;
+  // chThdSleepMicroseconds(10);
+  const uint8_t slaveAddr = static_cast<uint8_t>(idx) | writeMask;
   spiSend(&spid, 1, &slaveAddr);
-  spiSend(&spid, len, reg.raw + static_cast<uint8_t>(idx));
+  spiSend(&spid, len, const_cast<uint8_t *>(reg.raw) + static_cast<uint32_t>(idx));
+  // chThdSleepMicroseconds(10);
   spiUnselect(&spid);
   spiReleaseBus(&spid);
+  // chThdSleepMicroseconds(10);
 }
 
 
@@ -73,6 +93,7 @@ Rfm69Status Rfm69OokRadio::init(const SPIConfig& spiCfg)
   rfm69.reg.opMode_sequencerOff = 0; // sequencer is activated
   rfm69.reg.opMode_listenOn = 0; 
   rfm69.reg.datamodul_dataMode = DataMode::CONTINUOUS_NOSYNC;
+  rfm69.reg.bitrate = SWAP_ENDIAN16(xtalHz / 4800U);
   rfm69.reg.datamodul_shaping = DataModul::OOK_NOSHAPING;
   rfm69.cacheWrite(Rfm69RegIndex::RfMode,
 		   Rfm69RegIndex::AesKey - Rfm69RegIndex::First);
@@ -85,32 +106,35 @@ float Rfm69OokRadio::getRssi()
 {
   rfm69.cacheRead(Rfm69RegIndex::RssiConfig, 2);
   return (-rfm69.reg.rssi / 2.0f);
- }
+}
+
+void	 Rfm69OokRadio::setBaudRate(uint32_t br)
+{
+  rfm69.reg.bitrate = SWAP_ENDIAN16(xtalHz / br);
+  rfm69.cacheWrite(Rfm69RegIndex::Bitrate);
+}
 
 Rfm69Status Rfm69OokRadio::calibrate()
 {
-  systime_t ts = chVTGetSystemTimeX();
-  
-  const auto saveMode = rfm69.reg.opMode_mode;
-  const bool hasToSaveRestore = saveMode != RfMode::STDBY;
-  if (hasToSaveRestore) {
-    rfm69.reg.opMode_mode = RfMode::STDBY;
-    rfm69.cacheWrite(Rfm69RegIndex::RfMode);
-    waitReady();
-  }
-  
+  chMtxLock(&calMtx);
+  const systime_t ts = chVTGetSystemTimeX();
+
+ 
   rfm69.reg.osc1_calibStart = true;
   rfm69.cacheWrite(Rfm69RegIndex::Osc1);
-  do {
+  do 
     rfm69.cacheRead(Rfm69RegIndex::Osc1);
-  } while ((not rfm69.reg.osc1_calibDone) or
-	   (chTimeDiffX(chVTGetSystemTimeX(), ts) < TIME_S2I(1)));
-
-  if (hasToSaveRestore) {
-    rfm69.reg.opMode_mode = saveMode;
-    rfm69.cacheWrite(Rfm69RegIndex::RfMode);
-    waitReady();
+  while ((not rfm69.reg.osc1_calibDone) and
+	 (chTimeDiffX(ts, chVTGetSystemTimeX()) < TIME_S2I(1)));
+  if (not rfm69.reg.osc1_calibDone) {
+    DebugTrace("ERR: osc1 calibration timeout");
   }
+
+  rfm69.cacheRead(Rfm69RegIndex::RfMode);
+  rfm69.cacheRead(Rfm69RegIndex::IrqFlags1);
+  DebugTrace("calibration ends with irqFlags1 = 0x%x, mode = 0x%x",
+	     rfm69.reg.irqFlags1, static_cast<uint16_t>(rfm69.reg.opMode_mode));
+  chMtxUnlock(&calMtx);
 
   return rfm69.reg.osc1_calibDone ? Rfm69Status::OK : Rfm69Status::TIMOUT;
 }
@@ -173,16 +197,18 @@ Rfm69Status Rfm69OokRadio::setRfParam(RfMode _mode,
 Rfm69Status Rfm69OokRadio::waitReady(void)
 {
   systime_t start = chVTGetSystemTimeX();
+
+  const RfMode rfmode = rfm69.reg.opMode_mode;
   
   while (chTimeDiffX(start, chVTGetSystemTimeX()) < TIME_MS2I(1000)) {
     rfm69.cacheRead(Rfm69RegIndex::IrqFlags1);
-    if (mode == RfMode::RX) {
+    if (rfmode == RfMode::RX) {
       if (rfm69.reg.irqFlags_rxReady)
 	return Rfm69Status::OK;
-    } else  if (mode == RfMode::TX) {
+    } else  if (rfmode == RfMode::TX) {
       if (rfm69.reg.irqFlags_txReady)
 	return Rfm69Status::OK;
-    } else if (mode == RfMode::FS) {
+    } else if (rfmode == RfMode::FS) {
       if (rfm69.reg.irqFlags_modeReady and rfm69.reg.irqFlags_pllLock)
 	return Rfm69Status::OK;
     } else {
@@ -192,7 +218,7 @@ Rfm69Status Rfm69OokRadio::waitReady(void)
     chThdSleepMilliseconds(1);
   }
   DebugTrace("waitReady timout for mode %x",
-	     static_cast<uint16_t>(mode));
+	     static_cast<uint16_t>(rfmode));
   return Rfm69Status::TIMOUT;
 }
 
@@ -317,25 +343,35 @@ int8_t Rfm69OokRadio::getLnaGain(void)
   }
 }
 
+// void Rfm69OokRadio::rxReadySurvey(void *arg)
+// {
+//   Rfm69OokRadio *radio = static_cast<Rfm69OokRadio *>(arg);
+//   uint32_t successiveRxNotReady = 0;
+  
+//   chRegSetThreadName("RX Ready survey");
+//   while (not chThdShouldTerminateX()) {
+//     const bool rxReady = radio->getRxReady();
+//     if (not rxReady)
+//       successiveRxNotReady++;
+//     else
+//       successiveRxNotReady = 0;
+    
+//     if (successiveRxNotReady > 5) {
+//       DebugTrace("RxReady false for 0.5 second: force calibration");
+//       radio->calibrate();
+//       chThdSleepMilliseconds(200);
+//     }
+//     chThdSleepMilliseconds(50);
+//   }
+//   chThdExit(MSG_OK);
+// }
 void Rfm69OokRadio::rxReadySurvey(void *arg)
 {
   Rfm69OokRadio *radio = static_cast<Rfm69OokRadio *>(arg);
-  uint32_t successiveRxNotReady = 0;
-  
   chRegSetThreadName("RX Ready survey");
   while (not chThdShouldTerminateX()) {
-    const bool rxReady = radio->getRxReady();
-    if (not rxReady)
-      successiveRxNotReady++;
-    else
-      successiveRxNotReady = 0;
-    
-    if (successiveRxNotReady > 20) {
-      DebugTrace("RxReady false for 1 second: force calibration");
-      radio->calibrate();
-      chThdSleepMilliseconds(200);
-    }
-    chThdSleepMilliseconds(50);
+    chThdSleepSeconds(60);
+    radio->calibrate();
   }
   chThdExit(MSG_OK);
 }

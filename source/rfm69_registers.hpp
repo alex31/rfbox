@@ -56,7 +56,8 @@ enum class Rfm69RegIndex : uint8_t {
   TestPa1 = 0x5A,
   TestPa2 = 0x5C,
   TestDagc = 0x6F,
-  TestAfc = 0x71
+  TestAfc = 0x71,
+  Last = TestAfc
 };
 
 constexpr auto operator-(Rfm69RegIndex a, Rfm69RegIndex b) noexcept
@@ -76,7 +77,7 @@ enum class DataModul : uint8_t {
   OOK_NOSHAPING=0b00001, OOK_BR=0b01001, OOK_2BR=0b10001
 };
 enum class DataMode : uint8_t {
-  PACKET=0b00, CONTINOUS_SYNC=0b10, CONTINUOUS_NOSYNC=0b11};
+  PACKET=0b00, CONTINUOUS_SYNC=0b10, CONTINUOUS_NOSYNC=0b11};
   
 enum class ListenEnd : uint8_t {
   STOP, GOTOMODE, RESUME_IDLE};

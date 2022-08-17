@@ -18,12 +18,12 @@ public:
 
   void cacheWrite(Rfm69RegIndex idx, size_t len = 1);
   void cacheRead(Rfm69RegIndex idx, size_t len = 1);
+  void reset(void);
 
-  Rfm69Rmap reg; // registers are public to avoid massive
+  volatile Rfm69Rmap reg; // registers are public to avoid massive
   // setter getters code with the numerous bitfields
   
 private:
-  void reset(void);
   SPIDriver& spid;
   ioline_t  lineReset;
 };
@@ -59,6 +59,7 @@ public:
   Rfm69Status setRfParam(RfMode _mode, 
 			 uint32_t frequencyCarrier,
 			 int8_t amplificationLevelDb);
+  void	setBaudRate(uint32_t br);
   Rfm69Status waitReady(void);
   Rfm69Status calibrate(void);
   float getRssi();
