@@ -62,6 +62,7 @@ public:
   void	setBaudRate(uint32_t br);
   Rfm69Status waitReady(void);
   Rfm69Status calibrate(void);
+  void checkModeMismatch(void);
   float getRssi();
   RfMode getMode() {return mode;}
   GSET_DECL(RfMode, RfMode, opMode_mode, Ocp);

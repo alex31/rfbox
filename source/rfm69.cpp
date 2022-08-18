@@ -116,6 +116,19 @@ void	 Rfm69OokRadio::setBaudRate(uint32_t br)
   rfm69.cacheWrite(Rfm69RegIndex::Bitrate);
 }
 
+void Rfm69OokRadio::checkModeMismatch()
+{
+  rfm69.cacheRead(Rfm69RegIndex::RfMode);
+  if ((mode != RfMode::SLEEP) and (rfm69.reg.opMode_mode != mode)) {
+    rfm69.reset();
+    rfm69.reg.opMode_mode = mode;
+    rfm69.cacheWrite(Rfm69RegIndex::First, Rfm69RegIndex::Last - Rfm69RegIndex::First);
+    DebugTrace("*** mode mismatch reset module to restore mode to 0x%x",
+	       static_cast<uint16_t>(rfm69.reg.opMode_mode));
+    calibrate();
+  }
+}
+
 Rfm69Status Rfm69OokRadio::calibrate()
 {
   chMtxLock(&calMtx);
@@ -130,15 +143,6 @@ Rfm69Status Rfm69OokRadio::calibrate()
 	 (chTimeDiffX(ts, chVTGetSystemTimeX()) < TIME_S2I(1)));
   if (not rfm69.reg.osc1_calibDone) {
     DebugTrace("ERR: osc1 calibration timeout");
-  }
-
-  rfm69.cacheRead(Rfm69RegIndex::RfMode);
-  if (rfm69.reg.opMode_mode != mode) {
-    rfm69.reset();
-    rfm69.reg.opMode_mode = mode;
-    rfm69.cacheWrite(Rfm69RegIndex::First, Rfm69RegIndex::Last - Rfm69RegIndex::First);
-    DebugTrace("*** mode mismatch reset module to restore mode to 0x%x",
-	       static_cast<uint16_t>(rfm69.reg.opMode_mode));
   }
 
   rfm69.cacheRead(Rfm69RegIndex::RfMode);
@@ -198,7 +202,6 @@ Rfm69Status Rfm69OokRadio::setRfParam(RfMode _mode,
 	       getLnaGain(), getRssi());
     rxReadySurveyThd = chThdCreateStatic(waSurvey, sizeof(waSurvey),
 					 NORMALPRIO, &rxReadySurvey, this);
-    chThdSleepSeconds(2);
   }
   
  exit:
@@ -380,9 +383,14 @@ void Rfm69OokRadio::rxReadySurvey(void *arg)
 {
   Rfm69OokRadio *radio = static_cast<Rfm69OokRadio *>(arg);
   chRegSetThreadName("RX Ready survey");
+  uint32_t count = 0;
   while (not chThdShouldTerminateX()) {
-    chThdSleepSeconds(60);
-    radio->calibrate();
+    chThdSleepSeconds(1);
+    radio->checkModeMismatch();
+    if (++count > 60) {
+      radio->calibrate();
+      count = 0;
+    }
   }
   chThdExit(MSG_OK);
 }
