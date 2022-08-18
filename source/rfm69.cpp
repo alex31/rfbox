@@ -15,11 +15,13 @@ namespace {
 
 void Rfm69Spi::reset(void)
 {
+  spiAcquireBus(&spid);
   palSetLine(lineReset);
   palSetLineMode(lineReset, PAL_MODE_OUTPUT_PUSHPULL);
   chThdSleepMicroseconds(100);
   palSetLineMode(lineReset, PAL_MODE_INPUT_ANALOG);
   chThdSleepMilliseconds(10);
+  spiReleaseBus(&spid);
 }
 
 Rfm69Status Rfm69Spi::init(const SPIConfig& spiCfg)
@@ -128,6 +130,15 @@ Rfm69Status Rfm69OokRadio::calibrate()
 	 (chTimeDiffX(ts, chVTGetSystemTimeX()) < TIME_S2I(1)));
   if (not rfm69.reg.osc1_calibDone) {
     DebugTrace("ERR: osc1 calibration timeout");
+  }
+
+  rfm69.cacheRead(Rfm69RegIndex::RfMode);
+  if (rfm69.reg.opMode_mode != mode) {
+    rfm69.reset();
+    rfm69.reg.opMode_mode = mode;
+    rfm69.cacheWrite(Rfm69RegIndex::First, Rfm69RegIndex::Last - Rfm69RegIndex::First);
+    DebugTrace("*** mode mismatch reset module to restore mode to 0x%x",
+	       static_cast<uint16_t>(rfm69.reg.opMode_mode));
   }
 
   rfm69.cacheRead(Rfm69RegIndex::RfMode);
