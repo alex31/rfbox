@@ -79,6 +79,16 @@ void Rfm69Spi::cacheWrite(Rfm69RegIndex idx, size_t len)
   // chThdSleepMicroseconds(10);
 }
 
+void Rfm69Spi::saveReg(void)
+{
+  memcpy(&regSave, const_cast<const Rfm69Rmap *>(&reg), sizeof(reg));
+}
+
+void Rfm69Spi::restoreReg(void)
+{
+  memcpy(const_cast<Rfm69Rmap *>(&reg), const_cast<const Rfm69Rmap *>(&regSave),
+	 sizeof(reg));
+}
 
 // if one want to try CONTINUOUS_SYNC here : frame preamble
 // 16 bits patern has to be 0xAAAA instead of 0xFFFF
@@ -120,12 +130,15 @@ void Rfm69OokRadio::checkModeMismatch()
 {
   rfm69.cacheRead(Rfm69RegIndex::RfMode);
   if ((mode != RfMode::SLEEP) and (rfm69.reg.opMode_mode != mode)) {
-    rfm69.reset();
-    rfm69.reg.opMode_mode = mode;
-    rfm69.cacheWrite(Rfm69RegIndex::First, Rfm69RegIndex::Last - Rfm69RegIndex::First);
-    DebugTrace("*** mode mismatch reset module to restore mode to 0x%x",
-	       static_cast<uint16_t>(rfm69.reg.opMode_mode));
-    calibrate();
+    __NVIC_SystemReset();
+    do {
+      rfm69.reset();
+      //    rfm69.restoreReg();
+      rfm69.reg.opMode_mode = mode;
+      rfm69.cacheWrite(Rfm69RegIndex::First, Rfm69RegIndex::Last - Rfm69RegIndex::First);
+      DebugTrace("*** mode mismatch reset module to restore mode to 0x%x",
+		 static_cast<uint16_t>(rfm69.reg.opMode_mode));
+    } while  (calibrate() != Rfm69Status::OK);
   }
 }
 
@@ -166,11 +179,13 @@ Rfm69Status Rfm69OokRadio::setRfParam(RfMode _mode,
 				      int8_t amplificationLevelDb)
 {
   mode = _mode;
-  if (rxReadySurveyThd != nullptr) {
-    chThdTerminate(rxReadySurveyThd);
-    while (not chThdTerminatedX(rxReadySurveyThd)) {
+  if (rfHealthSurveyThd != nullptr) {
+    chThdTerminate(rfHealthSurveyThd);
+    while (not chThdTerminatedX(rfHealthSurveyThd)) {
       chThdSleepMilliseconds(10);
     }
+    chThdRelease(rfHealthSurveyThd);
+    rfHealthSurveyThd = nullptr;
   }
 
   if (mode == RfMode::TX) {
@@ -191,7 +206,6 @@ Rfm69Status Rfm69OokRadio::setRfParam(RfMode _mode,
 	     static_cast<uint32_t>(status));
   if (status != Rfm69Status::OK)
     goto exit;
-
   // optional : to be tested, optimisation of floor threshold
   // works only in the absence of module emitting !!
   if (mode == RfMode::RX) {
@@ -200,9 +214,13 @@ Rfm69Status Rfm69OokRadio::setRfParam(RfMode _mode,
     //    calibrateRssiThresh();
     DebugTrace("current lna gain = %d ... RSSI = %.1f",
 	       getLnaGain(), getRssi());
-    rxReadySurveyThd = chThdCreateStatic(waSurvey, sizeof(waSurvey),
-					 NORMALPRIO, &rxReadySurvey, this);
   }
+
+  //  rfm69.saveReg();
+
+  if ((mode == RfMode::RX) or (mode == RfMode::TX)) 
+    rfHealthSurveyThd = chThdCreateStatic(waSurvey, sizeof(waSurvey),
+					 NORMALPRIO, &rfHealthSurvey, this);
   
  exit:
   return status;
@@ -217,7 +235,7 @@ Rfm69Status Rfm69OokRadio::waitReady(void)
   while (chTimeDiffX(start, chVTGetSystemTimeX()) < TIME_MS2I(1000)) {
     rfm69.cacheRead(Rfm69RegIndex::IrqFlags1);
     if (rfmode == RfMode::RX) {
-      if (rfm69.reg.irqFlags_rxReady)
+      if (rfm69.reg.irqFlags1 == 0xD8)
 	return Rfm69Status::OK;
     } else  if (rfmode == RfMode::TX) {
       if (rfm69.reg.irqFlags_txReady)
@@ -357,7 +375,7 @@ int8_t Rfm69OokRadio::getLnaGain(void)
   }
 }
 
-// void Rfm69OokRadio::rxReadySurvey(void *arg)
+// void Rfm69OokRadio::rfHealthSurvey(void *arg)
 // {
 //   Rfm69OokRadio *radio = static_cast<Rfm69OokRadio *>(arg);
 //   uint32_t successiveRxNotReady = 0;
@@ -379,17 +397,21 @@ int8_t Rfm69OokRadio::getLnaGain(void)
 //   }
 //   chThdExit(MSG_OK);
 // }
-void Rfm69OokRadio::rxReadySurvey(void *arg)
+void Rfm69OokRadio::rfHealthSurvey(void *arg)
 {
   Rfm69OokRadio *radio = static_cast<Rfm69OokRadio *>(arg);
-  chRegSetThreadName("RX Ready survey");
-  uint32_t count = 0;
+  chRegSetThreadName("RF Health survey");
+  uint32_t calCount = 0, cmmCount = 0;
+  
   while (not chThdShouldTerminateX()) {
-    chThdSleepSeconds(1);
-    radio->checkModeMismatch();
-    if (++count > 60) {
+    chThdSleepMilliseconds(100);
+    if (++cmmCount > 10) {
+      radio->checkModeMismatch();
+      cmmCount = 0;
+    }
+    if (++calCount > 600) {
       radio->calibrate();
-      count = 0;
+      calCount = 0;
     }
   }
   chThdExit(MSG_OK);
