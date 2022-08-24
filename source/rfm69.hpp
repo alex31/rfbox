@@ -64,12 +64,17 @@ public:
   void	setBaudRate(uint32_t br);
   Rfm69Status waitReady(void);
   Rfm69Status calibrate(void);
+  void coldReset();
   void checkModeMismatch(void);
   float getRssi();
-  RfMode getMode() {return mode;}
-  GSET_DECL(RfMode, RfMode, opMode_mode, Ocp);
+  void humanDisplayFlags(void);
+  RfMode getOrderMode() {return mode;}
+  GSET_DECL(RfMode, RfMode, opMode_mode, RfMode);
   GET_DECL(RxReady, bool, irqFlags_rxReady, IrqFlags1);
   SET_DECL(Afc_force, bool, afc_start, AfcFei);
+  SET_DECL(RestartRx, bool, packetConfig2_restartRx, PacketConfig2);
+  SET_DECL(AutoRxRestart, bool, packetConfig2_autoRxRestartOn, PacketConfig2);
+  Rfm69Status setModeAndWait(RfMode mode);
 protected:
   Rfm69Spi rfm69;
   RfMode mode {RfMode::SLEEP};

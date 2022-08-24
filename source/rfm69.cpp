@@ -2,7 +2,8 @@
 #include "stdutil.h"
 #include "operations.hpp"
 #include "hardwareConf.hpp"
-#include <cstring>
+#include "etl/string.h"
+#include "dio2Spy.hpp"
 
 #define SWAP_ENDIAN24(x) __builtin_bswap32(static_cast<uint32_t>(x) << 8)
 
@@ -16,6 +17,12 @@ namespace {
 void Rfm69Spi::reset(void)
 {
   spiAcquireBus(&spid);
+  if (spid.state >= SPI_READY) {
+    const SPIConfig* cfg = spid.config;
+    spiStop(&spid);
+    spiStart(&spid, cfg);
+  }
+  
   palSetLine(lineReset);
   palSetLineMode(lineReset, PAL_MODE_OUTPUT_PUSHPULL);
   chThdSleepMicroseconds(100);
@@ -107,8 +114,9 @@ Rfm69Status Rfm69OokRadio::init(const SPIConfig& spiCfg)
   rfm69.reg.datamodul_dataMode = DataMode::CONTINUOUS_NOSYNC;
   rfm69.reg.bitrate = SWAP_ENDIAN16(xtalHz / 4800U);
   rfm69.reg.datamodul_shaping = DataModul::OOK_NOSHAPING;
-  rfm69.cacheWrite(Rfm69RegIndex::RfMode,
-		   Rfm69RegIndex::AesKey - Rfm69RegIndex::First);
+  rfm69.cacheWrite(Rfm69RegIndex::DataModul,
+		   Rfm69RegIndex::AesKey - Rfm69RegIndex::DataModul);
+  rfm69.cacheWrite(Rfm69RegIndex::RfMode);
   waitReady();
  end:
   return status;
@@ -126,19 +134,30 @@ void	 Rfm69OokRadio::setBaudRate(uint32_t br)
   rfm69.cacheWrite(Rfm69RegIndex::Bitrate);
 }
 
+void Rfm69OokRadio::coldReset()
+{
+  do {
+    rfm69.reset();
+    rfm69.cacheWrite(Rfm69RegIndex::DataModul, Rfm69RegIndex::Last - Rfm69RegIndex::DataModul);
+    waitReady();
+    setModeAndWait(mode);
+    calibrate();
+    rfm69.cacheRead(Rfm69RegIndex::RfMode);
+    rfm69.cacheRead(Rfm69RegIndex::IrqFlags1);
+  } while  ((mode == RfMode::RX) and (rfm69.reg.irqFlags1 != 0xD8));
+}
+
+
 void Rfm69OokRadio::checkModeMismatch()
 {
   rfm69.cacheRead(Rfm69RegIndex::RfMode);
   if ((mode != RfMode::SLEEP) and (rfm69.reg.opMode_mode != mode)) {
-    __NVIC_SystemReset();
-    do {
-      rfm69.reset();
-      //    rfm69.restoreReg();
-      rfm69.reg.opMode_mode = mode;
-      rfm69.cacheWrite(Rfm69RegIndex::First, Rfm69RegIndex::Last - Rfm69RegIndex::First);
-      DebugTrace("*** mode mismatch reset module to restore mode to 0x%x",
-		 static_cast<uint16_t>(rfm69.reg.opMode_mode));
-    } while  (calibrate() != Rfm69Status::OK);
+    DebugTrace("mismatch found mode %u instead %u, reset...",
+	       static_cast<uint16_t>(rfm69.reg.opMode_mode),
+	       static_cast<uint16_t>(mode));
+    coldReset();
+  } else if (Dio2Spy::getAverageLevel() < 0.4) {
+    coldReset();
   }
 }
 
@@ -160,8 +179,10 @@ Rfm69Status Rfm69OokRadio::calibrate()
 
   rfm69.cacheRead(Rfm69RegIndex::RfMode);
   rfm69.cacheRead(Rfm69RegIndex::IrqFlags1);
-  DebugTrace("calibration ends with irqFlags1 = 0x%x, mode = 0x%x",
-	     rfm69.reg.irqFlags1, static_cast<uint16_t>(rfm69.reg.opMode_mode));
+  DebugTrace("calibration ends mode = 0x%x; dio2 avg = %.2f",
+	     static_cast<uint16_t>(rfm69.reg.opMode_mode),
+	     Dio2Spy::getAverageLevel());
+  humanDisplayFlags();
   chMtxUnlock(&calMtx);
 
   return rfm69.reg.osc1_calibDone ? Rfm69Status::OK : Rfm69Status::TIMOUT;
@@ -197,10 +218,8 @@ Rfm69Status Rfm69OokRadio::setRfParam(RfMode _mode,
     setFrequencyCarrier(frequencyCarrier);
     setReceptionTuning();
   }  
-  rfm69.reg.opMode_mode = mode;
-  rfm69.cacheWrite(Rfm69RegIndex::RfMode);
-
-  auto status = waitReady();
+  setLna(LnaGain::AGC, LnaInputImpedance::OHMS_50);
+  auto status = setModeAndWait(mode);
   DebugTrace("wait status for mode[%lx] = %lx",
 	     static_cast<uint32_t>(mode),
 	     static_cast<uint32_t>(status));
@@ -210,7 +229,6 @@ Rfm69Status Rfm69OokRadio::setRfParam(RfMode _mode,
   // works only in the absence of module emitting !!
   if (mode == RfMode::RX) {
     // desactivate AGC, use minimal gain (to be tested)
-    setLna(LnaGain::AGC, LnaInputImpedance::OHMS_50);
     //    calibrateRssiThresh();
     DebugTrace("current lna gain = %d ... RSSI = %.1f",
 	       getLnaGain(), getRssi());
@@ -220,7 +238,7 @@ Rfm69Status Rfm69OokRadio::setRfParam(RfMode _mode,
 
   if ((mode == RfMode::RX) or (mode == RfMode::TX)) 
     rfHealthSurveyThd = chThdCreateStatic(waSurvey, sizeof(waSurvey),
-					 NORMALPRIO, &rfHealthSurvey, this);
+					 NORMALPRIO - 1, &rfHealthSurvey, this);
   
  exit:
   return status;
@@ -230,7 +248,7 @@ Rfm69Status Rfm69OokRadio::waitReady(void)
 {
   systime_t start = chVTGetSystemTimeX();
 
-  const RfMode rfmode = rfm69.reg.opMode_mode;
+  const RfMode rfmode = getRfMode();
   
   while (chTimeDiffX(start, chVTGetSystemTimeX()) < TIME_MS2I(1000)) {
     rfm69.cacheRead(Rfm69RegIndex::IrqFlags1);
@@ -308,6 +326,7 @@ void Rfm69OokRadio::setReceptionTuning(void)
   setOokFix_threshold(0);
   setLowBetaOn(false);
   setDagc(FadingMargin::IMPROVE_LOW_BETA_OFF);
+  setAutoRxRestart(false);
   
   // settings for RxBw = 20Khz in OOK
   setRxBw(BandwithMantissa::MANT_24, 4, 2/* default 4 % of rxbx -> 800hz*/);
@@ -397,6 +416,35 @@ int8_t Rfm69OokRadio::getLnaGain(void)
 //   }
 //   chThdExit(MSG_OK);
 // }
+
+void Rfm69OokRadio::humanDisplayFlags(void)
+{
+  rfm69.cacheRead(Rfm69RegIndex::IrqFlags1);
+  etl::string<80> flags = "FLAGS= ";
+  flags += rfm69.reg.irqFlags_autoMode ? "AUTO_MODE" : "auto_mode";
+  flags += ", ";
+  flags += rfm69.reg.irqFlags_timeOut ? "TIME_OUT" : "time_out";
+  flags += ", ";
+  flags += rfm69.reg.irqFlags_rssi ? "RSSI" : "rssi";
+  flags += ", ";
+  flags += rfm69.reg.irqFlags_pllLock ? "PLL_LOCK" : "pll_lock";
+  flags += ", ";
+  flags += rfm69.reg.irqFlags_txReady ? "TX_READY" : "tx_ready";
+  flags += ", ";
+  flags += rfm69.reg.irqFlags_rxReady ? "RX_READY" : "rx_ready";
+  flags += ", ";
+  flags += rfm69.reg.irqFlags_modeReady ? "MODE_READY" : "mode_ready";
+  DebugTrace("%s", flags.c_str());
+}
+
+
+Rfm69Status Rfm69OokRadio::setModeAndWait(RfMode nmode)
+{
+  setRfMode(nmode);
+  return waitReady();
+}
+
+
 void Rfm69OokRadio::rfHealthSurvey(void *arg)
 {
   Rfm69OokRadio *radio = static_cast<Rfm69OokRadio *>(arg);
