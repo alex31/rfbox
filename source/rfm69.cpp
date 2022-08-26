@@ -156,7 +156,8 @@ void Rfm69OokRadio::checkModeMismatch()
 	       static_cast<uint16_t>(rfm69.reg.opMode_mode),
 	       static_cast<uint16_t>(mode));
     coldReset();
-  } else if (Dio2Spy::getAverageLevel() < 0.4) {
+  } else if (const float av = Dio2Spy::getAverageLevel(); (av < 0.30f) or (av > 0.70f)) {
+    DebugTrace("dio2 average not valid = %.2f", av);
     coldReset();
   }
 }
@@ -179,9 +180,14 @@ Rfm69Status Rfm69OokRadio::calibrate()
 
   rfm69.cacheRead(Rfm69RegIndex::RfMode);
   rfm69.cacheRead(Rfm69RegIndex::IrqFlags1);
-  DebugTrace("calibration ends mode = 0x%x; dio2 avg = %.2f",
-	     static_cast<uint16_t>(rfm69.reg.opMode_mode),
-	     Dio2Spy::getAverageLevel());
+  if (mode == RfMode::RX) {
+    DebugTrace("calibration ends mode = 0x%x; dio2 avg = %.2f",
+	       static_cast<uint16_t>(rfm69.reg.opMode_mode),
+	       Dio2Spy::getAverageLevel());
+  } else {
+    DebugTrace("calibration ends mode = 0x%x",
+	       static_cast<uint16_t>(rfm69.reg.opMode_mode));
+  }
   humanDisplayFlags();
   chMtxUnlock(&calMtx);
 
