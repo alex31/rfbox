@@ -1073,6 +1073,9 @@
 #define AF_LINE_RCC_OSC32_OUT            0U
 
 
+#define EXTVCP_TX_USART	 1
+#define EXTVCP_TX_USART_FN	 TX
+#define EXTVCP_TX_USART_AF	 7
 
 #define BOARD_GROUP_DECLFOREACH(line, group) \
   static const ioline_t group ## _ARRAY[] = {group}; \

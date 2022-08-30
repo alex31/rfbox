@@ -1,7 +1,6 @@
 #include <ch.h>
 #include <hal.h>
 #include <algorithm>
-
 #include "stdutil.h"	
 #include "ttyConsole.hpp"	
 #include "dip.hpp"
@@ -9,6 +8,10 @@
 #include "radio.hpp"
 #include "operations.hpp"
 #include "hardwareConf.hpp"
+#include "dio2Spy.hpp"
+#ifdef STM32F4xx_MCUCONF
+#include "notGate.hpp"
+#endif
 
 int main (void)
 {
@@ -19,27 +22,26 @@ int main (void)
   consoleInit();	
   consoleLaunch();
 
-  RADIO::init();
-  
-  const RfMode rfMode = DIP::getDip(DIPSWITCH::RXTX) ? RfMode::RX : RfMode::TX;
-  if (rfMode == RfMode::RX) 
+  const RfMode rfMode = DIP::getDip(DIPSWITCH::RXTX) ? RfMode::TX : RfMode::RX;
+  if (rfMode == RfMode::RX) {
     DebugTrace("mode RX");
-  else
+    DIP::start();
+  } else {
     DebugTrace("mode TX");
-
+  }
   const bool rfEnable = DIP::getDip(DIPSWITCH::RFENABLE);
-  if (rfEnable) 
+  if (rfEnable) {
     DebugTrace("RF Enable");
-  else
+  } else {
     DebugTrace("RF Disable");
-
+  }
   const uint32_t frequencyCarrier = DIP::getDip(DIPSWITCH::FREQ) ?
     carrierFrequencyHigh : carrierFrequencyLow;
 
   const int8_t amplificationLevelDb = DIP::getDip(DIPSWITCH::PWRLVL) ?
-    ampLevelDbLow : ampLevelDbHigh;
+    ampLevelDbHigh : ampLevelDbLow;
   const bool berMode = DIP::getDip(DIPSWITCH::BER);
-  const uint32_t baud = DIP::getDip(DIPSWITCH::BERBAUD) ? baudLow : baudHigh;
+  const uint32_t baud = DIP::getDip(DIPSWITCH::BERBAUD) ? baudHigh : baudLow;
   
   DebugTrace("carrier frequency %lu @ %d Db level", frequencyCarrier, amplificationLevelDb);
 
@@ -55,15 +57,46 @@ int main (void)
   }
   chDbgAssert(opMode != Ope::Mode::NONE, "internal logic error");
   DebugTrace("Ope::opMode = %u", static_cast<uint16_t>(opMode));
-  Ope::setMode(opMode, frequencyCarrier, amplificationLevelDb);
-  // main thread does nothing
-  DIP::start();
+  
+  Ope::Status opStatus = {};
+  do {
+    RADIO::init();
+    opStatus = Ope::setMode(opMode, frequencyCarrier,
+			    amplificationLevelDb);
+    if (opStatus != Ope::Status::OK) {
+      DebugTrace("Ope::setMode error status = %u",
+		 static_cast<uint16_t>(opStatus));
+    }
+  } while (opStatus != Ope::Status::OK);
+
+  if (opStatus != Ope::Status::OK) {
+    while (true) {
+#ifdef LINE_LED_HEARTBEAT
+      palToggleLine(LINE_LED_HEARTBEAT);
+#endif
+      chThdSleepMilliseconds(100);
+  }
+
+  }
+  
   if (berMode) {
     DebugTrace("start BER mode @ %lu baud",  baud);
     ModeTest::start(rfMode, baud);
   }
+
+  Dio2Spy::start(LINE_EXTVCP_RX);
+#ifdef STM32F4xx_MCUCONF
+  notGateStart(PWMD1);
+#endif
   
+#ifdef LINE_LED_HEARTBEAT
+  while (true) {
+    palToggleLine(LINE_LED_HEARTBEAT);
+    chThdSleepMilliseconds(500);
+  }
+#else
   chThdSleep(TIME_INFINITE);
+#endif
 }
 
 

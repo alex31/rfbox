@@ -3,6 +3,9 @@
 #include "hal.h"
 #include "stdutil.h"
 
+namespace DIP {
+  inline uint8_t getAllDips();
+}
 
 namespace {
   const ioline_t diplines[] = {LINE_DIP0_RFENABLE, LINE_DIP1_FREQ, LINE_DIP2_BER,
@@ -12,13 +15,14 @@ namespace {
   void survey (void *arg)		
   {
     (void)arg;				
-    chRegSetThreadName("survey");	
+    chRegSetThreadName("DIP change survey");	
     
-    const msg_t pattern = DIP::getDip();
+    const msg_t pattern = DIP::getAllDips();
+    DebugTrace("initial dip pattern = 0x%lx", pattern);
 
     // if DIP switches are changed, make a restart
     while (true) {
-      if (DIP::getDip() != pattern)
+      if (DIP::getAllDips() != pattern)
 	systemReset();
       chThdSleepMilliseconds(20);
     }
@@ -42,22 +46,19 @@ namespace DIP {
 
   bool getDip(DIPSWITCH ds)
   {
-    if (ds == DIPSWITCH::ALL) {
-      return getAllDips();
-    } else {
-      const size_t idx = static_cast<size_t>(ds);
-      chDbgAssert(idx <= static_cast<size_t>(DIPSWITCH::ALL), "out of bound");
-      const bool dipLevel = rl(diplines[idx]);
-      DebugTrace("dip %u level is %s", idx, dipLevel ? "ON" : "OFF");
-      return dipLevel;
-    }
+    const size_t idx = static_cast<size_t>(ds);
+    chDbgAssert(idx <= static_cast<size_t>(DIPSWITCH::PWRLVL), "out of bound");
+    const bool dipLevel = rl(diplines[idx]);
+    DebugTrace("dip %u level is %s", idx, dipLevel ? "ON" : "OFF");
+    return dipLevel;
   }
 
 
 
   void start(void)
   {
-    chThdCreateStatic(waSurvey, sizeof(waSurvey), NORMALPRIO, &survey, NULL);
+    chThdCreateStatic(waSurvey, sizeof(waSurvey),
+		      NORMALPRIO, &survey, NULL);
   }
   
 }

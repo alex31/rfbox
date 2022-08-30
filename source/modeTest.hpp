@@ -9,6 +9,7 @@ namespace ModeTest {
     bool timeout = true;
     bool hasReceivedFrame = false;
     uint32_t nbError = 0;
+    uint32_t totalBytes = 0;
     MUTEX_DECL(mtx);
     
     void lock(void) {chMtxLock(&mtx);}

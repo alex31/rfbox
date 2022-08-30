@@ -4,7 +4,6 @@
 #include "stdutil.h"
 #include "modeTest.hpp"
 #include "radio.hpp"
-#include "oledDisplay.hpp" 
 #include "buffer.hpp"
 #include "hardwareConf.hpp"
 
@@ -31,6 +30,8 @@ namespace Ope {
     RfMode rfMode = RfMode::SLEEP;
     Buffer::setMode(Buffer::Mode::HiZ);
     stopRxTxEcho();
+
+ 
     switch (opMode) {
     case Mode::NONE:
       return Status::INTERNAL_ERROR;
@@ -69,21 +70,32 @@ namespace Ope {
       
     case Mode::RF_TX_INTERNAL:
       rfMode = RfMode::TX;
+      RADIO::radio.setRfParam(rfMode,
+			      frequencyCarrier,
+			      amplificationLevelDb);
+      chThdSleepMilliseconds(10);
       if (buffer_RF_TX_INTERNAL() != ElectricalStatus::FREE) {
+	DebugTrace("meteo uart data line not free");
 	status = Status::DATA_LINE_HOLD;
+	RADIO::radio.setRfParam(RfMode::SLEEP,
+				frequencyCarrier,
+				amplificationLevelDb);
+
 	goto end;
+      }
+      break ; 
     }
-     break ; 
-    }
-  end:
     
     if (RADIO::radio.setRfParam(rfMode,
 				frequencyCarrier,
 				amplificationLevelDb)
-      != Rfm69Status::OK) {
-    DebugTrace("RADIO::radio.setRfParam failed");
-    status = Status::RFM69_ERROR;
-  }
+	!= Rfm69Status::OK) {
+      DebugTrace("RADIO::radio.setRfParam failed");
+      status = Status::RFM69_ERROR;
+      goto end;
+    }
+    
+  end:
     return status;
   }
 }
@@ -92,7 +104,7 @@ namespace Ope {
 namespace {
   void buffer_NORF_TX()
   {
-    palSetLineMode(LINE_EXTVCP_TX, PAL_MODE_INPUT);
+    palSetLineMode(LINE_MCU_RX, PAL_MODE_INPUT);
 #if DIO2_DIRECT
     Buffer::setMode(Buffer::Mode::TX);
 #endif
@@ -101,7 +113,7 @@ namespace {
   void buffer_NORF_RX()
   {
     palSetLineMode(LINE_EXTVCP_RX, PAL_MODE_INPUT);
-    palSetLineMode(LINE_EXTVCP_TX,
+    palSetLineMode(LINE_MCU_RX,
 		   PAL_MODE_OUTPUT_PUSHPULL | PAL_STM32_OSPEED_HIGHEST);
 #if DIO2_DIRECT
     Buffer::setMode(Buffer::Mode::RX);
@@ -110,16 +122,16 @@ namespace {
   
   void buffer_RF_CALIBRATE_RSSI()
   {
-    palSetLineMode(LINE_EXTVCP_TX, PAL_MODE_INPUT);
-#if DIO2_DIRECT == 0
+    palSetLineMode(LINE_MCU_RX, PAL_MODE_INPUT);
+#if DIO2_DIRECT == false
     Buffer::setMode(Buffer::Mode::RX);
 #endif
   }
   
   void buffer_RF_RX_EXTERNAL()
   {
-    palSetLineMode(LINE_EXTVCP_TX, PAL_MODE_INPUT);
-#if INVERT_UART_LEVEL == 0
+    palSetLineMode(LINE_MCU_RX, PAL_MODE_INPUT);
+#if INVERT_UART_LEVEL == false
     Buffer::setMode(Buffer::Mode::RX);
 #else
     Buffer::setMode(Buffer::Mode::INVERTED_RX);
@@ -128,8 +140,8 @@ namespace {
   
   void buffer_RF_TX_EXTERNAL()
   {
-    palSetLineMode(LINE_EXTVCP_TX, PAL_MODE_INPUT);
-#if INVERT_UART_LEVEL == 0
+    palSetLineMode(LINE_MCU_RX, PAL_MODE_INPUT);
+#if INVERT_UART_LEVEL == false
     Buffer::setMode(Buffer::Mode::TX);
 #else
     Buffer::setMode(Buffer::Mode::INVERTED_TX);
@@ -138,29 +150,33 @@ namespace {
   
   void buffer_RF_RX_INTERNAL()
   {
-    palSetLineMode(LINE_EXTVCP_TX, PAL_MODE_ALTERNATE(AF_LINE_EXTVCP_TX));
-#if DIO2_DIRECT == 0
+    palSetLineMode(LINE_MCU_RX, PAL_MODE_ALTERNATE(AF_LINE_MCU_RX));
+#if DIO2_DIRECT == false
     Buffer::setMode(INVERT_UART_LEVEL ? Buffer::Mode::INVERTED_RX : Buffer::Mode::RX);
 #endif
   }
   
   ElectricalStatus buffer_RF_TX_INTERNAL()
   {
-    palSetLineMode(LINE_EXTVCP_TX, PAL_MODE_ALTERNATE(AF_LINE_EXTVCP_TX));
-#if DIO2_DIRECT == 0
+#if DIO2_DIRECT == false
     for (uint32_t i=0; i < 100; i++) {
-      palSetLineMode(LINE_EXTVCP_TX, PAL_MODE_INPUT_PULLUP);
+      palSetLineMode(LINE_MCU_RX, PAL_MODE_INPUT_PULLUP);
       chThdSleepMicroseconds(1);
-      if (palReadLine(LINE_EXTVCP_TX) != PAL_HIGH)
+      if (palReadLine(LINE_MCU_RX) != PAL_HIGH) {
+	DebugTrace("iteration %lu read low instead high", i);
 	return ElectricalStatus::HOLD;
-      palSetLineMode(LINE_EXTVCP_TX, PAL_MODE_INPUT_PULLDOWN);
+      }
+      palSetLineMode(LINE_MCU_RX, PAL_MODE_INPUT_PULLDOWN);
       chThdSleepMicroseconds(1);
-      if (palReadLine(LINE_EXTVCP_TX) != PAL_LOW)
+      if (palReadLine(LINE_MCU_RX) != PAL_LOW) {
+	DebugTrace("iteration %lu read high instead low", i);
 	return ElectricalStatus::HOLD;
+      }
     }
-    Buffer::setMode(INVERT_UART_LEVEL ? Buffer::Mode::INVERTED_TX : Buffer::Mode::TX);
+    Buffer::setMode(INVERT_UART_LEVEL ? Buffer::Mode::INVERTED_TX :
+		    Buffer::Mode::TX);
 #endif    
-
+    palSetLineMode(LINE_MCU_RX, PAL_MODE_ALTERNATE(AF_LINE_MCU_RX));
     return ElectricalStatus::FREE;
   }
 
@@ -168,7 +184,7 @@ namespace {
   void startRxTxEcho(void)
   {
     auto cb = [] (void *) {
-      palWriteLine(LINE_EXTVCP_TX, palReadLine(LINE_EXTVCP_RX));
+      palWriteLine(LINE_MCU_RX, palReadLine(LINE_EXTVCP_RX));
     };
     palEnableLineEvent(LINE_EXTVCP_RX, PAL_EVENT_MODE_BOTH_EDGES);
     palSetLineCallback(LINE_EXTVCP_RX, cb, NULL);
