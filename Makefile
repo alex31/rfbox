@@ -22,9 +22,10 @@ ifeq "$(GCCVERSIONGTEQ10)" "1"
 endif
 
 ifeq ($(USE_OPT),)
-  USE_OPT =  -Og  -ggdb3 -Wall -Wextra \
+  USE_OPT =  -O0  -ggdb3 -Wall -Wextra \
          -falign-functions=16 -fomit-frame-pointer \
           $(GCC_DIAG) -DTRACE
+  USE_LTO = no  
 endif
 
 ifeq ($(USE_OPT),)
@@ -37,6 +38,7 @@ ifeq ($(USE_OPT),)
             -DCH_DBG_ENABLE_ASSERTS=0 -DCH_DBG_ENABLE_STACK_CHECK=0 \
             -DCH_DBG_FILL_THREADS=0 \
             -DNOSHELL
+   USE_LTO = yes  
 endif
 
 
@@ -62,7 +64,7 @@ endif
 
 # Enable this if you want link time optimizations (LTO)
 ifeq ($(USE_LTO),)
-  USE_LTO = yes
+  USE_LTO = no
 endif
 
 

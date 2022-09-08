@@ -23,7 +23,7 @@ namespace {
     // if DIP switches are changed, make a restart
     while (true) {
       if (DIP::getAllDips() != pattern)
-	systemReset();
+	NVIC_SystemReset();
       chThdSleepMilliseconds(20);
     }
   }

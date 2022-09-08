@@ -25,10 +25,10 @@ int main (void)
   const RfMode rfMode = DIP::getDip(DIPSWITCH::RXTX) ? RfMode::TX : RfMode::RX;
   if (rfMode == RfMode::RX) {
     DebugTrace("mode RX");
-    DIP::start();
   } else {
     DebugTrace("mode TX");
   }
+  DIP::start();
   const bool rfEnable = DIP::getDip(DIPSWITCH::RFENABLE);
   if (rfEnable) {
     DebugTrace("RF Enable");
