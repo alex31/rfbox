@@ -5,7 +5,7 @@
 
 
 namespace {
-  const GFXfont font = Lato_Heavy_18;
+  const GFXfont font = Lato_Heavy_14;
 
   THD_WORKING_AREA(waOledDisplay, 1024);	
   [[noreturn]] static void  oledDisplay (void *arg);	
