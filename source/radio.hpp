@@ -4,7 +4,7 @@
 #include <hal.h>
 #include "rfm69.hpp"
 
-namespace RADIO {
+namespace Radio {
   extern Rfm69OokRadio radio;
   void init();
 };

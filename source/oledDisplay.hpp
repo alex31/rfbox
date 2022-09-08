@@ -1,5 +1,6 @@
 #pragma once
 
+namespace Oled {
 
-void oledStart(void);
-
+  void start(void);
+}

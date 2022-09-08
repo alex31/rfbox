@@ -9,6 +9,7 @@
 #include "operations.hpp"
 #include "hardwareConf.hpp"
 #include "dio2Spy.hpp"
+#include "oledDisplay.hpp"
 #ifdef STM32F4xx_MCUCONF
 #include "notGate.hpp"
 #endif
@@ -21,7 +22,7 @@ int main (void)
 
   consoleInit();	
   consoleLaunch();
-
+  Oled::start();
   const RfMode rfMode = DIP::getDip(DIPSWITCH::RXTX) ? RfMode::TX : RfMode::RX;
   if (rfMode == RfMode::RX) {
     DebugTrace("mode RX");
@@ -60,7 +61,7 @@ int main (void)
   
   Ope::Status opStatus = {};
   do {
-    RADIO::init();
+    Radio::init();
     opStatus = Ope::setMode(opMode, frequencyCarrier,
 			    amplificationLevelDb);
     if (opStatus != Ope::Status::OK) {

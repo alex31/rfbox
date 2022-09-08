@@ -129,7 +129,7 @@ namespace {
 	if ((++zeroInRow) > 100) {
 	  zeroInRow = 0;
 	  DebugTrace("problem detected");
-	  //	  RADIO::radio.calibrate();
+	  //	  Radio::radio.calibrate();
 	}
 
 	if (chTimeDiffX(timoutTs, chVTGetSystemTimeX()) > TIME_S2I(5)) {
@@ -139,7 +139,7 @@ namespace {
 	}
 	snprintf(error, sizeof(error),
 		 "rx timeout  RSSI = %.1f BER =%.1f/1000",
-		 RADIO::radio.getRssi(), ModeTest::getBer());
+		 Radio::radio.getRssi(), ModeTest::getBer());
 	newError(error);
 	report.timeout = true;
 	report.nbError++;
@@ -148,7 +148,7 @@ namespace {
 	if ((++zeroInRow) > 100) {
 	  zeroInRow = 0;
 	  DebugTrace("problem detected : ");
-	  //	  RADIO::radio.calibrate();
+	  //	  Radio::radio.calibrate();
 	}
       } else {
 	zeroInRow = 0;
@@ -171,8 +171,8 @@ namespace {
 	    report.hasReceivedFrame = true;
 	    snprintf(error, sizeof(error),
 		     "frame completed  RSSI = %.1f BER =%.1f/1000",
-		     RADIO::radio.getRssi(), ModeTest::getBer());
-	    //	    RADIO::radio.setRestartRx(true);
+		     Radio::radio.getRssi(), ModeTest::getBer());
+	    //	    Radio::radio.setRestartRx(true);
 	    newError(error);
 	  }
 	}

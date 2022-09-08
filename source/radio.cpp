@@ -20,17 +20,17 @@ namespace {
 #elif defined STM32F405_MCUCONF
     .cr2 = 0
 #else
-    #error "Unknown target"
+    #error "Unknown MCU target"
 #endif
   };
 }
 
-namespace RADIO {
+namespace Radio {
   Rfm69OokRadio radio(SPID1, LINE_RADIO_RESET);
 
   void init()
   {
-    if (RADIO::radio.init(spiCfg) != Rfm69Status::OK) {
+    if (Radio::radio.init(spiCfg) != Rfm69Status::OK) {
       DebugTrace("radio.init failed");
     }
   }
