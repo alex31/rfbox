@@ -1,9 +1,32 @@
 ° gerer l'affichage OLED
 
+TODO : Affichage baudrate en mode BER
+
 /*
 #define DIO2_DIRECT true or false
 #define INVERT_UART_LEVEL true or false
 */
+
+CentralData
+{
+set/get rssi, lnagain, ber, status, mode
+}
+
+
+Oled::start :
+° Oled::start() : init hardware, display init msg, launch display thread
+° static void display()
+
+
+
+0/ Initialisation
+|1234567890123456|
+------------------
+|                |
+|     RfBox      |
+|                |
+| initialisation |
+------------------
 
 
 1/ BE MCU goût emission : (rf disable, mode TX)
@@ -34,61 +57,47 @@
 |                |
 ------------------
 
-3/ Calibration RSSI threshold
-# RF_CALIBRATE_RSSI
-° si DIO2_DIRECT : buffer conf HiZ sinon : buffer conf Rx 
-° RFM en mode RX
-° broche VCP_TX en input floating
-° ISR EXTI : surveille la stabilité de VCP_TX 
-|1234567890123456|
-------------------
-|RX RF:On Extern |
-|Source Extern   |
-|Lna Gain(x) -xxx| -> x -> A or F ; xxx -> actual gain
-|RSSI -xxx       | actual RSSI level
-------------------
 
-4/ Reception source externe
+3/ Reception source externe
 # RF_RX_EXTERNAL
 ° buffer conf Rx (prise en compte INVERT_UART)
 ° RFM en mode RX
 ° broche VCP_TX en input floating
 |1234567890123456|
 ------------------
-|RX RF:On        |
-|Extern Sink     |
-|Lna Gain(x) -xxx| -> x -> A or F ; xxx -> actual gain
-|RSSI -xxx       | actual RSSI level
+|RX 868Mhz       |
+|Source Externe  |
+|Lna Gain -xxx   | -> xxx -> actual gain
+|RSSI -xxx       | -> xxx -> actual RSSI level
 ------------------
 
-5/ Emission source externe
+4/ Emission source externe
 # RF_TX_EXTERNAL
 ° buffer conf Tx (prise en compte INVERT_UART)
 ° RFM en mode TX
 ° broche VCP_TX en input floating
 |1234567890123456|
 ------------------
-|TX RF:On        |
-|Extern Source   |
-|                |
+|TX  868Mhz      |
+|Source Externe  |
+|Puissance: 13dbm|
 |                |
 ------------------
 
-6/ Reception source interne BER
+5/ Reception source interne BER
 # RF_RX_INTERNAL
 ° si DIO2_DIRECT : buffer conf HiZ sinon : buffer conf Rx (prise en compte INVERT_UART)
 ° RFM en mode RX
 ° broche VCP_TX en usart, mode swap, inversée ou non (macro à definir)
-Q peut on lancer une recup RSSI pendant une acquisition en mode continu asynchrone ?
 |1234567890123456|
 ------------------
-|RX RF:On        |
-|BER xxx/100     | -> ou "no data" si aucune reception
-|Lna Gain(x) -xxx| -> x -> A or F ; xxx -> actual gain
+|RX  868Mhz      |
+|BER xxxx / 1000 | -> ou "no data" si aucune reception
+|Lna -xxx  19200b| -> x -> A or F ; xxx -> actual gain
 |RSSI -xxx       | actual RSSI level
 ------------------
 
-7/ Emission source interne BER
+6/ Emission source interne BER
 # RF_TX_INTERNAL
 °  si DIO2_DIRECT : buffer conf HiZ sinon : buffer conf Tx (prise en compte INVERT_UART)
    *** -> dans le cas ou on est pas en DIO2_DIRECT : vérification que source
@@ -97,11 +106,49 @@ Q peut on lancer une recup RSSI pendant une acquisition en mode continu asynchro
 ° broche VCP_TX en usart, pas de swap, inversée ou non (macro à definir)
 |1234567890123456|
 ------------------
-|TX RF:On        |
+|TX 868Mhz       |
 |Mode BER        |
-|                |
-|                |
+|Puissance: 13dbm|
+|19200 b         |
 ------------------
 
 
 
+============
+
+keep for archive
+
+
+enum class Label
+
+class FieldParam
+° constexpr constructor
+° const length
+° const fixTxt
+° const pos(x,y)
+° const bool active
+
+truc declaratif : une const map FieldParamDict
+key [std::pair<Ope::Mode, Label>] -> fieldParam
+
+class Field :
+° const Label
+° const length
+° fixTxt
+° pos(x,y)
+° bool active
+° static std::array<Field*, NUM_FIELDS>
+° void setMode(Ope::Mode) -> fabrique la clef std::pair<field, label> pour faire le lookup dans FieldParamDict
+° void display(dynTxt)
+
+
+
+
+
+class OledDisplay :
+° OledDisplay() : init hardware, register all fields
+° map<enum class Label, field> fieldMap
+° Ope::Mode mode
+° setMode(Ope::Mode mode) foreach fields : field.setMode(
+° void display()
+° setField(Field, fmt, ...)

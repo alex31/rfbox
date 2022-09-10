@@ -98,6 +98,26 @@ namespace Ope {
   end:
     return status;
   }
+
+  const char* toAscii(Mode opMode)
+  {
+    static const char* ascii[] = {
+    "NONE", "NORF_TX", "NORF_RX", "RF_CALIBRATE_RSSI",
+    "RF_RX_EXTERNAL", "RF_TX_EXTERNAL", "RF_RX_INTERNAL",
+    "RF_TX_INTERNAL"
+    };
+    return ascii[static_cast<uint8_t>(opMode)];
+  }
+  
+   const char* toAscii(Status status)
+  {
+    static const char* ascii[] = {
+    "OK", "RFM69_ERROR", "DATA_LINE_HOLD",
+    "INTERNAL_ERROR"
+    };
+    return ascii[static_cast<uint8_t>(status)];
+  }
+  
 }
 
 

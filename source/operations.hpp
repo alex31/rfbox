@@ -12,6 +12,10 @@ namespace Ope {
     RF_RX_EXTERNAL, RF_TX_EXTERNAL, RF_RX_INTERNAL,
     RF_TX_INTERNAL
   };
+
+
+  const char* toAscii(Mode opMode);
+  const char* toAscii(Status status);
   
   Ope::Status setMode(Mode opMode, 
 		      uint32_t frequencyCarrier,

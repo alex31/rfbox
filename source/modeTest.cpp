@@ -5,6 +5,7 @@
 #include "radio.hpp"
 #include "etl/string.h"
 #include "hardwareConf.hpp"
+#include "bboard.hpp"
 
 constexpr uint8_t preambleByte = 0xff;
 
@@ -36,8 +37,10 @@ namespace {
 
 namespace ModeTest {
   float getBer(void) {
-    return report.nbError * 1000.f /
+    const float ber = report.nbError * 1000.f /
       report.totalBytes;
+    board.setBer(ber);
+    return ber;
   }
 
   void start(RfMode rfMode, uint32_t baud)

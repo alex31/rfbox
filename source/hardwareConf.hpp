@@ -16,6 +16,8 @@ inline constexpr uint32_t fPclk = STM32_PCLK1;
 
 #define DIO2_DIRECT true
 #define INVERT_UART_LEVEL true
+inline constexpr size_t oledWidth = 16U;
+inline constexpr size_t oledHeight = 4U;
 
 constexpr uint32_t getBr12(uint32_t speed)
 {

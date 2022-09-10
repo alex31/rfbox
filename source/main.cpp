@@ -10,6 +10,7 @@
 #include "hardwareConf.hpp"
 #include "dio2Spy.hpp"
 #include "oledDisplay.hpp"
+#include "bboard.hpp"
 #ifdef STM32F4xx_MCUCONF
 #include "notGate.hpp"
 #endif
@@ -31,6 +32,7 @@ int main (void)
   }
   DIP::start();
   const bool rfEnable = DIP::getDip(DIPSWITCH::RFENABLE);
+  board.setRfEnable(rfEnable);
   if (rfEnable) {
     DebugTrace("RF Enable");
   } else {
@@ -43,9 +45,11 @@ int main (void)
     ampLevelDbHigh : ampLevelDbLow;
   const bool berMode = DIP::getDip(DIPSWITCH::BER);
   const uint32_t baud = DIP::getDip(DIPSWITCH::BERBAUD) ? baudHigh : baudLow;
+  board.setBaud(baud);
   
   DebugTrace("carrier frequency %lu @ %d Db level", frequencyCarrier, amplificationLevelDb);
-
+  board.setFreq(frequencyCarrier);
+  board.setTxPower(amplificationLevelDb);
   Ope::Mode opMode = Ope::Mode::NONE;
   if (not rfEnable) {
     opMode = rfMode == RfMode::RX ? Ope::Mode::NORF_RX : Ope::Mode::NORF_TX;
@@ -57,6 +61,7 @@ int main (void)
     }
   }
   chDbgAssert(opMode != Ope::Mode::NONE, "internal logic error");
+  board.setMode(opMode);
   DebugTrace("Ope::opMode = %u", static_cast<uint16_t>(opMode));
   
   Ope::Status opStatus = {};
@@ -67,9 +72,10 @@ int main (void)
     if (opStatus != Ope::Status::OK) {
       DebugTrace("Ope::setMode error status = %u",
 		 static_cast<uint16_t>(opStatus));
+      board.setError(Ope::toAscii(opStatus));
     }
   } while (opStatus != Ope::Status::OK);
-
+  board.clearError();
   if (opStatus != Ope::Status::OK) {
     while (true) {
 #ifdef LINE_LED_HEARTBEAT

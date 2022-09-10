@@ -2,8 +2,9 @@
 #include "stdutil.h"
 #include "operations.hpp"
 #include "hardwareConf.hpp"
-#include "etl/string.h"
 #include "dio2Spy.hpp"
+#include "etl/string.h"
+#include "bboard.hpp"
 
 #define SWAP_ENDIAN24(x) __builtin_bswap32(static_cast<uint32_t>(x) << 8)
 
@@ -125,7 +126,9 @@ Rfm69Status Rfm69OokRadio::init(const SPIConfig& spiCfg)
 float Rfm69OokRadio::getRssi()
 {
   rfm69.cacheRead(Rfm69RegIndex::RssiConfig, 2);
-  return (-rfm69.reg.rssi / 2.0f);
+  const float rssi = -rfm69.reg.rssi / 2.0f;
+  board.setRssi(rssi);
+  return rssi;
 }
 
 void	 Rfm69OokRadio::setBaudRate(uint32_t br)
@@ -389,15 +392,18 @@ void Rfm69OokRadio::setLna(LnaGain gain, LnaInputImpedance imp)
 int8_t Rfm69OokRadio::getLnaGain(void)
 {
   rfm69.cacheRead(Rfm69RegIndex::Lna);
+  int8_t lna_g = 127;
   switch(rfm69.reg.lna_currentGain) {
-  case LnaGain::HIGHEST : return 0;
-  case LnaGain::MINUS_6 : return -6;
-  case LnaGain::MINUS_12 : return -12;
-  case LnaGain::MINUS_24 : return -24;
-  case LnaGain::MINUS_36 : return -36;
-  case LnaGain::MINUS_48 : return -48;
-  default:		   return 127;
+  case LnaGain::HIGHEST : lna_g = 0; break;
+  case LnaGain::MINUS_6 : lna_g = -6; break;
+  case LnaGain::MINUS_12 : lna_g = -12; break;
+  case LnaGain::MINUS_24 : lna_g = -24; break;
+  case LnaGain::MINUS_36 : lna_g = -36; break;
+  case LnaGain::MINUS_48 : lna_g = -48; break;
+  default:		   lna_g = 127;
   }
+  board.setLnaGain(lna_g);
+  return lna_g;
 }
 
 // void Rfm69OokRadio::rfHealthSurvey(void *arg)

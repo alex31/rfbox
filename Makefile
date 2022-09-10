@@ -40,6 +40,7 @@ ifeq ($(USE_OPT),)
             -DNOSHELL
    USE_LTO = yes  
 endif
+GIT_TAG := $(shell git describe --dirty --always --tags)
 
 
 # C specific options here (added to USE_OPT).
