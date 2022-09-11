@@ -4,6 +4,7 @@
 #include "ssd1306.h"
 #include "bboard.hpp"
 #include "etl/string.h"
+#include "printf.h"
 #include "hardwareConf.hpp"
 
 #define xstr(s) str(s)
@@ -18,6 +19,7 @@ namespace {
   THD_WORKING_AREA(waOledDisplay, 1024);	
   [[noreturn]] static void  oledDisplay (void *arg);
   void fillInit(void);
+  void fillCalibrateRssi(void);
   void fillNoRfTx(void);
   void fillNoRfRx(void);
   void fillRxExternal(void);
@@ -56,7 +58,7 @@ namespace {
 	case Ope::Mode::NORF_RX :
 	  fillNoRfRx(); break;
 	case Ope::Mode::RF_CALIBRATE_RSSI :
-	  break;
+	  fillCalibrateRssi(); break;
 	case Ope::Mode::RF_RX_EXTERNAL :
 	  fillRxExternal(); break;
 	case Ope::Mode::RF_TX_EXTERNAL :
@@ -107,11 +109,20 @@ namespace {
       "mode USB-Serie  ",
       "** Reception ** "};
   }
+
+  void fillCalibrateRssi(void)
+  {
+    oledScreen = {
+      "**** RF Box ****",
+      "radio RX ON     ",
+      "calibrate RSSI  ",
+      ""};
+  }
   
   void fillRxExternal(void)
   {
     chsnprintf(oledScreen[0].begin(), oledScreen[0].size(),
-  	       "RX %u Mhz", board.getFreq());
+  	       "RX %lu Mhz", board.getFreq());
     chsnprintf(oledScreen[1].begin(), oledScreen[1].size(),
   	       "Source Externe");
     chsnprintf(oledScreen[2].begin(), oledScreen[2].size(),
@@ -123,7 +134,7 @@ namespace {
   void fillTxExternal(void)
   {
     chsnprintf(oledScreen[0].begin(), oledScreen[0].size(),
-  	       "TX %u Mhz", board.getFreq());
+  	       "TX %lu Mhz", board.getFreq());
     chsnprintf(oledScreen[1].begin(), oledScreen[1].size(),
   	       "Source Externe");
     chsnprintf(oledScreen[2].begin(), oledScreen[2].size(),
@@ -133,7 +144,7 @@ namespace {
   void fillRxInternal(void)
   {
     chsnprintf(oledScreen[0].begin(), oledScreen[0].size(),
-  	       "RX %u Mhz", board.getFreq());
+  	       "RX %lu Mhz", board.getFreq());
     chsnprintf(oledScreen[1].begin(), oledScreen[1].size(),
   	       "BER %04d / 1000", board.getBer());
     chsnprintf(oledScreen[2].begin(), oledScreen[2].size(),
@@ -145,7 +156,7 @@ namespace {
   void fillTxInternal(void)
   {
     chsnprintf(oledScreen[0].begin(), oledScreen[0].size(),
-  	       "TX %u Mhz", board.getFreq());
+  	       "TX %lu Mhz", board.getFreq());
     chsnprintf(oledScreen[1].begin(), oledScreen[1].size(),
   	       "Mode BER");
     chsnprintf(oledScreen[2].begin(), oledScreen[2].size(),

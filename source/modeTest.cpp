@@ -132,7 +132,7 @@ namespace {
 	if ((++zeroInRow) > 100) {
 	  zeroInRow = 0;
 	  DebugTrace("problem detected");
-	  //	  Radio::radio.calibrate();
+	  board.setError("Read Timeout");
 	}
 
 	if (chTimeDiffX(timoutTs, chVTGetSystemTimeX()) > TIME_S2I(5)) {
@@ -151,11 +151,13 @@ namespace {
 	if ((++zeroInRow) > 100) {
 	  zeroInRow = 0;
 	  DebugTrace("problem detected : ");
+	  board.setError("Read only 0");
 	  //	  Radio::radio.calibrate();
 	}
       } else {
 	zeroInRow = 0;
 	report.timeout = false;
+	board.clearError();
 	timoutTs = 0;
 	if (c != expectedByte) {
 	  if (c != preambleByte) {

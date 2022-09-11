@@ -158,10 +158,14 @@ void Rfm69OokRadio::checkModeMismatch()
     DebugTrace("mismatch found mode %u instead %u, reset...",
 	       static_cast<uint16_t>(rfm69.reg.opMode_mode),
 	       static_cast<uint16_t>(mode));
+    board.setError("Radio lockout");
     coldReset();
   } else if (const float av = Dio2Spy::getAverageLevel(); (av < 0.30f) or (av > 0.70f)) {
     DebugTrace("dio2 average not valid = %.2f", av);
+    board.setError("DIO2 Avg Err");
     coldReset();
+  } else {
+    board.clearError();
   }
 }
 
