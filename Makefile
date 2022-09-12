@@ -23,6 +23,7 @@ endif
 
 ifeq ($(USE_OPT),)
   USE_OPT =  -O0  -ggdb3 -Wall -Wextra \
+         -ftrapv \
          -falign-functions=16 -fomit-frame-pointer \
           $(GCC_DIAG) -DTRACE
   USE_LTO = no  
