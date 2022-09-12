@@ -168,7 +168,7 @@ namespace {
 #endif
   }
   
-  void buffer_RF_RX_INTERNAL()
+  void buffer_RF_RX_INTERNAL() // mode BER
   {
     palSetLineMode(LINE_MCU_RX, PAL_MODE_ALTERNATE(AF_LINE_MCU_RX));
 #if DIO2_DIRECT == false
