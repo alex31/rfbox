@@ -38,7 +38,7 @@ inline constexpr uint32_t baudHigh = 19200;
 inline constexpr SerialDriver &SD_METEO = CONCAT(SD, EXTVCP_TX_USART);
 
 
-// Calculated connstant
+// Calculated constant
 
 inline constexpr uint32_t spiBr12Baud = getBr12(spiBaudRate);
 

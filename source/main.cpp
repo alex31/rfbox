@@ -91,7 +91,9 @@ int main (void)
     ModeTest::start(rfMode, baud);
   }
 
-  Dio2Spy::start(LINE_EXTVCP_RX);
+  if (rfMode == RfMode::RX)
+    Dio2Spy::start(LINE_MCU_RX);
+  
 #ifdef STM32F4xx_MCUCONF
   notGateStart(PWMD1);
 #endif

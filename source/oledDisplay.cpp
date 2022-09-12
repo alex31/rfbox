@@ -12,6 +12,14 @@
    
 
 namespace {
+  constexpr uint32_t  I2C_FAST_400KHZ_DNF3_R30NS_F30NS_PCLK80MHZ_TIMINGR = 0x00A02689;
+  constexpr uint32_t stm32_cr1_dnf(uint8_t n)  {return ((n & 0x0f) << 8);}
+  static constexpr I2CConfig i2ccfg_400 = {
+    .timingr = I2C_FAST_400KHZ_DNF3_R30NS_F30NS_PCLK80MHZ_TIMINGR, // Refer to the STM32L4 reference manual
+    .cr1 =  stm32_cr1_dnf(3U), // Digital noise filter disabled (timingr should be aware of that)
+    .cr2 = 0 // Only the ADD10 bit can eventually be specified here (10-bit addressing mode)
+  } ;
+  
   const GFXfont font = Lato_Heavy_14;
   using OledLine = etl::string<oledWidth>;
   std::array<OledLine, oledHeight> oledScreen;
@@ -42,7 +50,7 @@ namespace {
   [[noreturn]] static void  oledDisplay (void *)	
   {
     chRegSetThreadName("oledDisplay");		
-    
+    i2cStart(&SSD1306_I2CD, &i2ccfg_400);
     ssd1306_Init();
     
     while (true) {
@@ -121,59 +129,59 @@ namespace {
   
   void fillRxExternal(void)
   {
-    chsnprintf(oledScreen[0].begin(), oledScreen[0].size(),
-  	       "RX %lu Mhz", board.getFreq());
-    chsnprintf(oledScreen[1].begin(), oledScreen[1].size(),
+    chsnprintf(oledScreen[0].begin(), oledScreen[0].capacity(),
+  	       "RX %lu Mhz", board.getFreq() / 1'000'000U);
+    chsnprintf(oledScreen[1].begin(), oledScreen[1].capacity(),
   	       "Source Externe");
-    chsnprintf(oledScreen[2].begin(), oledScreen[2].size(),
+    chsnprintf(oledScreen[2].begin(), oledScreen[2].capacity(),
   	       "Lna %d db", board.getLnaGain());
-    chsnprintf(oledScreen[3].begin(), oledScreen[3].size(),
+    chsnprintf(oledScreen[3].begin(), oledScreen[3].capacity(),
   	       "Rssi %d dbm", board.getRssi());
   }
   
   void fillTxExternal(void)
   {
-    chsnprintf(oledScreen[0].begin(), oledScreen[0].size(),
-  	       "TX %lu Mhz", board.getFreq());
-    chsnprintf(oledScreen[1].begin(), oledScreen[1].size(),
+    chsnprintf(oledScreen[0].begin(), oledScreen[0].capacity(),
+  	       "TX %lu Mhz", board.getFreq() / 1'000'000U);
+    chsnprintf(oledScreen[1].begin(), oledScreen[1].capacity(),
   	       "Source Externe");
-    chsnprintf(oledScreen[2].begin(), oledScreen[2].size(),
+    chsnprintf(oledScreen[2].begin(), oledScreen[2].capacity(),
   	       "P %d dbm", board.getTxPower());
   }
   
   void fillRxInternal(void)
   {
-    chsnprintf(oledScreen[0].begin(), oledScreen[0].size(),
-  	       "RX %lu Mhz", board.getFreq());
-    chsnprintf(oledScreen[1].begin(), oledScreen[1].size(),
+    chsnprintf(oledScreen[0].begin(), oledScreen[0].capacity(),
+  	       "RX %lu Mhz", board.getFreq() / 1'000'000U);
+    chsnprintf(oledScreen[1].begin(), oledScreen[1].capacity(),
   	       "BER %04d / 1000", board.getBer());
-    chsnprintf(oledScreen[2].begin(), oledScreen[2].size(),
+    chsnprintf(oledScreen[2].begin(), oledScreen[2].capacity(),
   	       "Lna %d db", board.getLnaGain());
-    chsnprintf(oledScreen[3].begin(), oledScreen[3].size(),
+    chsnprintf(oledScreen[3].begin(), oledScreen[3].capacity(),
   	       "Rssi %d dbm", board.getRssi());
   }
   
   void fillTxInternal(void)
   {
-    chsnprintf(oledScreen[0].begin(), oledScreen[0].size(),
-  	       "TX %lu Mhz", board.getFreq());
-    chsnprintf(oledScreen[1].begin(), oledScreen[1].size(),
+    chsnprintf(oledScreen[0].begin(), oledScreen[0].capacity(),
+  	       "TX %lu Mhz", board.getFreq() / 1'000'000U);
+    chsnprintf(oledScreen[1].begin(), oledScreen[1].capacity(),
   	       "Mode BER");
-    chsnprintf(oledScreen[2].begin(), oledScreen[2].size(),
+    chsnprintf(oledScreen[2].begin(), oledScreen[2].capacity(),
   	       "Source Interne");
-    chsnprintf(oledScreen[3].begin(), oledScreen[3].size(),
+    chsnprintf(oledScreen[3].begin(), oledScreen[3].capacity(),
   	       "P %d dbm", board.getTxPower());
   }
   
   void fillWhenError(void)
   {
-    chsnprintf(oledScreen[0].begin(), oledScreen[0].size(),
+    chsnprintf(oledScreen[0].begin(), oledScreen[0].capacity(),
   	       "ERREUR :");
-    chsnprintf(oledScreen[1].begin(), oledScreen[1].size(),
+    chsnprintf(oledScreen[1].begin(), oledScreen[1].capacity(),
   	       "%s", board.getError().c_str());
-    chsnprintf(oledScreen[2].begin(), oledScreen[2].size(),
+    chsnprintf(oledScreen[2].begin(), oledScreen[2].capacity(),
   	       "Mode = ");
-    chsnprintf(oledScreen[3].begin(), oledScreen[3].size(),
+    chsnprintf(oledScreen[3].begin(), oledScreen[3].capacity(),
   	       "%s", Ope::toAscii(board.getMode()));
   }
   
@@ -185,7 +193,7 @@ namespace {
     }
   }
   //
-  //  chsnprintf(oledScreen[0].begin(), oledScreen[0].size(),
+  //  chsnprintf(oledScreen[0].begin(), oledScreen[0].capacity(),
   //	       "hello word");
 
 }

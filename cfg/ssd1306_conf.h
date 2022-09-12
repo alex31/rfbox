@@ -1,8 +1,11 @@
 // Private configuration file for the SSD1306 driver.
 #pragma once
 
+#define CONCAT_NX(st1, st2) st1 ## st2
+#define CONCAT(st1, st2) CONCAT_NX(st1, st2)
+
 //=== SSD1306 I2C Peripheral ===
-#define SSD1306_I2CD		  I2CD3
+#define SSD1306_I2CD		  CONCAT(I2CD, OLED_SDA_I2C)
 
 //=== SSD1306 I2C Slave Address ===
 #define SSD1306_I2C_ADDR		0x3C // 7 bits address (SA0 = 0)
