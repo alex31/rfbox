@@ -156,7 +156,7 @@ namespace {
     chsnprintf(oledScreen[1].begin(), oledScreen[1].capacity(),
   	       "BER %04d / 1000", board.getBer());
     chsnprintf(oledScreen[2].begin(), oledScreen[2].capacity(),
-  	       "Lna %d db", board.getLnaGain());
+  	       "Lna %d; %u baud", board.getLnaGain(), board.getBaud());
     chsnprintf(oledScreen[3].begin(), oledScreen[3].capacity(),
   	       "Rssi %d dbm", board.getRssi());
   }
@@ -166,7 +166,7 @@ namespace {
     chsnprintf(oledScreen[0].begin(), oledScreen[0].capacity(),
   	       "TX %lu Mhz", board.getFreq() / 1'000'000U);
     chsnprintf(oledScreen[1].begin(), oledScreen[1].capacity(),
-  	       "Mode BER");
+  	       "BER %u baud", board.getBaud());
     chsnprintf(oledScreen[2].begin(), oledScreen[2].capacity(),
   	       "Source Interne");
     chsnprintf(oledScreen[3].begin(), oledScreen[3].capacity(),

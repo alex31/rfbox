@@ -29,7 +29,6 @@ namespace {
   void newError(const ErrorString& es);
   
   ModeTest::Report report;
-  //  virtual_timer_t vt;
   systime_t timoutTs = 0;
 }
 
@@ -58,13 +57,6 @@ namespace ModeTest {
     } else  if (rfMode == RfMode::RX) {
       chThdCreateStatic(waAutonomousTest, sizeof(waAutonomousTest),
 			NORMALPRIO, &autonomousTestRead, nullptr);
-      // chVTSetContinuous(&vt, TIME_S2I(4),
-      // 	      [] (struct ch_virtual_timer *, void *) {
-      // 		if (getBer() > 1000.0f) {
-      // 		  NVIC_SystemReset();
-      // 		}
-      // 	      },
-      // 	      nullptr);
     } else {
       chSysHalt("invalid rfMode");
     }

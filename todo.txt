@@ -1,16 +1,19 @@
-° gerer l'affichage OLED
 
 TODO :
 ° tester mode usb-serie
-° Affichage baudrate en mode BER
 ° actualisation RSSI et LNA GAIN independant du mode test BER
 ° calcul du BER sur une fenêtre glissante de 5 secondes
 
-/*
-#define DIO2_DIRECT true or false
-#define INVERT_UART_LEVEL true or false
-*/
 
+//////////   TEST USB SERIE
+En mode emission :
+° brancher broche data câble gris->vert (entrée) sur une sortie(fil orange) d'un FTDI
+° connecter ce FTDI (/dev/ttyUSB0)
+° connecter la sortie FTDI de la rfbox sur le PC (/dev/ttyUSB1)
+° lancer le test :
+  * stty -F /dev/ttyUSB1 4800; cat < /dev/ttyUSB1
+  * screen /dev/ttyUSB0 4800
+//////////
 
 
 0/ Initialisation
