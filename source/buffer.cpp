@@ -7,7 +7,7 @@ namespace Buffer {
   {
     palSetLine(LINE_BUFFER_TX_EN);
     palSetLine(LINE_BUFFER_RX_EN);
-    palSetLine(LINE_BUFFER_INVERT); // Inverted on level_Low
+    palClearLine(LINE_BUFFER_INVERT); // Inverted on level_High
     chThdSleepMicroseconds(10);
     switch(mode) {
     case Mode::TX :
@@ -17,11 +17,11 @@ namespace Buffer {
       palClearLine(LINE_BUFFER_RX_EN);
       break;
     case Mode::INVERTED_TX :
-      palClearLine(LINE_BUFFER_INVERT);
+      palSetLine(LINE_BUFFER_INVERT);
       palClearLine(LINE_BUFFER_TX_EN);
       break;
     case Mode::INVERTED_RX :
-      palClearLine(LINE_BUFFER_INVERT);
+      palSetLine(LINE_BUFFER_INVERT);
       palClearLine(LINE_BUFFER_RX_EN);
       break;
     case Mode::HiZ : break;
