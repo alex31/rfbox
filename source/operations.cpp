@@ -124,7 +124,7 @@ namespace Ope {
 namespace {
   void buffer_NORF_TX()
   {
-    palSetLineMode(LINE_MCU_RX, PAL_MODE_INPUT);
+    palSetLineMode(LINE_EXTVCP_TX, PAL_MODE_INPUT);
 #if DIO2_DIRECT
     Buffer::setMode(Buffer::Mode::TX);
 #endif
@@ -133,7 +133,7 @@ namespace {
   void buffer_NORF_RX()
   {
     palSetLineMode(LINE_EXTVCP_RX, PAL_MODE_INPUT);
-    palSetLineMode(LINE_MCU_RX,
+    palSetLineMode(LINE_EXTVCP_TX,
 		   PAL_MODE_OUTPUT_PUSHPULL | PAL_STM32_OSPEED_HIGHEST);
 #if DIO2_DIRECT
     Buffer::setMode(Buffer::Mode::RX);
@@ -204,7 +204,7 @@ namespace {
   void startRxTxEcho(void)
   {
     auto cb = [] (void *) {
-      palWriteLine(LINE_MCU_RX, palReadLine(LINE_EXTVCP_RX));
+      palWriteLine(LINE_EXTVCP_TX, palReadLine(LINE_EXTVCP_RX));
     };
     palEnableLineEvent(LINE_EXTVCP_RX, PAL_EVENT_MODE_BOTH_EDGES);
     palSetLineCallback(LINE_EXTVCP_RX, cb, NULL);

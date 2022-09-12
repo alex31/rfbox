@@ -1,13 +1,14 @@
+FTDI JAUNE : RX (point de vue FTDI)
+     ORANGE  TX
 
 TODO :
-° tester mode usb-serie
 ° actualisation RSSI et LNA GAIN independant du mode test BER
 ° calcul du BER sur une fenêtre glissante de 5 secondes
 
 
 //////////   TEST USB SERIE
 En mode emission :
-° brancher broche data câble gris->vert (entrée) sur une sortie(fil orange) d'un FTDI
+° brancher broche data câble gris->vert (entrée) sur (fil orange) d'un FTDI
 ° connecter ce FTDI (/dev/ttyUSB0)
 ° connecter la sortie FTDI de la rfbox sur le PC (/dev/ttyUSB1)
 ° lancer le test :
