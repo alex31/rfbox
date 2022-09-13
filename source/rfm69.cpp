@@ -113,7 +113,7 @@ Rfm69Status Rfm69OokRadio::init(const SPIConfig& spiCfg)
   rfm69.reg.opMode_sequencerOff = 0; // sequencer is activated
   rfm69.reg.opMode_listenOn = 0; 
   rfm69.reg.datamodul_dataMode = DataMode::CONTINUOUS_NOSYNC;
-  rfm69.reg.bitrate = SWAP_ENDIAN16(xtalHz / 4800U);
+  rfm69.reg.bitrate = SWAP_ENDIAN16(xtalHz / board.getBaud());
   rfm69.reg.datamodul_shaping = DataModul::OOK_NOSHAPING;
   rfm69.cacheWrite(Rfm69RegIndex::DataModul,
 		   Rfm69RegIndex::AesKey - Rfm69RegIndex::DataModul);
@@ -167,6 +167,19 @@ void Rfm69OokRadio::checkModeMismatch()
     coldReset();
   } else {
     board.clearError();
+  }
+}
+
+void Rfm69OokRadio::checkRestartRxNeeded()
+{
+  const float rssi = getRssi();
+  const float lnaGain = getLnaGain();
+  if ( ((rssi < -60.0f ) and (lnaGain < -24.0f))
+      or
+       ((rssi > -60.0f) and (lnaGain > -24.0f)) ) {
+    DebugTrace("RSSI change : setRestartRx");
+    //    coldReset();
+    setRestartRx(true);
   }
 }
 
@@ -317,7 +330,7 @@ void Rfm69OokRadio::setRxBw(BandwithMantissa bm, uint8_t exp,
 {
   rfm69.reg.rxBw_mant =  bm;
   rfm69.reg.rxBw_exp = exp;
-  rfm69.reg.rxBw_dccFreq = dccFreq; // default 4 % of rxbx -> 800hz
+  rfm69.reg.rxBw_dccFreq = dccFreq; // default 4 % of rxbw
   rfm69.cacheWrite(Rfm69RegIndex::RxBw);
 }
 
@@ -343,7 +356,10 @@ void Rfm69OokRadio::setReceptionTuning(void)
   setAutoRxRestart(false);
   
   // settings for RxBw = 20Khz in OOK
-  setRxBw(BandwithMantissa::MANT_24, 4, 2/* default 4 % of rxbx -> 800hz*/);
+  if (board.getBaud() == baudLow)
+    setRxBw(BandwithMantissa::MANT_24, 4, 2); /* 10 Khz bandwith, dccfreq default 4 % of rxbx */
+  else
+    setRxBw(BandwithMantissa::MANT_24, 2, 2); /* 42Khz bandwith, dccfreq default 4 % of rxbx */
   
   // in case of false '1', raise the value to 0xFF cf datasheet p61
   setRssi_threshold(0xE4);
@@ -472,6 +488,7 @@ void Rfm69OokRadio::rfHealthSurvey(void *arg)
     chThdSleepMilliseconds(100);
     if (++cmmCount > 10) {
       radio->checkModeMismatch();
+      radio->checkRestartRxNeeded();
       cmmCount = 0;
     }
     if (++calCount > 600) {

@@ -52,7 +52,13 @@ int main (void)
   board.setTxPower(amplificationLevelDb);
   Ope::Mode opMode = Ope::Mode::NONE;
   if (not rfEnable) {
-    opMode = rfMode == RfMode::RX ? Ope::Mode::NORF_RX : Ope::Mode::NORF_TX;
+    if (berMode) {
+      // forbidden combination
+      board.setError("BER No RF invalid");
+      chThdSleep(TIME_INFINITE);
+    } else {
+      opMode = rfMode == RfMode::RX ? Ope::Mode::NORF_RX : Ope::Mode::NORF_TX;
+    }
   } else { // rfEnable
     if (berMode) {
       opMode = rfMode == RfMode::RX ? Ope::Mode::RF_RX_INTERNAL : Ope::Mode::RF_TX_INTERNAL;
@@ -91,7 +97,7 @@ int main (void)
     ModeTest::start(rfMode, baud);
   }
 
-  if (rfMode == RfMode::RX)
+  if (rfEnable)
     Dio2Spy::start(LINE_MCU_RX);
   
 #ifdef STM32F4xx_MCUCONF

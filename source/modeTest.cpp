@@ -5,6 +5,7 @@
 #include "radio.hpp"
 #include "etl/string.h"
 #include "hardwareConf.hpp"
+#include "bitIntegrator.hpp"
 #include "bboard.hpp"
 
 constexpr uint8_t preambleByte = 0xff;
@@ -27,8 +28,8 @@ namespace {
   void autonomousTestWrite (void *);		
   void autonomousTestRead (void *);
   void newError(const ErrorString& es);
+  Integrator<1000> integ;
   
-  ModeTest::Report report;
   systime_t timoutTs = 0;
 }
 
@@ -36,8 +37,7 @@ namespace {
 
 namespace ModeTest {
   float getBer(void) {
-    const float ber = report.nbError * 1000.f /
-      report.totalBytes;
+    const float ber = integ.getAvg() * 1000.0f;
     board.setBer(ber);
     return ber;
   }
@@ -61,16 +61,6 @@ namespace ModeTest {
       chSysHalt("invalid rfMode");
     }
   }
-
-  Report getReport()
-  {
-    report.lock();
-    ModeTest::Report ret = report;
-    report.unlock();
-    report.reset();
-    return ret;
-  }
-  
 }
 
 
@@ -107,7 +97,7 @@ namespace {
       }
       sdWrite(&SD_METEO, preamble, sizeof(preamble));
       sdWrite(&SD_METEO, frame, sizeof(frame));
-      chThdSleepMilliseconds(100);
+      chThdSleepMilliseconds(10);
     }
   }
 
@@ -117,9 +107,15 @@ namespace {
     uint8_t expectedByte = 0;
     uint32_t zeroInRow = 0;
     char error[128];
+    systime_t ts = chVTGetSystemTimeX();
 
     while (true) {
       const int c = sdGetTimeout(&SD_METEO, TIME_MS2I(200));
+      if (const systime_t now = chVTGetSystemTimeX();
+	  chTimeDiffX(ts, now) > TIME_MS2I(500)) {
+	ts = now;
+	ModeTest::getBer();
+      }
       if (c < 0) {
 	if ((++zeroInRow) > 100) {
 	  zeroInRow = 0;
@@ -136,11 +132,11 @@ namespace {
 		 "rx timeout  RSSI = %.1f BER =%.1f/1000",
 		 Radio::radio.getRssi(), ModeTest::getBer());
 	newError(error);
-	report.timeout = true;
-	report.nbError++;
+	integ.push(true);
 	continue;
       } else if (c == 0) {
-	if ((++zeroInRow) > 100) {
+	if ((++zeroInRow) > 10) {
+	  integ.push(true);
 	  zeroInRow = 0;
 	  DebugTrace("problem detected : ");
 	  board.setError("Read only 0");
@@ -148,12 +144,11 @@ namespace {
 	}
       } else {
 	zeroInRow = 0;
-	report.timeout = false;
 	board.clearError();
 	timoutTs = 0;
 	if (c != expectedByte) {
 	  if (c != preambleByte) {
-	    report.nbError++;
+	    integ.push(true);
 	    // snprintf(error, sizeof(error), "expect {0x%x} got {0x%x}",
 	    // 	   expectedByte, c);
 	    // newError(error);
@@ -162,10 +157,9 @@ namespace {
 	      expectedByte = 0;
 	  } 
 	} else {
+	  integ.push(false);
 	  if(++expectedByte == 160) {
-	    report.totalBytes += expectedByte;
 	    expectedByte = 0;
-	    report.hasReceivedFrame = true;
 	    snprintf(error, sizeof(error),
 		     "frame completed  RSSI = %.1f BER =%.1f/1000",
 		     Radio::radio.getRssi(), ModeTest::getBer());

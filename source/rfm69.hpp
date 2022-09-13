@@ -15,7 +15,7 @@ class Rfm69Spi {
 public:
   Rfm69Spi(SPIDriver& _spid, ioline_t _lineReset) : spid(_spid), lineReset(_lineReset) {};
   Rfm69Status init(const SPIConfig& spiCfg);
-
+  bool isInit(void) {return spid.state >= SPI_READY;}
   void cacheWrite(Rfm69RegIndex idx, size_t len = 1);
   void cacheRead(Rfm69RegIndex idx, size_t len = 1);
   void reset(void);
@@ -58,6 +58,7 @@ public:
   Rfm69OokRadio(SPIDriver& spid, ioline_t lineReset) :
     rfm69(spid, lineReset) {};
   Rfm69Status init(const SPIConfig& spiCfg);
+  bool isInit(void) {return rfm69.isInit();}
   Rfm69Status setRfParam(RfMode _mode, 
 			 uint32_t frequencyCarrier,
 			 int8_t amplificationLevelDb);
@@ -66,7 +67,9 @@ public:
   Rfm69Status calibrate(void);
   void coldReset();
   void checkModeMismatch(void);
+  void checkRestartRxNeeded(void);
   float getRssi();
+  int8_t getLnaGain(void);
   void humanDisplayFlags(void);
   RfMode getOrderMode() {return mode;}
   GSET_DECL(RfMode, RfMode, opMode_mode, RfMode);
@@ -92,7 +95,6 @@ protected:
   void setFrequencyCarrier(uint32_t frequencyCarrier);
   void setPowerAmp(uint8_t pmask, RampTime rt, int8_t gain);
   void setLna(LnaGain gain, LnaInputImpedance imp);
-  int8_t getLnaGain(void);
   void setReceptionTuning(void);
   void setOokPeak(ThresholdType t, ThresholdDec d, ThresholdStep s);
   void setRxBw(BandwithMantissa, uint8_t exp, uint8_t dccFreq);

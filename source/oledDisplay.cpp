@@ -3,9 +3,11 @@
 #include "stdutil.h"	
 #include "ssd1306.h"
 #include "bboard.hpp"
-#include "etl/string.h"
 #include "printf.h"
 #include "hardwareConf.hpp"
+#include "radio.hpp"
+#include <algorithm>
+#include "etl/string.h"
 
 #define xstr(s) str(s)
 #define str(s) #s
@@ -54,6 +56,10 @@ namespace {
     ssd1306_Init();
     
     while (true) {
+      if (Radio::radio.isInit()) {
+	Radio::radio.getRssi();
+	Radio::radio.getLnaGain();
+      }
       ssd1306_Fill(BLACK);
       clearScreenBuffer();
 
@@ -98,6 +104,10 @@ namespace {
       " initialisation ",
       xstr(GIT_TAG),
       "Enac Grz Bto ELS"};
+    if (not board.getError().empty()) {
+      chsnprintf(oledScreen[1].begin(), oledScreen[1].capacity(),
+		 board.getError().c_str());
+    }
   }
   
   void fillNoRfTx(void)
@@ -132,7 +142,7 @@ namespace {
     chsnprintf(oledScreen[0].begin(), oledScreen[0].capacity(),
   	       "RX %lu Mhz", board.getFreq() / 1'000'000U);
     chsnprintf(oledScreen[1].begin(), oledScreen[1].capacity(),
-  	       "Source Externe");
+  	       "Sortie Ext Av %.2f", board.getDioAvg());
     chsnprintf(oledScreen[2].begin(), oledScreen[2].capacity(),
   	       "Lna %d db", board.getLnaGain());
     chsnprintf(oledScreen[3].begin(), oledScreen[3].capacity(),
@@ -147,6 +157,8 @@ namespace {
   	       "Source Externe");
     chsnprintf(oledScreen[2].begin(), oledScreen[2].capacity(),
   	       "P %d dbm", board.getTxPower());
+    chsnprintf(oledScreen[3].begin(), oledScreen[3].capacity(),
+  	       "Dio Avg = %.2f", board.getDioAvg());
   }
   
   void fillRxInternal(void)
@@ -154,7 +166,7 @@ namespace {
     chsnprintf(oledScreen[0].begin(), oledScreen[0].capacity(),
   	       "RX %lu Mhz", board.getFreq() / 1'000'000U);
     chsnprintf(oledScreen[1].begin(), oledScreen[1].capacity(),
-  	       "BER %04d / 1000", board.getBer());
+  	       "BER %04d / 1000", std::min(uint16_t{1000}, board.getBer()));
     chsnprintf(oledScreen[2].begin(), oledScreen[2].capacity(),
   	       "Lna %d; %u baud", board.getLnaGain(), board.getBaud());
     chsnprintf(oledScreen[3].begin(), oledScreen[3].capacity(),
@@ -180,9 +192,9 @@ namespace {
     chsnprintf(oledScreen[1].begin(), oledScreen[1].capacity(),
   	       "%s", board.getError().c_str());
     chsnprintf(oledScreen[2].begin(), oledScreen[2].capacity(),
-  	       "Mode = ");
+  	       "Mode=%s", Ope::toAscii(board.getMode()));
     chsnprintf(oledScreen[3].begin(), oledScreen[3].capacity(),
-  	       "%s", Ope::toAscii(board.getMode()));
+  	       "%s", xstr(GIT_TAG));
   }
   
 
