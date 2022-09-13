@@ -182,7 +182,7 @@ namespace {
     chsnprintf(oledScreen[2].begin(), oledScreen[2].capacity(),
   	       "Source Interne");
     chsnprintf(oledScreen[3].begin(), oledScreen[3].capacity(),
-  	       "P %d dbm", board.getTxPower());
+  	       "Puissance %d dbm", board.getTxPower());
   }
   
   void fillWhenError(void)

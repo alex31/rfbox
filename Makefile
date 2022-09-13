@@ -25,12 +25,12 @@ endif
 # unused options : -ftrapv 
 
 
-ifeq ($(USE_OPT),)
-  USE_OPT =  -Og  -ggdb3 -Wall -Wextra \
-         -falign-functions=16 -fomit-frame-pointer \
-          $(GCC_DIAG) -DTRACE
-  USE_LTO = no  
-endif
+# ifeq ($(USE_OPT),)
+#   USE_OPT =  -Og  -ggdb3 -Wall -Wextra \
+#          -falign-functions=16 -fomit-frame-pointer \
+#           $(GCC_DIAG) -DTRACE
+#   USE_LTO = no  
+# endif
 
 ifeq ($(USE_OPT),)
   USE_OPT =  -Os  -flto  -Wall -Wextra \
