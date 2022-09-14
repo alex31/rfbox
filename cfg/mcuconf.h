@@ -270,9 +270,11 @@
 #define STM32_COMP_USE_COMP2                FALSE
 
 // local defs
-#define CH_HEAP_SIZE (32*1024)
+#define CH_HEAP_SIZE 0
 #define CH_HEAP_USE_TLSF 0 // if 0 or undef, chAlloc will be used
+#ifndef NOSHELL
 #define CONSOLE_DEV_SD SD2
+#endif
 #define CONSOLE_DEV_USB 0
 //#define CHPRINTF_USE_STDLIB true
 #endif /* MCUCONF_H */

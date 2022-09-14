@@ -1,8 +1,10 @@
 #include <ch.h>
 #include <hal.h>
 #include <algorithm>
-#include "stdutil.h"	
-#include "ttyConsole.hpp"	
+#include "stdutil.h"
+#ifndef NOSHELL
+#include "ttyConsole.hpp"
+#endif
 #include "dip.hpp"
 #include "modeTest.hpp"
 #include "radio.hpp"
@@ -15,14 +17,20 @@
 #include "notGate.hpp"
 #endif
 
-int main (void)
-{
+void _init_chibios() __attribute__ ((constructor(101)));
+void _init_chibios() {
   halInit();
   chSysInit();
-  initHeap();		
+  //  initHeap();
+}
 
+int main (void)
+{
+#ifndef NOSHELL
   consoleInit();	
   consoleLaunch();
+#endif
+  
   Oled::start();
   const RfMode rfMode = DIP::getDip(DIPSWITCH::RXTX) ? RfMode::TX : RfMode::RX;
   if (rfMode == RfMode::RX) {

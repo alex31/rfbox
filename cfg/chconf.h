@@ -397,9 +397,12 @@
  * @note    Mutexes are recommended.
  */
 #if !defined(CH_CFG_USE_HEAP)
+#ifndef NOSHELL
 #define CH_CFG_USE_HEAP                     TRUE
+#else
+#define CH_CFG_USE_HEAP                     FALSE
 #endif
-
+#endif
 /**
  * @brief   Memory Pools Allocator APIs.
  * @details If enabled then the memory pools allocator APIs are included
