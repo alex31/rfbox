@@ -6,6 +6,11 @@
 # Compiler options here.
 # -Wdouble-promotion -fno-omit-frame-pointer
 
+# make BUILD=DEBUG or make
+ifeq ($(BUILD),)
+BUILD = RELEASE
+endif
+
 GCCVERSIONGTEQ10 := $(shell expr `arm-none-eabi-gcc -dumpversion | cut -f1 -d.` \>= 10)
 GCC_DIAG =  -Werror -Wno-error=unused-variable -Wno-error=format \
             -Wno-error=cpp  \
@@ -25,14 +30,12 @@ endif
 # unused options : -ftrapv 
 
 
-# ifeq ($(USE_OPT),)
-#   USE_OPT =  -Og  -ggdb3 -Wall -Wextra \
-#          -falign-functions=16 -fomit-frame-pointer \
-#           $(GCC_DIAG) -DTRACE
-#   USE_LTO = no  
-# endif
-
-ifeq ($(USE_OPT),)
+ifeq ($(BUILD),DEBUG) 
+  USE_OPT =  -Og  -ggdb3 -Wall -Wextra \
+         -falign-functions=16 -fomit-frame-pointer \
+          $(GCC_DIAG) -DTRACE
+  USE_LTO = no  
+else
   USE_OPT =  -Os  -flto  -Wall -Wextra \
 	    -falign-functions=16 -fomit-frame-pointer \
 	     $(GCC_DIAG)   \
@@ -44,6 +47,7 @@ ifeq ($(USE_OPT),)
             -DNOSHELL
    USE_LTO = yes  
 endif
+
 GIT_TAG := $(shell git describe --dirty --always --tags)
 
 
