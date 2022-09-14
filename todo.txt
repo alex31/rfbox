@@ -3,6 +3,11 @@ FTDI JAUNE : RX (point de vue FTDI)
 
 TODO :
 mode BER :
+ ° en mode RX sortie externe : sortie en // sur le FTDI
+   + necessite d'inverser la broche RX des FTDI (ft232r_prog --invert_rxd)
+   + necessite en mode NoRF TX d'inverser le signal au niveau du buffer vu que le
+     ftdi va l'inverser à nouveau : ça permet de banaliser les rfbox qui fonctionneront
+     dans tous les modes.
  ° à 19200 baud : interruptions de TX induisent un BER anormalement élevé
    -> les registres impactés par la vitesse : bitrate et rxbw conservés ?
 

@@ -126,7 +126,10 @@ namespace {
   {
     palSetLineMode(LINE_EXTVCP_TX, PAL_MODE_INPUT);
 #if DIO2_DIRECT
-    Buffer::setMode(Buffer::Mode::TX);
+    // embedded ftdi cable has to be customised
+    // https://github.com/eswierk/ft232r_prog
+    // ft232r_prog --invert_rxd
+    Buffer::setMode(Buffer::Mode::INVERTED_TX); 
 #endif
   }
 
