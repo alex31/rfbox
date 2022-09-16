@@ -1,3 +1,9 @@
+CALCUL DIO2 :
+
+4800 baud : preambule 6 octets : 1/100 secondes : 
+
+
+
 FTDI JAUNE : RX (point de vue FTDI)
      ORANGE  TX
 

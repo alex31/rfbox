@@ -161,7 +161,7 @@ void Rfm69OokRadio::checkModeMismatch()
     board.setError("Radio lockout");
     coldReset();
   } else if (const float av = Dio2Spy::getAverageLevel();
-	     (mode == RfMode::RX) and ((av < 0.30f) or (av > 0.70f))) {
+	     (mode == RfMode::RX) and ((av < 0.15f) or (av > 0.70f))) {
     DebugTrace("dio2 average not valid = %.2f", av);
     board.setError("DIO2 Avg Err");
     coldReset();
@@ -174,12 +174,16 @@ void Rfm69OokRadio::checkRestartRxNeeded()
 {
   const float rssi = getRssi();
   const float lnaGain = getLnaGain();
+  //  static systime_t ts = 0;
   if ( ((rssi < -60.0f ) and (lnaGain < -24.0f))
-      or
-       ((rssi > -60.0f) and (lnaGain > -24.0f)) ) {
-    DebugTrace("RSSI change : setRestartRx");
-    //    coldReset();
+       or
+       ((rssi > -60.0f) and (lnaGain > -24.0f))
+       //      or
+       //       (not chVTIsSystemTimeWithin(ts, chTimeAddX(ts, TIME_S2I(1000))))
+       ) {
+    DebugTrace("setRestartRx");
     setRestartRx(true);
+    //    ts = chVTGetSystemTime();
   }
 }
 
