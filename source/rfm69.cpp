@@ -165,6 +165,7 @@ void Rfm69OokRadio::checkModeMismatch()
     DebugTrace("dio2 average not valid = %.2f", av);
     board.setError("DIO2 Avg Err");
     coldReset();
+    //    setRestartRx(true);
   } else {
     board.clearError();
   }
@@ -349,14 +350,11 @@ void Rfm69OokRadio::setFrequencyCarrier(uint32_t frequencyCarrier)
 
 void Rfm69OokRadio::setReceptionTuning(void)
 {
-  // should try ThresholdType::FIXED;
-  // setOokPeak(ThresholdType::AVERAGE, ThresholdDec::SIXTEEN_TIMES,
-  // 	     ThresholdStep::DB_2);
   setOokPeak(ThresholdType::PEAK, ThresholdDec::EIGHT_TIMES,
 	     ThresholdStep::DB_3);
 
-  setLowBetaOn(false);
-  setDagc(FadingMargin::IMPROVE_LOW_BETA_OFF);
+  setLowBetaOn(true);
+  setDagc(FadingMargin::IMPROVE_LOW_BETA_ON);
   setAutoRxRestart(false);
   
   // settings for RxBw = 20Khz in OOK
@@ -368,7 +366,7 @@ void Rfm69OokRadio::setReceptionTuning(void)
   // in case of false '1', raise the value to 0xFF cf datasheet p61
   setRssi_threshold(0xE4);
   DebugTrace("rfm69.reg.rssiThresh = %d", rfm69.reg.rssiThresh);
-
+  //  calibrateRssiThresh();
   // automatic frequency correction activated
   setAfc_autoOn(true);
 }
@@ -486,18 +484,19 @@ void Rfm69OokRadio::rfHealthSurvey(void *arg)
 {
   Rfm69OokRadio *radio = static_cast<Rfm69OokRadio *>(arg);
   chRegSetThreadName("RF Health survey");
-  uint32_t calCount = 0, cmmCount = 0;
+  uint32_t calCount = 0, cmmCount = 0, restartRxCount = 0;;
   
   while (not chThdShouldTerminateX()) {
     chThdSleepMilliseconds(100);
-    if (++cmmCount > 10) {
-      radio->checkModeMismatch();
-      radio->checkRestartRxNeeded();
-      cmmCount = 0;
-    }
-    if (++calCount > 600) {
+   if (++calCount > 600) {
       radio->calibrate();
       calCount = 0;
+    } else if (++restartRxCount > 15) {
+      radio->checkRestartRxNeeded();
+      restartRxCount = 0;
+    } else if (++cmmCount > 10) {
+      radio->checkModeMismatch();
+      cmmCount = 0;
     }
   }
   chThdExit(MSG_OK);
