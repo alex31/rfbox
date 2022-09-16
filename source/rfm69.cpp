@@ -352,8 +352,8 @@ void Rfm69OokRadio::setReceptionTuning(void)
   // should try ThresholdType::FIXED;
   // setOokPeak(ThresholdType::AVERAGE, ThresholdDec::SIXTEEN_TIMES,
   // 	     ThresholdStep::DB_2);
-  setOokPeak(ThresholdType::PEAK, ThresholdDec::EIGHT_TIMES,
-	     ThresholdStep::DB_3);
+  setOokPeak(ThresholdType::PEAK, ThresholdDec::ONE,
+	     ThresholdStep::DB_0P5);
 
   setLowBetaOn(false);
   setDagc(FadingMargin::IMPROVE_LOW_BETA_OFF);
