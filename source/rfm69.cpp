@@ -490,14 +490,13 @@ void Rfm69OokRadio::rfHealthSurvey(void *arg)
   
   while (not chThdShouldTerminateX()) {
     chThdSleepMilliseconds(100);
-    if (++cmmCount > 10) {
-      radio->checkModeMismatch();
-      radio->checkRestartRxNeeded();
-      cmmCount = 0;
-    }
     if (++calCount > 600) {
       radio->calibrate();
       calCount = 0;
+    } else if (++cmmCount > 10) {
+      radio->checkModeMismatch();
+      radio->checkRestartRxNeeded();
+      cmmCount = 0;
     }
   }
   chThdExit(MSG_OK);
