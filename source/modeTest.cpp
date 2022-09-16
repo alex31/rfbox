@@ -27,7 +27,6 @@ namespace {
 
   void autonomousTestWrite (void *);		
   void autonomousTestRead (void *);
-  void newError(const ErrorString& es);
   Integrator<1000> integ;
   
   systime_t timoutTs = 0;
@@ -66,21 +65,6 @@ namespace ModeTest {
 
 
 namespace {
-  void newError(const ErrorString& es)
-  {
-#ifdef TRACE
-    static systime_t lastErrorTs{0};
-    static ErrorString lastError("");
-    if (chTimeDiffX(lastErrorTs, chVTGetSystemTimeX()) > TIME_S2I(1)) {
-      lastErrorTs = chVTGetSystemTimeX();
-      chprintf(chp, "RX : %s\r\n", es.c_str());
-    }
-#else
-      (void) es;
-#endif
-  }
-
-
   
   void autonomousTestWrite (void *)		
   {
@@ -106,7 +90,6 @@ namespace {
     chRegSetThreadName("autonomousTestRead");
     uint8_t expectedByte = 0;
     uint32_t zeroInRow = 0;
-    char error[128];
     systime_t ts = chVTGetSystemTimeX();
 
     while (true) {
@@ -128,17 +111,14 @@ namespace {
 	} else {
 	  timoutTs = chVTGetSystemTimeX();
 	}
-	snprintf(error, sizeof(error),
-		 "rx timeout  RSSI = %.1f BER =%.1f/1000",
-		 Radio::radio.getRssi(), ModeTest::getBer());
-	newError(error);
+	board.setError("RX timeout");
 	integ.push(true);
 	continue;
       } else if (c == 0) {
 	if ((++zeroInRow) > 10) {
 	  integ.push(true);
 	  zeroInRow = 0;
-	  DebugTrace("problem detected : ");
+	  DebugTrace("problem detected : Read only 0");
 	  board.setError("Read only 0");
 	  //	  Radio::radio.calibrate();
 	}
@@ -149,9 +129,6 @@ namespace {
 	if (c != expectedByte) {
 	  if (c != preambleByte) {
 	    integ.push(true);
-	    // snprintf(error, sizeof(error), "expect {0x%x} got {0x%x}",
-	    // 	   expectedByte, c);
-	    // newError(error);
 	    expectedByte = c+1;
 	    if(expectedByte == 160)
 	      expectedByte = 0;
@@ -160,11 +137,6 @@ namespace {
 	  integ.push(false);
 	  if(++expectedByte == 160) {
 	    expectedByte = 0;
-	    snprintf(error, sizeof(error),
-		     "frame completed  RSSI = %.1f BER =%.1f/1000",
-		     Radio::radio.getRssi(), ModeTest::getBer());
-	    //	    Radio::radio.setRestartRx(true);
-	    newError(error);
 	  }
 	}
 	

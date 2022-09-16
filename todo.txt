@@ -1,21 +1,30 @@
-CALCUL DIO2 :
+Methode pour recalculer le gain sur les octets de preambule d'un message :
 
-4800 baud : preambule 6 octets : 1/100 secondes : 
+Machine à états : GAIN_TUNED_FOR_PREAMPLE, GAIN_TUNED_FOR_MESSAGES
+
+° declarer objet watchdog
+
+° en mode source externe, décoder le message (juste header, len, payload, crc)
+  thread de reception de messages
+  si reception de message : reset du watch dog à 10 secondes
+
+° lancer un watchdog : 10 secondes sans messages
+                       cold reset -> état GAIN_TUNE_FOR_PREAMPLE
+
+° thread preambleSurvey : utiliser un dio2integrator sur 10 millisecondes : 64 echantillons : 32 bits
+                          si état GAIN_TUNE_FOR_PREAMPLE
+                          à chaque push tester avg : si avg > 0.95
+			  lancer un SetRestartRx(true)
+			  passer en mode GAIN_TUNED_FOR_MESSAGES
 
 
+° changement : on garde le DIO2 survey pour l'affichage, mais on ne prend plus de decision basée sur
+  dio2Avg
 
 FTDI JAUNE : RX (point de vue FTDI)
      ORANGE  TX
 
 TODO :
-mode BER :
- ° en mode RX sortie externe : sortie en // sur le FTDI
-   + necessite d'inverser la broche RX des FTDI (ft232r_prog --invert_rxd)
-   + necessite en mode NoRF TX d'inverser le signal au niveau du buffer vu que le
-     ftdi va l'inverser à nouveau : ça permet de banaliser les rfbox qui fonctionneront
-     dans tous les modes.
- ° à 19200 baud : interruptions de TX induisent un BER anormalement élevé
-   -> les registres impactés par la vitesse : bitrate et rxbw conservés ?
 
 //////////   TEST USB SERIE
 En mode emission :
