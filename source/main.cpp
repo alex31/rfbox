@@ -30,8 +30,9 @@ int main (void)
   consoleInit();	
   consoleLaunch();
 #endif
-  
+
   Oled::start();
+  
   const RfMode rfMode = DIP::getDip(DIPSWITCH::RXTX) ? RfMode::TX : RfMode::RX;
   if (rfMode == RfMode::RX) {
     DebugTrace("mode RX");
