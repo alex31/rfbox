@@ -7,6 +7,7 @@
 #include "hardwareConf.hpp"
 #include "bboard.hpp"
 #include "crcv1.h"
+#include "dio2Spy.hpp"
 
 constexpr uint8_t preambleByte = 0xff;
 
@@ -93,6 +94,9 @@ namespace {
       } while ((sync[0] != 0xFE) or (sync[1] != 0xED));
 
       len = sdGet(&SD_METEO);
+      if (len == 0)
+	continue;
+      
       sdRead(&SD_METEO, payload.data(), len);
       sdRead(&SD_METEO, reinterpret_cast<uint8_t *>(&distantCrc), sizeof(distantCrc));
       crcReset(&CRCD1);
@@ -101,7 +105,7 @@ namespace {
 	DebugTrace("CRC differ : L:0x%x != D:0x%x", localCrc, distantCrc);
       } else {
 	chVTReset(&vtWatchDog);
-	chVTSet(&vtWatchDog, TIME_S2I(3), [](ch_virtual_timer *, void *) {
+	chVTSet(&vtWatchDog, TIME_MS2I(1500), [](ch_virtual_timer *, void *) {
 	  shouldRestartRx = true;
 	},
 	  nullptr);
@@ -117,6 +121,14 @@ namespace {
       if (shouldRestartRx) {
 	shouldRestartRx = false;
 	Radio::radio.forceRestartRx();
+        for(uint32_t i=0; i != 10000; i++) {
+	  chThdSleepMicroseconds(100);
+	  if (Dio2Spy::getInstantLevel() > 0.6f) {
+	    Radio::radio.forceRestartRx();
+	    DebugTrace("instant level > 0.6");
+	    break;
+	  }
+	}
       }
       chThdSleepMilliseconds(100);
     }
