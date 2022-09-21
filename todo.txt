@@ -9,7 +9,7 @@ Machine à états : GAIN_TUNED_FOR_PREAMPLE, GAIN_TUNED_FOR_MESSAGES
   si reception de message : reset du watch dog à 10 secondes
 
 ° lancer un watchdog : 10 secondes sans messages
-                       cold reset -> état GAIN_TUNE_FOR_PREAMPLE
+                       rxRestart -> état GAIN_TUNE_FOR_PREAMPLE
 
 ° thread preambleSurvey : utiliser un dio2integrator sur 10 millisecondes : 64 echantillons : 32 bits
                           si état GAIN_TUNE_FOR_PREAMPLE
