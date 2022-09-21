@@ -7,6 +7,7 @@
 #include "hardwareConf.hpp"
 #include "bboard.hpp"
 #include "crcv1.h"
+#include "dio2Spy.hpp"
 
 constexpr uint8_t preambleByte = 0xff;
 
@@ -117,11 +118,17 @@ namespace {
       if (shouldRestartRx) {
 	shouldRestartRx = false;
 	Radio::radio.forceRestartRx();
-      }
+      // 	while(true) {
+      // 	  chThdSleepMicroseconds(100);
+      // 	  if (Dio2Spy::getInstantLevel() > 0.9f) {
+      // 	    Radio::radio.forceRestartRx();
+      // 	    break;
+      // 	  }
+      // }
       chThdSleepMilliseconds(100);
     }
   }
   
+  }
 
-  
 }
