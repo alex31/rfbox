@@ -123,9 +123,9 @@ namespace {
 	Radio::radio.forceRestartRx();
         for(uint32_t i=0; i != 10000; i++) {
 	  chThdSleepMicroseconds(100);
-	  if (Dio2Spy::getInstantLevel() > 0.6f) {
+	  if (Dio2Spy::getInstantLevel() > 0.8f) {
 	    Radio::radio.forceRestartRx();
-	    DebugTrace("instant level > 0.6");
+	    DebugTrace("instant level > 0.8");
 	    break;
 	  }
 	}
