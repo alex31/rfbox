@@ -153,7 +153,7 @@ namespace {
   
   void buffer_RF_RX_EXTERNAL()
   {
-    palSetLineMode(LINE_MCU_RX, PAL_MODE_INPUT);
+    palSetLineMode(LINE_MCU_RX, PAL_MODE_ALTERNATE(AF_LINE_MCU_RX));
 #if INVERT_UART_LEVEL == false
     Buffer::setMode(Buffer::Mode::RX);
 #else

@@ -68,6 +68,7 @@ public:
   void coldReset();
   void checkModeMismatch(void);
   void checkRestartRxNeeded(void);
+  void forceRestartRx();
   float getRssi();
   int8_t getLnaGain(void);
   void humanDisplayFlags(void);

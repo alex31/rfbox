@@ -7,6 +7,7 @@
 #endif
 #include "dip.hpp"
 #include "modeTest.hpp"
+#include "modeExternal.hpp"
 #include "radio.hpp"
 #include "operations.hpp"
 #include "hardwareConf.hpp"
@@ -103,6 +104,8 @@ int main (void)
   if (berMode) {
     DebugTrace("start BER mode @ %lu baud",  baud);
     ModeTest::start(rfMode, baud);
+  } else if (opMode == Ope::Mode::RF_RX_EXTERNAL) {
+    ModeExternal::start(rfMode, baud);
   }
 
   if (rfEnable)

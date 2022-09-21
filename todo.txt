@@ -21,6 +21,9 @@ Machine à états : GAIN_TUNED_FOR_PREAMPLE, GAIN_TUNED_FOR_MESSAGES
 ° changement : on garde le DIO2 survey pour l'affichage, mais on ne prend plus de decision basée sur
   dio2Avg
 
+
+==================================
+
 FTDI JAUNE : RX (point de vue FTDI)
      ORANGE  TX
 

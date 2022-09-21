@@ -2,6 +2,7 @@
 #include "operations.hpp"
 #include "etl/string.h"
 #include "etl/string_view.h"
+#include "common.hpp"
 
 class BBoard
 {
@@ -16,8 +17,9 @@ public:
   void setFreq(uint32_t _freq) {freq = _freq;}
   void setRfEnable(bool _rfEnable) {rfEnable = _rfEnable;}
   void setTxPower(int16_t _txPower) {txPower = _txPower;}
-  void setError(etl::string_view _error) {error =  error_t{_error};}
-  void clearError(void) {error.clear();}
+  void setError(etl::string_view _error) {Lock m(mtx);
+    error =  error_t{_error};}
+  void clearError(void) {Lock m(mtx); error.clear();}
 
   Ope::Mode getMode(void) {return mode;}
   int16_t getRssi(void) {return rssi;}
@@ -28,9 +30,12 @@ public:
   uint32_t getFreq(void) {return freq;}
   bool getRfEnable(void) {return rfEnable;}
   int16_t getTxPower(void) {return txPower;}
-  const error_t& getError(void) {return error;}
+  const error_t& getError(void) {Lock m(mtx); return error;}
   
 private:
+  // scalar assignment is atomic on arm32 arch, so mutex
+  // is only need to protect string error data.
+  MUTEX_DECL(mtx);
   Ope::Mode mode = Ope::Mode::NONE;
   int16_t rssi = {};
   int16_t lnaGain = {};

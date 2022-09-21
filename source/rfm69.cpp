@@ -5,15 +5,18 @@
 #include "dio2Spy.hpp"
 #include "etl/string.h"
 #include "bboard.hpp"
+#include "common.hpp"
 
 #define SWAP_ENDIAN24(x) __builtin_bswap32(static_cast<uint32_t>(x) << 8)
 
 namespace {
   constexpr uint8_t readMask =  0x0;
   constexpr uint8_t writeMask = 0x80;
-  MUTEX_DECL(calMtx);
+  MUTEX_DECL(protectMtx);
   Rfm69Rmap regCheck;
 }
+
+#define NOREENT()   Lock m(protectMtx) 
 
 void Rfm69Spi::reset(void)
 {
@@ -153,6 +156,7 @@ void Rfm69OokRadio::coldReset()
 
 void Rfm69OokRadio::checkModeMismatch()
 {
+  NOREENT();
   rfm69.cacheRead(Rfm69RegIndex::RfMode);
   if ((mode != RfMode::SLEEP) and (rfm69.reg.opMode_mode != mode)) {
     DebugTrace("mismatch found mode %u instead %u, reset...",
@@ -173,6 +177,7 @@ void Rfm69OokRadio::checkModeMismatch()
 
 void Rfm69OokRadio::checkRestartRxNeeded()
 {
+  NOREENT();
   const float rssi = getRssi();
   const float lnaGain = getLnaGain();
   //  static systime_t ts = 0;
@@ -188,9 +193,17 @@ void Rfm69OokRadio::checkRestartRxNeeded()
   }
 }
 
+
+void Rfm69OokRadio::forceRestartRx()
+{
+  NOREENT();
+  setRestartRx(true);
+}
+
+
 Rfm69Status Rfm69OokRadio::calibrate()
 {
-  chMtxLock(&calMtx);
+  NOREENT();
   const systime_t ts = chVTGetSystemTimeX();
 
  
@@ -215,7 +228,6 @@ Rfm69Status Rfm69OokRadio::calibrate()
 	       static_cast<uint16_t>(rfm69.reg.opMode_mode));
   }
   humanDisplayFlags();
-  chMtxUnlock(&calMtx);
 
   return rfm69.reg.osc1_calibDone ? Rfm69Status::OK : Rfm69Status::TIMOUT;
 }
