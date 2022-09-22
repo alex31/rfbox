@@ -28,7 +28,7 @@ constexpr uint32_t getBr12(uint32_t speed)
     return br12 << SPI_CR1_BR_Pos;
 }
 
-inline constexpr uint32_t spiBaudRate = 1'500'000;
+inline constexpr uint32_t spiBaudRate = 6'000'000;
 inline constexpr uint32_t carrierFrequencyLow = 868'000'000;
 inline constexpr uint32_t carrierFrequencyHigh = 870'000'000;
 inline constexpr int8_t   ampLevelDbLow = 0;
