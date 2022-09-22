@@ -49,7 +49,7 @@ public:
   float getDifferential(void) {
     const float ao = getAvgOld();
     const float an = getAvgNew();
-    if (an < 0.25f)
+    if (an < 0.25f) // "new" buffer should be reasonnably filled.
       return 1.0f;
     
     if (ao != 0.0f) {

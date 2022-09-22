@@ -3,9 +3,12 @@
 #include "operations.hpp"
 #include "stdutil.h"
 #include "modeTest.hpp"
+#include "modeExternal.hpp"
 #include "radio.hpp"
 #include "buffer.hpp"
 #include "hardwareConf.hpp"
+#include "dio2Spy.hpp"
+#include "bboard.hpp"
 
 namespace {
   enum class ElectricalStatus {FREE, HOLD};
@@ -56,16 +59,21 @@ namespace Ope {
     case Mode::RF_RX_EXTERNAL:
       rfMode = RfMode::RX;
       buffer_RF_RX_EXTERNAL();
+      Dio2Spy::start(LINE_MCU_RX);
+      ModeExternal::start(rfMode, board.getBaud());
       break ;
       
     case Mode::RF_TX_EXTERNAL:
       rfMode = RfMode::TX;
       buffer_RF_TX_EXTERNAL();
+      Dio2Spy::start(LINE_MCU_RX);
       break ;
       
     case Mode::RF_RX_INTERNAL:
       rfMode = RfMode::RX;
       buffer_RF_RX_INTERNAL();
+      Dio2Spy::start(LINE_MCU_RX);
+      ModeTest::start(rfMode, board.getBaud());
       break ;
       
     case Mode::RF_TX_INTERNAL:
@@ -83,6 +91,8 @@ namespace Ope {
 
 	goto end;
       }
+      Dio2Spy::start(LINE_MCU_RX);
+      ModeTest::start(rfMode, board.getBaud());
       break ; 
     }
     
