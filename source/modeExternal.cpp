@@ -80,6 +80,11 @@ namespace {
   void msgStreamIn (void *)		
   {
     chRegSetThreadName("Decode Meteo Msg");
+    
+    auto lambda = [](ch_virtual_timer *, void *) {
+      shouldRestartRx = true;
+    };
+    chVTSetContinuous(&vtWatchDog, TIME_MS2I(1500), lambda, nullptr);
 
     while (true) {
       std::array<uint8_t, 2> sync = {};
@@ -104,11 +109,7 @@ namespace {
       if (localCrc != distantCrc) {
 	DebugTrace("CRC differ : L:0x%x != D:0x%x", localCrc, distantCrc);
       } else {
-	chVTReset(&vtWatchDog);
-	chVTSet(&vtWatchDog, TIME_MS2I(1500), [](ch_virtual_timer *, void *) {
-	  shouldRestartRx = true;
-	},
-	  nullptr);
+	chVTSetContinuous(&vtWatchDog, TIME_MS2I(1500), lambda, nullptr);
       }
     }
   }
@@ -116,19 +117,19 @@ namespace {
  void surveyRestartRx (void *)		
   {
     chRegSetThreadName("survey Restart Rx");
+    Dio2Spy::setCb(2.0f, [] {
+      Radio::radio.forceRestartRx();
+      Dio2Spy::activate(false);
+      DebugTrace("********* forceRestartRx ***********");
+    });
 
+    Dio2Spy::activate(false);
     while (true) {
       if (shouldRestartRx) {
-	shouldRestartRx = false;
 	Radio::radio.forceRestartRx();
-        for(uint32_t i=0; i != 10000; i++) {
-	  chThdSleepMicroseconds(100);
-	  if (Dio2Spy::getInstantLevel() > 0.8f) {
-	    Radio::radio.forceRestartRx();
-	    DebugTrace("instant level > 0.8");
-	    break;
-	  }
-	}
+	shouldRestartRx = false;
+	Dio2Spy::activate(true);
+	DebugTrace("activate");
       }
       chThdSleepMilliseconds(100);
     }

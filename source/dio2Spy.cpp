@@ -4,7 +4,7 @@
 
 namespace {
   Integrator<10000> integ1S;
-  Integrator<64> integ6Ms;
+  DiffIntegrator<32> integ6Ms;
   ioline_t dio2Line;
   THD_WORKING_AREA(waSurvey, 512);
   void survey (void *arg)		
@@ -37,9 +37,14 @@ namespace Dio2Spy {
     return avg;
   }
 
-  float getInstantLevel(void)
+  void setCb(float thresholdRatio, DiffIntegrator<32>::funcb_t cb)
   {
-    const float avg = integ6Ms.getAvg();
-    return avg;
+    integ6Ms.setCb(thresholdRatio, cb);
+  };
+
+  void activate(bool b)
+  {
+    integ6Ms.activate(b);
   }
+ 
 }
