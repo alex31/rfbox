@@ -41,11 +41,24 @@ public:
     intOld.push(intNew.push(in));
     if (active and
 	(cb != nullptr) and
-	((getAvgNew() / getAvgOld()) > thresholdRatio)) {
+	(getDifferential() > thresholdRatio)) {
       cb();
     }
   }
 
+  float getDifferential(void) {
+    const float ao = getAvgOld();
+    const float an = getAvgNew();
+    if (an < 0.25f)
+      return 1.0f;
+    
+    if (ao != 0.0f) {
+      return an / ao;
+    } else {
+      return an == 0.0f ? 1.0f : 1000.0f;
+    }
+  }
+  
   float getAvgNew(void) {
     return intNew.getAvg();
   }
