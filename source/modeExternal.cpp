@@ -95,7 +95,6 @@ namespace {
       do {
 	sync[0] = sync[1];
 	sync[1] = sdGet(&SD_METEO);
-	//DebugTrace(".");
       } while ((sync[0] != 0xFE) or (sync[1] != 0xED));
 
       len = sdGet(&SD_METEO);
@@ -117,10 +116,10 @@ namespace {
  void surveyRestartRx (void *)		
   {
     chRegSetThreadName("survey Restart Rx");
-    Dio2Spy::setCb(2.0f, [] {
+    Dio2Spy::setCb(3.0f, [] {
       Radio::radio.forceRestartRx();
       Dio2Spy::activate(false);
-      DebugTrace("********* forceRestartRx ***********");
+      DebugTrace("********* forceRestartRx ratio = %.2f", Dio2Spy::getDifferential());
     });
 
     Dio2Spy::activate(false);
