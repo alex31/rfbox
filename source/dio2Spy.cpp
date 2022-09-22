@@ -36,7 +36,12 @@ namespace Dio2Spy {
     board.setDioAvg(avg);
     return avg;
   }
-
+  
+  float getDifferential(void)
+  {
+    return integ6Ms.getDifferential();
+  }
+  
   void setCb(float thresholdRatio, DiffIntegrator<32>::funcb_t cb)
   {
     integ6Ms.setCb(thresholdRatio, cb);
