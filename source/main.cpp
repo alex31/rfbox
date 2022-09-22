@@ -6,12 +6,9 @@
 #include "ttyConsole.hpp"
 #endif
 #include "dip.hpp"
-#include "modeTest.hpp"
-#include "modeExternal.hpp"
 #include "radio.hpp"
 #include "operations.hpp"
 #include "hardwareConf.hpp"
-#include "dio2Spy.hpp"
 #include "oledDisplay.hpp"
 #include "bboard.hpp"
 #ifdef STM32F4xx_MCUCONF
@@ -100,16 +97,6 @@ int main (void)
   }
 
   }
-  
-  if (berMode) {
-    DebugTrace("start BER mode @ %lu baud",  baud);
-    ModeTest::start(rfMode, baud);
-  } else if (opMode == Ope::Mode::RF_RX_EXTERNAL) {
-    ModeExternal::start(rfMode, baud);
-  }
-
-  if (rfEnable)
-    Dio2Spy::start(LINE_MCU_RX);
   
 #ifdef STM32F4xx_MCUCONF
   notGateStart(PWMD1);
