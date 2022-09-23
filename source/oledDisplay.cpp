@@ -21,7 +21,7 @@ namespace {
     .cr1 =  stm32_cr1_dnf(3U), // Digital noise filter disabled (timingr should be aware of that)
     .cr2 = 0 // Only the ADD10 bit can eventually be specified here (10-bit addressing mode)
   } ;
-  
+
   const GFXfont font = Lato_Heavy_14;
   using OledLine = etl::string<oledWidth>;
   std::array<OledLine, oledHeight> oledScreen;
@@ -43,7 +43,8 @@ namespace {
 namespace Oled {
   void start(void)
   {
-    chThdCreateStatic(waOledDisplay, sizeof(waOledDisplay), NORMALPRIO, &oledDisplay, nullptr);
+    chThdCreateStatic(waOledDisplay, sizeof(waOledDisplay),
+		      NORMALPRIO, &oledDisplay, nullptr);
   }
 }
 
@@ -51,6 +52,7 @@ namespace Oled {
 namespace {
   [[noreturn]] static void  oledDisplay (void *)	
   {
+    Ope::Mode cmode = Ope::Mode::NONE;
     chRegSetThreadName("oledDisplay");		
     i2cStart(&SSD1306_I2CD, &i2ccfg_400);
     ssd1306_Init();
@@ -64,7 +66,7 @@ namespace {
       clearScreenBuffer();
 
       if (board.getError().empty()) {
-	switch (board.getMode()) {
+	switch (cmode) {
 	case Ope::Mode::NONE :
 	  fillInit(); break;
 	case Ope::Mode::NORF_TX :
@@ -85,25 +87,30 @@ namespace {
       } else {// error condition
 	fillWhenError();
       }
-    
 
       for (size_t li = 0; li < oledHeight; li++) {
 	ssd1306_MoveCursor(0, ((li+1) * (SSD1306_HEIGHT / oledHeight)) - 1);
 	ssd1306_WriteFmt(font, WHITE, "%s", oledScreen[li].c_str());
       }
       ssd1306_UpdateScreen();
-      chThdSleepMilliseconds(500);
-    } 
+      const bool longSplash = (cmode == Ope::Mode::NONE) and
+	(RTCD1.rtc->BKP0R != warmBootSysRst);
+      chThdSleepMilliseconds(longSplash ? 4000 : 500);
+      RTCD1.rtc->BKP0R = warmBootWdg;
+      cmode = board.getMode();
+    }
   }
 
 
   void fillInit(void)
   {
     oledScreen = {
+      RTCD1.rtc->BKP0R == warmBootWdg ?
+      "*WATCHDOG Reset*" :
       "**** RF Box ****",
-      " initialisation ",
       xstr(GIT_TAG),
-      "Enac Grz Bto ELS"};
+      "Enac/ELE Gorraz",
+      "        Bustico"};
     if (not board.getError().empty()) {
       chsnprintf(oledScreen[1].begin(), oledScreen[1].capacity(),
 		 board.getError().c_str());

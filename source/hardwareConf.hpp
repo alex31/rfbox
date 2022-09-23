@@ -36,7 +36,8 @@ inline constexpr int8_t   ampLevelDbHigh = 18;
 inline constexpr uint32_t baudLow = 4800;
 inline constexpr uint32_t baudHigh = 19200;
 inline constexpr SerialDriver &SD_METEO = CONCAT(SD, EXTVCP_TX_USART);
-
+inline constexpr uint32_t warmBootWdg = 0xDEADC0DE;
+inline constexpr uint32_t warmBootSysRst = 0xBADCAFFE;
 
 // Calculated constant
 

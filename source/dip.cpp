@@ -2,6 +2,7 @@
 #include "ch.h"
 #include "hal.h"
 #include "stdutil.h"
+#include "hardwareConf.hpp"
 
 namespace DIP {
   inline uint8_t getAllDips();
@@ -22,8 +23,10 @@ namespace {
 
     // if DIP switches are changed, make a restart
     while (true) {
-      if (DIP::getAllDips() != pattern)
+      if (DIP::getAllDips() != pattern) {
+	RTCD1.rtc->BKP0R = warmBootSysRst;
 	NVIC_SystemReset();
+      }
       chThdSleepMilliseconds(20);
     }
   }
