@@ -22,6 +22,18 @@ void _init_chibios() {
   //  initHeap();
 }
 
+
+#ifdef NOSHELL
+// LSI @ 32Khz, watchdog after 1s without watchdog reset
+static const WDGConfig wdgcfg = {
+  .pr           = STM32_IWDG_PR_32,
+  .rlr          = STM32_IWDG_RL(1000),
+#if STM32_IWDG_IS_WINDOWED
+  .winr         = STM32_IWDG_WIN_DISABLED,
+#endif
+};
+#endif
+
 int main (void)
 {
 #ifndef NOSHELL
@@ -101,15 +113,20 @@ int main (void)
 #ifdef STM32F4xx_MCUCONF
   notGateStart(PWMD1);
 #endif
-  
-#ifdef LINE_LED_HEARTBEAT
-  while (true) {
-    palToggleLine(LINE_LED_HEARTBEAT);
-    chThdSleepMilliseconds(500);
-  }
-#else
-  chThdSleep(TIME_INFINITE);
+
+#ifdef NOSHELL
+  wdgStart(&WDGD1, &wdgcfg);
 #endif
+  
+  while (true) {
+#ifdef LINE_LED_HEARTBEAT
+    palToggleLine(LINE_LED_HEARTBEAT);
+#endif
+    chThdSleepMilliseconds(100);
+#ifdef NOSHELL
+    wdgReset(&WDGD1);
+#endif
+  }
 }
 
 
