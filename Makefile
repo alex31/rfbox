@@ -8,7 +8,7 @@
 
 # make BUILD=DEBUG or make
 ifeq ($(BUILD),)
-BUILD = RELEASE
+BUILD = DEBUG
 endif
 
 GCCVERSIONGTEQ10 := $(shell expr `arm-none-eabi-gcc -dumpversion | cut -f1 -d.` \>= 10)
