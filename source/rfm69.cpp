@@ -103,7 +103,7 @@ void Rfm69Spi::restoreReg(void)
 
 // if one want to try CONTINUOUS_SYNC here : frame preamble
 // 16 bits patern has to be 0xAAAA instead of 0xFFFF
-Rfm69Status Rfm69OokRadio::init(const SPIConfig& spiCfg)
+Rfm69Status Rfm69BaseRadio::init(const SPIConfig& spiCfg)
 {
   Rfm69Status status = rfm69.init(spiCfg);
   if (status != Rfm69Status::OK)
@@ -126,7 +126,7 @@ Rfm69Status Rfm69OokRadio::init(const SPIConfig& spiCfg)
   return status;
 }
 
-float Rfm69OokRadio::getRssi()
+float Rfm69BaseRadio::getRssi()
 {
   rfm69.cacheRead(Rfm69RegIndex::RssiConfig, 2);
   const float rssi = -rfm69.reg.rssi / 2.0f;
@@ -134,74 +134,16 @@ float Rfm69OokRadio::getRssi()
   return rssi;
 }
 
-void	 Rfm69OokRadio::setBaudRate(uint32_t br)
+void	 Rfm69BaseRadio::setBaudRate(uint32_t br)
 {
   rfm69.reg.bitrate = SWAP_ENDIAN16(xtalHz / br);
   rfm69.cacheWrite(Rfm69RegIndex::Bitrate);
 }
 
-void Rfm69OokRadio::coldReset()
-{
-  do {
-    rfm69.reset();
-    rfm69.cacheWrite(Rfm69RegIndex::DataModul, Rfm69RegIndex::Last - Rfm69RegIndex::DataModul);
-    waitReady();
-    setModeAndWait(mode);
-    calibrate();
-    rfm69.cacheRead(Rfm69RegIndex::RfMode);
-    rfm69.cacheRead(Rfm69RegIndex::IrqFlags1);
-  } while  ((mode == RfMode::RX) and (rfm69.reg.irqFlags1 != 0xD8));
-}
 
 
-void Rfm69OokRadio::checkModeMismatch()
-{
-  NOREENT();
-  rfm69.cacheRead(Rfm69RegIndex::RfMode);
-  if ((mode != RfMode::SLEEP) and (rfm69.reg.opMode_mode != mode)) {
-    DebugTrace("mismatch found mode %u instead %u, reset...",
-	       static_cast<uint16_t>(rfm69.reg.opMode_mode),
-	       static_cast<uint16_t>(mode));
-    board.setError("Radio lockout");
-    coldReset();
-  } else if (const float av = Dio2Spy::getAverageLevel();
-	     (mode == RfMode::RX) and ((av < 0.01) or (av > 0.70f))) {
-    DebugTrace("dio2 average not valid = %.2f", av);
-    board.setError("DIO2 Avg Err");
-    coldReset();
-    setRestartRx(true);
-  } else {
-    board.clearError();
-  }
-}
 
-void Rfm69OokRadio::checkRestartRxNeeded()
-{
-  NOREENT();
-  const float rssi = getRssi();
-  const float lnaGain = getLnaGain();
-  //  static systime_t ts = 0;
-  if ( ((rssi < -60.0f ) and (lnaGain < -24.0f))
-       or
-       ((rssi > -60.0f) and (lnaGain > -24.0f))
-       //      or
-       //       (not chVTIsSystemTimeWithin(ts, chTimeAddX(ts, TIME_S2I(1000))))
-       ) {
-    DebugTrace("RSSI LNA Gain setRestartRx condition");
-    setRestartRx(true);
-    //    ts = chVTGetSystemTime();
-  }
-}
-
-
-void Rfm69OokRadio::forceRestartRx()
-{
-  NOREENT();
-  setRestartRx(true);
-}
-
-
-Rfm69Status Rfm69OokRadio::calibrate()
+Rfm69Status Rfm69BaseRadio::calibrate()
 {
   NOREENT();
   const systime_t ts = chVTGetSystemTimeX();
@@ -232,13 +174,148 @@ Rfm69Status Rfm69OokRadio::calibrate()
   return rfm69.reg.osc1_calibDone ? Rfm69Status::OK : Rfm69Status::TIMOUT;
 }
 
-/*
-  continous mode without gaussian filter : asynchronous mode without clock
+Rfm69Status Rfm69BaseRadio::waitReady(void)
+{
+  systime_t start = chVTGetSystemTimeX();
 
-  In OOK, automatic gain control will work if frame begin several all 1
-  words : that mean that frame must begin with 4 0xFF before sync beacon
+  const RfMode rfmode = getRfMode();
+  
+  while (chTimeDiffX(start, chVTGetSystemTimeX()) < TIME_MS2I(1000)) {
+    rfm69.cacheRead(Rfm69RegIndex::IrqFlags1);
+    if (rfmode == RfMode::RX) {
+      if (rfm69.reg.irqFlags1 == 0xD8)
+	return Rfm69Status::OK;
+    } else  if (rfmode == RfMode::TX) {
+      if (rfm69.reg.irqFlags_txReady)
+	return Rfm69Status::OK;
+    } else if (rfmode == RfMode::FS) {
+      if (rfm69.reg.irqFlags_modeReady and rfm69.reg.irqFlags_pllLock)
+	return Rfm69Status::OK;
+    } else {
+      if (rfm69.reg.irqFlags_modeReady)
+	return Rfm69Status::OK;
+    }
+    chThdSleepMilliseconds(1);
+  }
+  DebugTrace("waitReady timout for mode %x",
+	     static_cast<uint16_t>(rfmode));
+  return Rfm69Status::TIMOUT;
+}
 
- */
+
+
+void Rfm69BaseRadio::setPowerAmp(uint8_t pmask, RampTime rt, int8_t gain)
+{
+  chDbgAssert((gain >= -13) and (gain <= 18),
+	      "out of bound amplifier level");
+  
+  rfm69.reg.paLevel_pa0On = (pmask & 0b001) != 0;
+  rfm69.reg.paLevel_pa1On = (pmask & 0b010) != 0;
+  rfm69.reg.paLevel_pa2On = (pmask & 0b100) != 0;
+  // power outpul level is from -13db to 18 db
+  rfm69.reg.paLevel_outputPower = gain + 13; 
+  
+  rfm69.reg.paRamp = rt;
+  rfm69.cacheWrite(Rfm69RegIndex::PaLevel, 2);
+}
+
+
+void Rfm69BaseRadio::setRxBw(BandwithMantissa bm, uint8_t exp,
+			    uint8_t dccFreq)
+{
+  rfm69.reg.rxBw_mant =  bm;
+  rfm69.reg.rxBw_exp = exp;
+  rfm69.reg.rxBw_dccFreq = dccFreq; // default 4 % of rxbw
+  rfm69.cacheWrite(Rfm69RegIndex::RxBw);
+}
+
+void Rfm69BaseRadio::setFrequencyCarrier(uint32_t frequencyCarrier)
+{
+  chDbgAssert((frequencyCarrier > 100'000'000) and (frequencyCarrier < 1'000'000'000),
+	      "out of bound frequency carrier");
+  rfm69.reg.frf = SWAP_ENDIAN24(frequencyCarrier / synthStepHz);
+  rfm69.cacheWrite(Rfm69RegIndex::Frf, 3);
+
+}
+
+
+void Rfm69BaseRadio::setLna(LnaGain gain, LnaInputImpedance imp)
+{
+  rfm69.reg.lna_gain = gain;
+  rfm69.reg.lna_zIn  = imp;
+  rfm69.cacheWrite(Rfm69RegIndex::Lna);
+}
+
+int8_t Rfm69BaseRadio::getLnaGain(void)
+{
+  rfm69.cacheRead(Rfm69RegIndex::Lna);
+  int8_t lna_g = 127;
+  switch(rfm69.reg.lna_currentGain) {
+  case LnaGain::HIGHEST : lna_g = 0; break;
+  case LnaGain::MINUS_6 : lna_g = -6; break;
+  case LnaGain::MINUS_12 : lna_g = -12; break;
+  case LnaGain::MINUS_24 : lna_g = -24; break;
+  case LnaGain::MINUS_36 : lna_g = -36; break;
+  case LnaGain::MINUS_48 : lna_g = -48; break;
+  default:		   lna_g = 127;
+  }
+  board.setLnaGain(lna_g);
+  return lna_g;
+}
+
+// void Rfm69BaseRadio::rfHealthSurvey(void *arg)
+// {
+//   Rfm69BaseRadio *radio = static_cast<Rfm69BaseRadio *>(arg);
+//   uint32_t successiveRxNotReady = 0;
+  
+//   chRegSetThreadName("RX Ready survey");
+//   while (not chThdShouldTerminateX()) {
+//     const bool rxReady = radio->getRxReady();
+//     if (not rxReady)
+//       successiveRxNotReady++;
+//     else
+//       successiveRxNotReady = 0;
+    
+//     if (successiveRxNotReady > 5) {
+//       DebugTrace("RxReady false for 0.5 second: force calibration");
+//       radio->calibrate();
+//       chThdSleepMilliseconds(200);
+//     }
+//     chThdSleepMilliseconds(50);
+//   }
+//   chThdExit(MSG_OK);
+// }
+
+void Rfm69BaseRadio::humanDisplayFlags(void)
+{
+  rfm69.cacheRead(Rfm69RegIndex::IrqFlags1);
+  etl::string<80> flags = "FLAGS= ";
+  flags += rfm69.reg.irqFlags_autoMode ? "AUTO_MODE" : "auto_mode";
+  flags += ", ";
+  flags += rfm69.reg.irqFlags_timeOut ? "TIME_OUT" : "time_out";
+  flags += ", ";
+  flags += rfm69.reg.irqFlags_rssi ? "RSSI" : "rssi";
+  flags += ", ";
+  flags += rfm69.reg.irqFlags_pllLock ? "PLL_LOCK" : "pll_lock";
+  flags += ", ";
+  flags += rfm69.reg.irqFlags_txReady ? "TX_READY" : "tx_ready";
+  flags += ", ";
+  flags += rfm69.reg.irqFlags_rxReady ? "RX_READY" : "rx_ready";
+  flags += ", ";
+  flags += rfm69.reg.irqFlags_modeReady ? "MODE_READY" : "mode_ready";
+  DebugTrace("%s", flags.c_str());
+}
+
+
+Rfm69Status Rfm69BaseRadio::setModeAndWait(RfMode nmode)
+{
+  setRfMode(nmode);
+  return waitReady();
+}
+
+
+
+
 Rfm69Status Rfm69OokRadio::setRfParam(RfMode _mode,
 				      uint32_t frequencyCarrier,
 				      int8_t amplificationLevelDb)
@@ -288,101 +365,65 @@ Rfm69Status Rfm69OokRadio::setRfParam(RfMode _mode,
   return status;
 }
 
-Rfm69Status Rfm69OokRadio::waitReady(void)
-{
-  systime_t start = chVTGetSystemTimeX();
 
-  const RfMode rfmode = getRfMode();
-  
-  while (chTimeDiffX(start, chVTGetSystemTimeX()) < TIME_MS2I(1000)) {
-    rfm69.cacheRead(Rfm69RegIndex::IrqFlags1);
-    if (rfmode == RfMode::RX) {
-      if (rfm69.reg.irqFlags1 == 0xD8)
-	return Rfm69Status::OK;
-    } else  if (rfmode == RfMode::TX) {
-      if (rfm69.reg.irqFlags_txReady)
-	return Rfm69Status::OK;
-    } else if (rfmode == RfMode::FS) {
-      if (rfm69.reg.irqFlags_modeReady and rfm69.reg.irqFlags_pllLock)
-	return Rfm69Status::OK;
-    } else {
-      if (rfm69.reg.irqFlags_modeReady)
-	return Rfm69Status::OK;
-    }
-    chThdSleepMilliseconds(1);
+void Rfm69OokRadio::checkModeMismatch()
+{
+  NOREENT();
+  rfm69.cacheRead(Rfm69RegIndex::RfMode);
+  if ((mode != RfMode::SLEEP) and (rfm69.reg.opMode_mode != mode)) {
+    DebugTrace("mismatch found mode %u instead %u, reset...",
+	       static_cast<uint16_t>(rfm69.reg.opMode_mode),
+	       static_cast<uint16_t>(mode));
+    board.setError("Radio lockout");
+    coldReset();
+  } else if (const float av = Dio2Spy::getAverageLevel();
+	     (mode == RfMode::RX) and ((av < 0.01) or (av > 0.70f))) {
+    DebugTrace("dio2 average not valid = %.2f", av);
+    board.setError("DIO2 Avg Err");
+    coldReset();
+    setRestartRx(true);
+  } else {
+    board.clearError();
   }
-  DebugTrace("waitReady timout for mode %x",
-	     static_cast<uint16_t>(rfmode));
-  return Rfm69Status::TIMOUT;
 }
 
-
-
-void Rfm69OokRadio::setPowerAmp(uint8_t pmask, RampTime rt, int8_t gain)
+void Rfm69OokRadio::checkRestartRxNeeded()
 {
-  chDbgAssert((gain >= -13) and (gain <= 18),
-	      "out of bound amplifier level");
-  
-  rfm69.reg.paLevel_pa0On = (pmask & 0b001) != 0;
-  rfm69.reg.paLevel_pa1On = (pmask & 0b010) != 0;
-  rfm69.reg.paLevel_pa2On = (pmask & 0b100) != 0;
-  // power outpul level is from -13db to 18 db
-  rfm69.reg.paLevel_outputPower = gain + 13; 
-  
-  rfm69.reg.paRamp = rt;
-  rfm69.cacheWrite(Rfm69RegIndex::PaLevel, 2);
+  NOREENT();
+  const float rssi = getRssi();
+  const float lnaGain = getLnaGain();
+  //  static systime_t ts = 0;
+  if ( ((rssi < -60.0f ) and (lnaGain < -24.0f))
+       or
+       ((rssi > -60.0f) and (lnaGain > -24.0f))
+       //      or
+       //       (not chVTIsSystemTimeWithin(ts, chTimeAddX(ts, TIME_S2I(1000))))
+       ) {
+    DebugTrace("RSSI LNA Gain setRestartRx condition");
+    setRestartRx(true);
+    //    ts = chVTGetSystemTime();
+  }
 }
 
-void Rfm69OokRadio::setOokPeak(ThresholdType t, ThresholdDec d,
-			       ThresholdStep s)
+
+void Rfm69OokRadio::coldReset()
 {
-  rfm69.reg.ookPeak_type = t;
-  rfm69.reg.ookPeak_threshDec = d;
-  rfm69.reg.ookPeak_threshStep = s;
-  rfm69.cacheWrite(Rfm69RegIndex::OokPeak);
+  do {
+    rfm69.reset();
+    rfm69.cacheWrite(Rfm69RegIndex::DataModul, Rfm69RegIndex::Last - Rfm69RegIndex::DataModul);
+    waitReady();
+    setModeAndWait(mode);
+    calibrate();
+    rfm69.cacheRead(Rfm69RegIndex::RfMode);
+    rfm69.cacheRead(Rfm69RegIndex::IrqFlags1);
+  } while  ((mode == RfMode::RX) and (rfm69.reg.irqFlags1 != 0xD8));
 }
 
-void Rfm69OokRadio::setRxBw(BandwithMantissa bm, uint8_t exp,
-			    uint8_t dccFreq)
+void Rfm69OokRadio::forceRestartRx()
 {
-  rfm69.reg.rxBw_mant =  bm;
-  rfm69.reg.rxBw_exp = exp;
-  rfm69.reg.rxBw_dccFreq = dccFreq; // default 4 % of rxbw
-  rfm69.cacheWrite(Rfm69RegIndex::RxBw);
+  NOREENT();
+  setRestartRx(true);
 }
-
-void Rfm69OokRadio::setFrequencyCarrier(uint32_t frequencyCarrier)
-{
-  chDbgAssert((frequencyCarrier > 100'000'000) and (frequencyCarrier < 1'000'000'000),
-	      "out of bound frequency carrier");
-  rfm69.reg.frf = SWAP_ENDIAN24(frequencyCarrier / synthStepHz);
-  rfm69.cacheWrite(Rfm69RegIndex::Frf, 3);
-
-}
-
-void Rfm69OokRadio::setReceptionTuning(void)
-{
-  setOokPeak(ThresholdType::PEAK, ThresholdDec::EIGHT_TIMES,
-	     ThresholdStep::DB_3);
-
-  setLowBetaOn(true);
-  setDagc(FadingMargin::IMPROVE_LOW_BETA_ON);
-  setAutoRxRestart(false);
-  
-  // settings for RxBw = 20Khz in OOK
-  if (board.getBaud() == baudLow)
-    setRxBw(BandwithMantissa::MANT_24, 4, 2); /* 10 Khz bandwith, dccfreq default 4 % of rxbx */
-  else
-    setRxBw(BandwithMantissa::MANT_24, 2, 2); /* 42Khz bandwith, dccfreq default 4 % of rxbx */
-  
-  // in case of false '1', raise the value to 0xFF cf datasheet p61
-  setRssi_threshold(0xE4);
-  DebugTrace("rfm69.reg.rssiThresh = %d", rfm69.reg.rssiThresh);
-  //  calibrateRssiThresh();
-  // automatic frequency correction activated
-  setAfc_autoOn(true);
-}
-
 
 // floor threshold optimisation, see fig 12 of RFM69W datasheet
 // 27 step to be tested in maximum one second : 35 ms for each step
@@ -417,78 +458,36 @@ void Rfm69OokRadio::calibrateRssiThresh(void)
   // rfm69.cacheWrite(Rfm69RegIndex::OokPeak);
 }
 
-void Rfm69OokRadio::setLna(LnaGain gain, LnaInputImpedance imp)
+void Rfm69OokRadio::setReceptionTuning(void)
 {
-  rfm69.reg.lna_gain = gain;
-  rfm69.reg.lna_zIn  = imp;
-  rfm69.cacheWrite(Rfm69RegIndex::Lna);
-}
+  setOokPeak(ThresholdType::PEAK, ThresholdDec::EIGHT_TIMES,
+	     ThresholdStep::DB_3);
 
-int8_t Rfm69OokRadio::getLnaGain(void)
-{
-  rfm69.cacheRead(Rfm69RegIndex::Lna);
-  int8_t lna_g = 127;
-  switch(rfm69.reg.lna_currentGain) {
-  case LnaGain::HIGHEST : lna_g = 0; break;
-  case LnaGain::MINUS_6 : lna_g = -6; break;
-  case LnaGain::MINUS_12 : lna_g = -12; break;
-  case LnaGain::MINUS_24 : lna_g = -24; break;
-  case LnaGain::MINUS_36 : lna_g = -36; break;
-  case LnaGain::MINUS_48 : lna_g = -48; break;
-  default:		   lna_g = 127;
-  }
-  board.setLnaGain(lna_g);
-  return lna_g;
-}
-
-// void Rfm69OokRadio::rfHealthSurvey(void *arg)
-// {
-//   Rfm69OokRadio *radio = static_cast<Rfm69OokRadio *>(arg);
-//   uint32_t successiveRxNotReady = 0;
+  setLowBetaOn(true);
+  setDagc(FadingMargin::IMPROVE_LOW_BETA_ON);
+  setAutoRxRestart(false);
   
-//   chRegSetThreadName("RX Ready survey");
-//   while (not chThdShouldTerminateX()) {
-//     const bool rxReady = radio->getRxReady();
-//     if (not rxReady)
-//       successiveRxNotReady++;
-//     else
-//       successiveRxNotReady = 0;
-    
-//     if (successiveRxNotReady > 5) {
-//       DebugTrace("RxReady false for 0.5 second: force calibration");
-//       radio->calibrate();
-//       chThdSleepMilliseconds(200);
-//     }
-//     chThdSleepMilliseconds(50);
-//   }
-//   chThdExit(MSG_OK);
-// }
-
-void Rfm69OokRadio::humanDisplayFlags(void)
-{
-  rfm69.cacheRead(Rfm69RegIndex::IrqFlags1);
-  etl::string<80> flags = "FLAGS= ";
-  flags += rfm69.reg.irqFlags_autoMode ? "AUTO_MODE" : "auto_mode";
-  flags += ", ";
-  flags += rfm69.reg.irqFlags_timeOut ? "TIME_OUT" : "time_out";
-  flags += ", ";
-  flags += rfm69.reg.irqFlags_rssi ? "RSSI" : "rssi";
-  flags += ", ";
-  flags += rfm69.reg.irqFlags_pllLock ? "PLL_LOCK" : "pll_lock";
-  flags += ", ";
-  flags += rfm69.reg.irqFlags_txReady ? "TX_READY" : "tx_ready";
-  flags += ", ";
-  flags += rfm69.reg.irqFlags_rxReady ? "RX_READY" : "rx_ready";
-  flags += ", ";
-  flags += rfm69.reg.irqFlags_modeReady ? "MODE_READY" : "mode_ready";
-  DebugTrace("%s", flags.c_str());
+  // settings for RxBw = 20Khz in OOK
+  if (board.getBaud() == baudLow)
+    setRxBw(BandwithMantissa::MANT_24, 4, 2); /* 10 Khz bandwith, dccfreq default 4 % of rxbx */
+  else
+    setRxBw(BandwithMantissa::MANT_24, 2, 2); /* 42Khz bandwith, dccfreq default 4 % of rxbx */
+  
+  // in case of false '1', raise the value to 0xFF cf datasheet p61
+  setRssi_threshold(0xE4);
+  DebugTrace("rfm69.reg.rssiThresh = %d", rfm69.reg.rssiThresh);
+  //  calibrateRssiThresh();
+  // automatic frequency correction activated
+  setAfc_autoOn(true);
 }
 
-
-Rfm69Status Rfm69OokRadio::setModeAndWait(RfMode nmode)
+void Rfm69OokRadio::setOokPeak(ThresholdType t, ThresholdDec d,
+			       ThresholdStep s)
 {
-  setRfMode(nmode);
-  return waitReady();
+  rfm69.reg.ookPeak_type = t;
+  rfm69.reg.ookPeak_threshDec = d;
+  rfm69.reg.ookPeak_threshStep = s;
+  rfm69.cacheWrite(Rfm69RegIndex::OokPeak);
 }
 
 
@@ -515,3 +514,4 @@ void Rfm69OokRadio::rfHealthSurvey(void *arg)
 }
 
 THD_WORKING_AREA(Rfm69OokRadio::waSurvey, 512);
+

@@ -48,25 +48,21 @@ private:
   GET_DECL(name, bft, bfn, regi) \
   SET_DECL(name, bft, bfn, regi)
 
-class Rfm69OokRadio {
+class Rfm69BaseRadio {
   static constexpr uint32_t xtalHz = 32e6;
   static constexpr float synthStepHz = xtalHz / powf(2,19);
 
 public:
-  Rfm69OokRadio(SPIDriver& spid, ioline_t lineReset) :
+  Rfm69BaseRadio(SPIDriver& spid, ioline_t lineReset) :
     rfm69(spid, lineReset) {};
   Rfm69Status init(const SPIConfig& spiCfg);
   bool isInit(void) {return rfm69.isInit();}
-  Rfm69Status setRfParam(RfMode _mode, 
+  virtual Rfm69Status setRfParam(RfMode _mode, 
 			 uint32_t frequencyCarrier,
-			 int8_t amplificationLevelDb);
+			 int8_t amplificationLevelDb) = 0;
   void	setBaudRate(uint32_t br);
   Rfm69Status waitReady(void);
   Rfm69Status calibrate(void);
-  void coldReset();
-  void checkModeMismatch(void);
-  void checkRestartRxNeeded(void);
-  void forceRestartRx();
   float getRssi();
   int8_t getLnaGain(void);
   void humanDisplayFlags(void);
@@ -80,8 +76,6 @@ public:
 protected:
   Rfm69Spi rfm69;
   RfMode mode {RfMode::SLEEP};
-  thread_t *rfHealthSurveyThd = nullptr;
-  static THD_WORKING_AREA(waSurvey, 512);
   
   GSET_DECL(Dagc, FadingMargin, testDagc, TestDagc);
   GSET_DECL(LowBetaOn, bool, afcCtrl_lowBetaOn, AfcCtrl);
@@ -90,13 +84,35 @@ protected:
   GSET_DECL(Afc_autoOn, bool, afc_autoOn, AfcFei);
   GSET_DECL(Ocp_on, bool, ocp_on, Ocp);
 
-  void calibrateRssiThresh(void);
   void setFrequencyCarrier(uint32_t frequencyCarrier);
   void setPowerAmp(uint8_t pmask, RampTime rt, int8_t gain);
   void setLna(LnaGain gain, LnaInputImpedance imp);
-  void setReceptionTuning(void);
-  void setOokPeak(ThresholdType t, ThresholdDec d, ThresholdStep s);
   void setRxBw(BandwithMantissa, uint8_t exp, uint8_t dccFreq);
-  static void rfHealthSurvey(void *arg);
 };
 
+class Rfm69OokRadio : public Rfm69BaseRadio {
+public:
+  Rfm69OokRadio(SPIDriver& spid, ioline_t lineReset) :
+    Rfm69BaseRadio(spid, lineReset) {};
+
+  Rfm69Status setRfParam(RfMode _mode, 
+			 uint32_t frequencyCarrier,
+			 int8_t amplificationLevelDb) override;
+  void checkModeMismatch(void);
+  void checkRestartRxNeeded(void);
+  void forceRestartRx();
+  void coldReset();
+
+protected:
+  thread_t *rfHealthSurveyThd = nullptr;
+  static THD_WORKING_AREA(waSurvey, 512);
+
+  void calibrateRssiThresh(void);
+  void setReceptionTuning(void);
+  void setOokPeak(ThresholdType t, ThresholdDec d, ThresholdStep s);
+  static void rfHealthSurvey(void *arg);
+  
+  
+  //private:
+  //  ~Rfm69OokRadio() = default;
+};
