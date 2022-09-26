@@ -2,6 +2,7 @@
 #include <bitset>
 
 template<size_t N>
+requires  ((N > 1) and (N % 32) == 0)
 class Integrator
 {
 public:
@@ -67,8 +68,8 @@ public:
   }
 
 private:
-  Integrator<N> intOld, intNew;
-  float thresholdRatio;
+  Integrator<N> intOld = {}, intNew = {};
+  float thresholdRatio = {};
   funcb_t cb = nullptr;
   bool active = false;
 };

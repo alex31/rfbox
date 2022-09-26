@@ -27,7 +27,7 @@ namespace {
 
   void autonomousTestWrite (void *);		
   void autonomousTestRead (void *);
-  Integrator<1000> integ;
+  Integrator<1024> integ;
   
   systime_t timoutTs = 0;
 }

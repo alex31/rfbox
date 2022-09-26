@@ -53,8 +53,6 @@ class Rfm69OokRadio {
   static constexpr float synthStepHz = xtalHz / powf(2,19);
 
 public:
-  
-public:
   Rfm69OokRadio(SPIDriver& spid, ioline_t lineReset) :
     rfm69(spid, lineReset) {};
   Rfm69Status init(const SPIConfig& spiCfg);

@@ -3,7 +3,7 @@
 #include "bboard.hpp"
 
 namespace {
-  Integrator<10000> integ1S;
+  Integrator<10016> integ1S;
   DiffIntegrator<32> integ6Ms;
   ioline_t dio2Line;
   THD_WORKING_AREA(waSurvey, 512);
