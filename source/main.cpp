@@ -19,7 +19,7 @@ void _init_chibios() __attribute__ ((constructor(101)));
 void _init_chibios() {
   halInit();
   chSysInit();
-  //  initHeap();
+  initHeap();
 }
 
 

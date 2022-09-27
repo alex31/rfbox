@@ -26,12 +26,13 @@ namespace {
 }
 
 namespace Radio {
-  Rfm69OokRadio radio(SPID1, LINE_RADIO_RESET);
+  Rfm69BaseRadio *radio = nullptr;
 
   void init()
   {
-    if (Radio::radio.init(spiCfg) != Rfm69Status::OK) {
-      DebugTrace("radio.init failed");
+    Radio::radio = new Rfm69OokRadio(SPID1, LINE_RADIO_RESET);
+    if (Radio::radio->init(spiCfg) != Rfm69Status::OK) {
+      DebugTrace("radio->init failed");
     }
   }
   

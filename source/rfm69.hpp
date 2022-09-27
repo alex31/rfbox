@@ -73,6 +73,8 @@ public:
   SET_DECL(RestartRx, bool, packetConfig2_restartRx, PacketConfig2);
   SET_DECL(AutoRxRestart, bool, packetConfig2_autoRxRestartOn, PacketConfig2);
   Rfm69Status setModeAndWait(RfMode mode);
+  virtual void forceRestartRx() = 0;
+
 protected:
   Rfm69Spi rfm69;
   RfMode mode {RfMode::SLEEP};
@@ -88,6 +90,7 @@ protected:
   void setPowerAmp(uint8_t pmask, RampTime rt, int8_t gain);
   void setLna(LnaGain gain, LnaInputImpedance imp);
   void setRxBw(BandwithMantissa, uint8_t exp, uint8_t dccFreq);
+
 };
 
 class Rfm69OokRadio : public Rfm69BaseRadio {
@@ -100,7 +103,7 @@ public:
 			 int8_t amplificationLevelDb) override;
   void checkModeMismatch(void);
   void checkRestartRxNeeded(void);
-  void forceRestartRx();
+  void forceRestartRx() override;
   void coldReset();
 
 protected:
@@ -113,6 +116,25 @@ protected:
   static void rfHealthSurvey(void *arg);
   
   
-  //private:
-  //  ~Rfm69OokRadio() = default;
+private:
+  ~Rfm69OokRadio() = delete;
+};
+
+
+class Rfm69FskRadio : public Rfm69BaseRadio {
+public:
+  Rfm69FskRadio(SPIDriver& spid, ioline_t lineReset) :
+    Rfm69BaseRadio(spid, lineReset) {};
+
+  Rfm69Status setRfParam(RfMode _mode, 
+			 uint32_t frequencyCarrier,
+			 int8_t amplificationLevelDb) override;
+
+protected:
+  thread_t *rfHealthSurveyThd = nullptr;
+  static THD_WORKING_AREA(waSurvey, 512);
+
+  
+private:
+  ~Rfm69FskRadio() = delete;
 };

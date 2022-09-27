@@ -78,14 +78,14 @@ namespace Ope {
       
     case Mode::RF_TX_INTERNAL:
       rfMode = RfMode::TX;
-      Radio::radio.setRfParam(rfMode,
+      Radio::radio->setRfParam(rfMode,
 			      frequencyCarrier,
 			      amplificationLevelDb);
       chThdSleepMilliseconds(10);
       if (buffer_RF_TX_INTERNAL() != ElectricalStatus::FREE) {
 	DebugTrace("meteo uart data line not free");
 	status = Status::DATA_LINE_HOLD;
-	Radio::radio.setRfParam(RfMode::SLEEP,
+	Radio::radio->setRfParam(RfMode::SLEEP,
 				frequencyCarrier,
 				amplificationLevelDb);
 
@@ -96,11 +96,11 @@ namespace Ope {
       break ; 
     }
     
-    if (Radio::radio.setRfParam(rfMode,
+    if (Radio::radio->setRfParam(rfMode,
 				frequencyCarrier,
 				amplificationLevelDb)
 	!= Rfm69Status::OK) {
-      DebugTrace("Radio::radio.setRfParam failed");
+      DebugTrace("Radio::radio->setRfParam failed");
       status = Status::RFM69_ERROR;
       goto end;
     }

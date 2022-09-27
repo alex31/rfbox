@@ -5,6 +5,6 @@
 #include "rfm69.hpp"
 
 namespace Radio {
-  extern Rfm69OokRadio radio;
+  extern Rfm69BaseRadio *radio;
   void init();
 };

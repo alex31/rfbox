@@ -58,9 +58,9 @@ namespace {
     ssd1306_Init();
     
     while (true) {
-      if (Radio::radio.isInit()) {
-	Radio::radio.getRssi();
-	Radio::radio.getLnaGain();
+      if ((Radio::radio != nullptr) and (Radio::radio->isInit())) {
+	Radio::radio->getRssi();
+	Radio::radio->getLnaGain();
       }
       ssd1306_Fill(BLACK);
       clearScreenBuffer();

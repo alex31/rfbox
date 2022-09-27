@@ -117,7 +117,7 @@ namespace {
   {
     chRegSetThreadName("survey Restart Rx");
     Dio2Spy::setCb(3.0f, [] {
-      Radio::radio.forceRestartRx();
+      Radio::radio->forceRestartRx();
       Dio2Spy::activate(false);
       DebugTrace("********* forceRestartRx ratio = %.2f", Dio2Spy::getDifferential());
     });
@@ -125,7 +125,7 @@ namespace {
     Dio2Spy::activate(false);
     while (true) {
       if (shouldRestartRx) {
-	Radio::radio.forceRestartRx();
+	Radio::radio->forceRestartRx();
 	shouldRestartRx = false;
 	Dio2Spy::activate(true);
 	DebugTrace("activate");
