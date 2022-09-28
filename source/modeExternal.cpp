@@ -3,7 +3,6 @@
 #include "hal.h"
 #include "stdutil.h"
 #include "radio.hpp"
-#include "etl/string.h"
 #include "hardwareConf.hpp"
 #include "bboard.hpp"
 #include "crcv1.h"
@@ -12,7 +11,6 @@
 constexpr uint8_t preambleByte = 0xff;
 
 namespace {
-  using ErrorString = etl::string<48>;
   THD_WORKING_AREA(waMsgStreamIn, 1280);
   THD_WORKING_AREA(waSurveyRestartRx, 512);
   

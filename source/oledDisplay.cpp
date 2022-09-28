@@ -32,8 +32,10 @@ namespace {
   void fillCalibrateRssi(void);
   void fillNoRfTx(void);
   void fillNoRfRx(void);
-  void fillRxExternal(void);
-  void fillTxExternal(void);
+  void fillRxExternalOok(void);
+  void fillTxExternalOok(void);
+  void fillRxExternalFsk(void);
+  void fillTxExternalFsk(void);
   void fillRxInternal(void);
   void fillTxInternal(void);
   void fillWhenError(void);
@@ -75,10 +77,14 @@ namespace {
 	  fillNoRfRx(); break;
 	case Ope::Mode::RF_CALIBRATE_RSSI :
 	  fillCalibrateRssi(); break;
-	case Ope::Mode::RF_RX_EXTERNAL :
-	  fillRxExternal(); break;
-	case Ope::Mode::RF_TX_EXTERNAL :
-	  fillTxExternal(); break;
+	case Ope::Mode::RF_RX_EXTERNAL_OOK :
+	  fillRxExternalOok(); break;
+	case Ope::Mode::RF_TX_EXTERNAL_OOK :
+	  fillTxExternalOok(); break;
+	case Ope::Mode::RF_RX_EXTERNAL_FSK :
+	  fillRxExternalFsk(); break;
+	case Ope::Mode::RF_TX_EXTERNAL_FSK :
+	  fillTxExternalFsk(); break;
 	case Ope::Mode::RF_RX_INTERNAL :
 	  fillRxInternal(); break;
 	case Ope::Mode::RF_TX_INTERNAL :
@@ -144,7 +150,7 @@ namespace {
       ""};
   }
   
-  void fillRxExternal(void)
+  void fillRxExternalOok(void)
   {
     chsnprintf(oledScreen[0].begin(), oledScreen[0].capacity(),
   	       "RX %lu Mhz", board.getFreq() / 1'000'000U);
@@ -156,7 +162,7 @@ namespace {
   	       "Rssi %d dbm", board.getRssi());
   }
   
-  void fillTxExternal(void)
+  void fillTxExternalOok(void)
   {
     chsnprintf(oledScreen[0].begin(), oledScreen[0].capacity(),
   	       "TX %lu Mhz", board.getFreq() / 1'000'000U);
@@ -166,6 +172,28 @@ namespace {
   	       "P %d dbm", board.getTxPower());
     chsnprintf(oledScreen[3].begin(), oledScreen[3].capacity(),
   	       "Dio Avg = %.2f", board.getDioAvg());
+  }
+  
+  void fillRxExternalFsk(void)
+  {
+    chsnprintf(oledScreen[0].begin(), oledScreen[0].capacity(),
+  	       "FSK RX %lu Mhz", board.getFreq() / 1'000'000U);
+    chsnprintf(oledScreen[1].begin(), oledScreen[1].capacity(),
+  	       "Sortie Externe");
+    chsnprintf(oledScreen[2].begin(), oledScreen[2].capacity(),
+  	       "Lna %d db", board.getLnaGain());
+    chsnprintf(oledScreen[3].begin(), oledScreen[3].capacity(),
+  	       "Rssi %d dbm", board.getRssi());
+  }
+  
+  void fillTxExternalFsk(void)
+  {
+    chsnprintf(oledScreen[0].begin(), oledScreen[0].capacity(),
+  	       "FSK TX %lu Mhz", board.getFreq() / 1'000'000U);
+    chsnprintf(oledScreen[1].begin(), oledScreen[1].capacity(),
+  	       "Source Externe");
+    chsnprintf(oledScreen[2].begin(), oledScreen[2].capacity(),
+  	       "P %d dbm", board.getTxPower());
   }
   
   void fillRxInternal(void)

@@ -81,7 +81,10 @@ int main (void)
     if (berMode) {
       opMode = rfMode == RfMode::RX ? Ope::Mode::RF_RX_INTERNAL : Ope::Mode::RF_TX_INTERNAL;
     } else { // not in ber mode : regular mode
-      opMode = rfMode == RfMode::RX ? Ope::Mode::RF_RX_EXTERNAL : Ope::Mode::RF_TX_EXTERNAL;
+      if (baud == baudLow)
+	opMode = rfMode == RfMode::RX ? Ope::Mode::RF_RX_EXTERNAL_OOK : Ope::Mode::RF_TX_EXTERNAL_OOK;
+      else
+	opMode = rfMode == RfMode::RX ? Ope::Mode::RF_RX_EXTERNAL_FSK : Ope::Mode::RF_TX_EXTERNAL_FSK;
     }
   }
   chDbgAssert(opMode != Ope::Mode::NONE, "internal logic error");

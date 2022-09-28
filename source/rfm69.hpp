@@ -57,9 +57,9 @@ public:
     rfm69(spid, lineReset) {};
   Rfm69Status init(const SPIConfig& spiCfg);
   bool isInit(void) {return rfm69.isInit();}
-  virtual Rfm69Status setRfParam(RfMode _mode, 
+  Rfm69Status setRfParam(RfMode _mode, 
 			 uint32_t frequencyCarrier,
-			 int8_t amplificationLevelDb) = 0;
+			 int8_t amplificationLevelDb);
   void	setBaudRate(uint32_t br);
   Rfm69Status waitReady(void);
   Rfm69Status calibrate(void);
@@ -73,9 +73,15 @@ public:
   SET_DECL(RestartRx, bool, packetConfig2_restartRx, PacketConfig2);
   SET_DECL(AutoRxRestart, bool, packetConfig2_autoRxRestartOn, PacketConfig2);
   Rfm69Status setModeAndWait(RfMode mode);
-  virtual void forceRestartRx() = 0;
+  virtual void forceRestartRx() {};
+  virtual void checkModeMismatch(void) = 0;
+  virtual void checkRestartRxNeeded(void) {};
 
 protected:
+  thread_t *rfHealthSurveyThd = nullptr;
+  static THD_WORKING_AREA(waSurvey, 512);
+  static void rfHealthSurvey(void *arg);
+
   Rfm69Spi rfm69;
   RfMode mode {RfMode::SLEEP};
   
@@ -86,7 +92,9 @@ protected:
   GSET_DECL(Afc_autoOn, bool, afc_autoOn, AfcFei);
   GSET_DECL(Ocp_on, bool, ocp_on, Ocp);
 
-  void setFrequencyCarrier(uint32_t frequencyCarrier);
+  virtual void setReceptionTuning(void) = 0;
+  virtual void setEmissionTuning(void) = 0;
+ void setFrequencyCarrier(uint32_t frequencyCarrier);
   void setPowerAmp(uint8_t pmask, RampTime rt, int8_t gain);
   void setLna(LnaGain gain, LnaInputImpedance imp);
   void setRxBw(BandwithMantissa, uint8_t exp, uint8_t dccFreq);
@@ -98,22 +106,17 @@ public:
   Rfm69OokRadio(SPIDriver& spid, ioline_t lineReset) :
     Rfm69BaseRadio(spid, lineReset) {};
 
-  Rfm69Status setRfParam(RfMode _mode, 
-			 uint32_t frequencyCarrier,
-			 int8_t amplificationLevelDb) override;
-  void checkModeMismatch(void);
-  void checkRestartRxNeeded(void);
+  void checkModeMismatch(void) override;
+  void checkRestartRxNeeded(void) override;
   void forceRestartRx() override;
   void coldReset();
 
 protected:
-  thread_t *rfHealthSurveyThd = nullptr;
-  static THD_WORKING_AREA(waSurvey, 512);
 
   void calibrateRssiThresh(void);
-  void setReceptionTuning(void);
+  void setReceptionTuning(void) override;
+  void setEmissionTuning(void) override;
   void setOokPeak(ThresholdType t, ThresholdDec d, ThresholdStep s);
-  static void rfHealthSurvey(void *arg);
   
   
 private:
@@ -126,13 +129,10 @@ public:
   Rfm69FskRadio(SPIDriver& spid, ioline_t lineReset) :
     Rfm69BaseRadio(spid, lineReset) {};
 
-  Rfm69Status setRfParam(RfMode _mode, 
-			 uint32_t frequencyCarrier,
-			 int8_t amplificationLevelDb) override;
-
+  void checkModeMismatch(void) override;
 protected:
-  thread_t *rfHealthSurveyThd = nullptr;
-  static THD_WORKING_AREA(waSurvey, 512);
+  void setReceptionTuning(void) override;
+  void setEmissionTuning(void) override;
 
   
 private:

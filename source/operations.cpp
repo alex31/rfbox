@@ -4,6 +4,7 @@
 #include "stdutil.h"
 #include "modeTest.hpp"
 #include "modeExternal.hpp"
+#include "modeFsk.hpp"
 #include "radio.hpp"
 #include "buffer.hpp"
 #include "hardwareConf.hpp"
@@ -16,8 +17,10 @@ namespace {
   void buffer_NORF_TX();
   void buffer_NORF_RX();
   void buffer_RF_CALIBRATE_RSSI();
-  void buffer_RF_RX_EXTERNAL();
-  void buffer_RF_TX_EXTERNAL();
+  void buffer_RF_RX_EXTERNAL_OOK();
+  void buffer_RF_TX_EXTERNAL_OOK();
+  void buffer_RF_RX_EXTERNAL_FSK();
+  void buffer_RF_TX_EXTERNAL_FSK();
   void buffer_RF_RX_INTERNAL();
   ElectricalStatus buffer_RF_TX_INTERNAL();
 
@@ -56,17 +59,29 @@ namespace Ope {
       // setRfParam
       break ;
       
-    case Mode::RF_RX_EXTERNAL:
+    case Mode::RF_RX_EXTERNAL_OOK:
       rfMode = RfMode::RX;
-      buffer_RF_RX_EXTERNAL();
+      buffer_RF_RX_EXTERNAL_OOK();
       Dio2Spy::start(LINE_MCU_RX);
       ModeExternal::start(rfMode, board.getBaud());
       break ;
       
-    case Mode::RF_TX_EXTERNAL:
+    case Mode::RF_TX_EXTERNAL_OOK:
       rfMode = RfMode::TX;
-      buffer_RF_TX_EXTERNAL();
+      buffer_RF_TX_EXTERNAL_OOK();
       Dio2Spy::start(LINE_MCU_RX);
+      break ;
+      
+     case Mode::RF_RX_EXTERNAL_FSK:
+      rfMode = RfMode::RX;
+      buffer_RF_RX_EXTERNAL_FSK();
+      ModeFsk::start(rfMode, board.getBaud());
+      break ;
+      
+    case Mode::RF_TX_EXTERNAL_FSK:
+      rfMode = RfMode::TX;
+      buffer_RF_TX_EXTERNAL_FSK();
+      ModeFsk::start(rfMode, board.getBaud());
       break ;
       
     case Mode::RF_RX_INTERNAL:
@@ -113,7 +128,7 @@ namespace Ope {
   {
     static const char* ascii[] = {
     "NONE", "NORF_TX", "NORF_RX", "RF_CALIBRATE_RSSI",
-    "RF_RX_EXTERNAL", "RF_TX_EXTERNAL", "RF_RX_INTERNAL",
+    "RF_RX_EXTERNAL_OOK", "RF_TX_EXTERNAL_OOK", "RF_RX_INTERNAL",
     "RF_TX_INTERNAL"
     };
     return ascii[static_cast<uint8_t>(opMode)];
@@ -161,7 +176,7 @@ namespace {
 #endif
   }
   
-  void buffer_RF_RX_EXTERNAL()
+  void buffer_RF_RX_EXTERNAL_OOK()
   {
     palSetLineMode(LINE_MCU_RX, PAL_MODE_ALTERNATE(AF_LINE_MCU_RX));
 #if INVERT_UART_LEVEL == false
@@ -171,7 +186,7 @@ namespace {
 #endif
   }
   
-  void buffer_RF_TX_EXTERNAL()
+  void buffer_RF_TX_EXTERNAL_OOK()
   {
     palSetLineMode(LINE_MCU_RX, PAL_MODE_INPUT);
 #if INVERT_UART_LEVEL == false
@@ -179,6 +194,18 @@ namespace {
 #else
     Buffer::setMode(Buffer::Mode::INVERTED_TX);
 #endif
+  }
+  
+  void buffer_RF_RX_EXTERNAL_FSK()
+  {
+    palSetLineMode(LINE_EXTVCP_RX, PAL_MODE_ALTERNATE(AF_LINE_EXTVCP_RX));
+    Buffer::setMode(Buffer::Mode::HiZ);
+  }
+  
+  void buffer_RF_TX_EXTERNAL_FSK()
+  {
+    palSetLineMode(LINE_EXTVCP_TX, PAL_MODE_ALTERNATE(AF_LINE_EXTVCP_TX));
+    Buffer::setMode(Buffer::Mode::RX);
   }
   
   void buffer_RF_RX_INTERNAL() // mode BER

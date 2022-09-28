@@ -18,6 +18,16 @@ namespace {
 
 #define NOREENT()   Lock m(protectMtx) 
 
+/*
+#                 ______   _ __    _          
+#                /  ____| | '_ \  (_)         
+#                | (___   | |_) |  _          
+#                 \___ \  | .__/  | |         
+#                .____) | | |     | |         
+#                \_____/  |_|     |_|         
+*/
+
+
 void Rfm69Spi::reset(void)
 {
   spiAcquireBus(&spid);
@@ -101,6 +111,15 @@ void Rfm69Spi::restoreReg(void)
 	 sizeof(reg));
 }
 
+/*
+#                 ____                          _____                _    _                  
+#                |  _ \                        |  __ \              | |  (_)                 
+#                | |_) |   __ _   ___     ___  | |__) |   __ _    __| |   _     ___          
+#                |  _ <   / _` | / __|   / _ \ |  _  /   / _` |  / _` |  | |   / _ \         
+#                | |_) | | (_| | \__ \  |  __/ | | \ \  | (_| | | (_| |  | |  | (_) |        
+#                |____/   \__,_| |___/   \___| |_|  \_\  \__,_|  \__,_|  |_|   \___/         
+*/
+
 // if one want to try CONTINUOUS_SYNC here : frame preamble
 // 16 bits patern has to be 0xAAAA instead of 0xFFFF
 Rfm69Status Rfm69BaseRadio::init(const SPIConfig& spiCfg)
@@ -140,6 +159,54 @@ void	 Rfm69BaseRadio::setBaudRate(uint32_t br)
   rfm69.cacheWrite(Rfm69RegIndex::Bitrate);
 }
 
+
+Rfm69Status Rfm69BaseRadio::setRfParam(RfMode _mode,
+				      uint32_t frequencyCarrier,
+				      int8_t amplificationLevelDb)
+{
+  mode = _mode;
+  if (rfHealthSurveyThd != nullptr) {
+    chThdTerminate(rfHealthSurveyThd);
+    while (not chThdTerminatedX(rfHealthSurveyThd)) {
+      chThdSleepMilliseconds(10);
+    }
+    chThdRelease(rfHealthSurveyThd);
+    rfHealthSurveyThd = nullptr;
+  }
+
+  if (mode == RfMode::TX) {
+    setFrequencyCarrier(frequencyCarrier);
+    setPowerAmp(0b001, RampTime::US_20, amplificationLevelDb);
+    setEmissionTuning();
+  } else  if (mode == RfMode::RX) {
+    setFrequencyCarrier(frequencyCarrier);
+    setReceptionTuning();
+  }  
+  setLna(LnaGain::AGC, LnaInputImpedance::OHMS_50);
+  auto status = setModeAndWait(mode);
+  DebugTrace("wait status for mode[%lx] = %lx",
+	     static_cast<uint32_t>(mode),
+	     static_cast<uint32_t>(status));
+  if (status != Rfm69Status::OK)
+    goto exit;
+  // optional : to be tested, optimisation of floor threshold
+  // works only in the absence of module emitting !!
+  if (mode == RfMode::RX) {
+    // desactivate AGC, use minimal gain (to be tested)
+    //    calibrateRssiThresh();
+    DebugTrace("current lna gain = %d ... RSSI = %.1f",
+	       getLnaGain(), getRssi());
+  }
+
+  //  rfm69.saveReg();
+
+  if ((mode == RfMode::RX) or (mode == RfMode::TX)) 
+    rfHealthSurveyThd = chThdCreateStatic(waSurvey, sizeof(waSurvey),
+					 NORMALPRIO - 1, &rfHealthSurvey, this);
+  
+ exit:
+  return status;
+}
 
 
 
@@ -263,28 +330,6 @@ int8_t Rfm69BaseRadio::getLnaGain(void)
   return lna_g;
 }
 
-// void Rfm69BaseRadio::rfHealthSurvey(void *arg)
-// {
-//   Rfm69BaseRadio *radio = static_cast<Rfm69BaseRadio *>(arg);
-//   uint32_t successiveRxNotReady = 0;
-  
-//   chRegSetThreadName("RX Ready survey");
-//   while (not chThdShouldTerminateX()) {
-//     const bool rxReady = radio->getRxReady();
-//     if (not rxReady)
-//       successiveRxNotReady++;
-//     else
-//       successiveRxNotReady = 0;
-    
-//     if (successiveRxNotReady > 5) {
-//       DebugTrace("RxReady false for 0.5 second: force calibration");
-//       radio->calibrate();
-//       chThdSleepMilliseconds(200);
-//     }
-//     chThdSleepMilliseconds(50);
-//   }
-//   chThdExit(MSG_OK);
-// }
 
 void Rfm69BaseRadio::humanDisplayFlags(void)
 {
@@ -313,57 +358,42 @@ Rfm69Status Rfm69BaseRadio::setModeAndWait(RfMode nmode)
   return waitReady();
 }
 
-
-
-
-Rfm69Status Rfm69OokRadio::setRfParam(RfMode _mode,
-				      uint32_t frequencyCarrier,
-				      int8_t amplificationLevelDb)
+void Rfm69BaseRadio::rfHealthSurvey(void *arg)
 {
-  mode = _mode;
-  if (rfHealthSurveyThd != nullptr) {
-    chThdTerminate(rfHealthSurveyThd);
-    while (not chThdTerminatedX(rfHealthSurveyThd)) {
-      chThdSleepMilliseconds(10);
-    }
-    chThdRelease(rfHealthSurveyThd);
-    rfHealthSurveyThd = nullptr;
-  }
-
-  if (mode == RfMode::TX) {
-    setFrequencyCarrier(frequencyCarrier);
-    setPowerAmp(0b001, RampTime::US_20, amplificationLevelDb);
-    setOcp_on(false);
-    
-  } else  if (mode == RfMode::RX) {
-    setFrequencyCarrier(frequencyCarrier);
-    setReceptionTuning();
-  }  
-  setLna(LnaGain::AGC, LnaInputImpedance::OHMS_50);
-  auto status = setModeAndWait(mode);
-  DebugTrace("wait status for mode[%lx] = %lx",
-	     static_cast<uint32_t>(mode),
-	     static_cast<uint32_t>(status));
-  if (status != Rfm69Status::OK)
-    goto exit;
-  // optional : to be tested, optimisation of floor threshold
-  // works only in the absence of module emitting !!
-  if (mode == RfMode::RX) {
-    // desactivate AGC, use minimal gain (to be tested)
-    //    calibrateRssiThresh();
-    DebugTrace("current lna gain = %d ... RSSI = %.1f",
-	       getLnaGain(), getRssi());
-  }
-
-  //  rfm69.saveReg();
-
-  if ((mode == RfMode::RX) or (mode == RfMode::TX)) 
-    rfHealthSurveyThd = chThdCreateStatic(waSurvey, sizeof(waSurvey),
-					 NORMALPRIO - 1, &rfHealthSurvey, this);
+  Rfm69BaseRadio *radio = static_cast<Rfm69BaseRadio *>(arg);
+  chRegSetThreadName("RF Health survey");
+  uint32_t calCount = 0, cmmCount = 0, restartRxCount = 0;;
   
- exit:
-  return status;
+  while (not chThdShouldTerminateX()) {
+    chThdSleepMilliseconds(100);
+   if (++calCount > 600) {
+      radio->calibrate();
+      calCount = 0;
+    } else if (++restartRxCount > 15) {
+      radio->checkRestartRxNeeded();
+      restartRxCount = 0;
+    } else if (++cmmCount > 10) {
+      radio->checkModeMismatch();
+      cmmCount = 0;
+    }
+  }
+  chThdExit(MSG_OK);
 }
+
+THD_WORKING_AREA(Rfm69BaseRadio::waSurvey, 512);
+
+/*
+#                  ____            _      _____                _    _                  
+#                 / __ \          | |    |  __ \              | |  (_)                 
+#                | |  | |   ___   | | _  | |__) |   __ _    __| |   _     ___          
+#                | |  | |  / _ \  | |/ / |  _  /   / _` |  / _` |  | |   / _ \         
+#                | |__| | | (_) | |   <  | | \ \  | (_| | | (_| |  | |  | (_) |        
+#                 \____/   \___/  |_|\_\ |_|  \_\  \__,_|  \__,_|  |_|   \___/         
+*/
+
+
+
+
 
 
 void Rfm69OokRadio::checkModeMismatch()
@@ -481,6 +511,13 @@ void Rfm69OokRadio::setReceptionTuning(void)
   setAfc_autoOn(true);
 }
 
+void Rfm69OokRadio::setEmissionTuning(void)
+{
+  setOcp_on(false);
+}
+    
+
+
 void Rfm69OokRadio::setOokPeak(ThresholdType t, ThresholdDec d,
 			       ThresholdStep s)
 {
@@ -491,27 +528,15 @@ void Rfm69OokRadio::setOokPeak(ThresholdType t, ThresholdDec d,
 }
 
 
-void Rfm69OokRadio::rfHealthSurvey(void *arg)
-{
-  Rfm69OokRadio *radio = static_cast<Rfm69OokRadio *>(arg);
-  chRegSetThreadName("RF Health survey");
-  uint32_t calCount = 0, cmmCount = 0, restartRxCount = 0;;
-  
-  while (not chThdShouldTerminateX()) {
-    chThdSleepMilliseconds(100);
-   if (++calCount > 600) {
-      radio->calibrate();
-      calCount = 0;
-    } else if (++restartRxCount > 15) {
-      radio->checkRestartRxNeeded();
-      restartRxCount = 0;
-    } else if (++cmmCount > 10) {
-      radio->checkModeMismatch();
-      cmmCount = 0;
-    }
-  }
-  chThdExit(MSG_OK);
-}
 
-THD_WORKING_AREA(Rfm69OokRadio::waSurvey, 512);
 
+
+
+/*
+#                 ______          _      _____                _    _                  
+#                |  ____|        | |    |  __ \              | |  (_)                 
+#                | |__     ___   | | _  | |__) |   __ _    __| |   _     ___          
+#                |  __|   / __|  | |/ / |  _  /   / _` |  / _` |  | |   / _ \         
+#                | |      \__ \  |   <  | | \ \  | (_| | | (_| |  | |  | (_) |        
+#                |_|      |___/  |_|\_\ |_|  \_\  \__,_|  \__,_|  |_|   \___/         
+*/
