@@ -172,23 +172,16 @@ namespace {
   void buffer_RF_RX_EXTERNAL_OOK()
   {
     palSetLineMode(LINE_EXTVCP_TX, PAL_MODE_ALTERNATE(AF_LINE_EXTVCP_TX));
-#if INVERT_UART_LEVEL == false
-    Buffer::setMode(Buffer::Mode::RX);
-#else
-    Buffer::setMode(Buffer::Mode::INVERTED_RX);
-#endif
+    Buffer::setMode(INVERT_UART_LEVEL ? Buffer::Mode::INVERTED_RX : Buffer::Mode::RX);
   }
   
   void buffer_RF_TX_EXTERNAL_OOK()
   {
     palSetLineMode(LINE_EXTVCP_TX, PAL_MODE_INPUT);
-#if INVERT_UART_LEVEL == false
-    Buffer::setMode(Buffer::Mode::TX);
-#else
-    Buffer::setMode(Buffer::Mode::INVERTED_TX);
-#endif
+    Buffer::setMode(INVERT_UART_LEVEL ? Buffer::Mode::INVERTED_TX : Buffer::Mode::TX);
   }
-  
+
+  // in this mode, data come from computer via ftdi, not sensors via devboard and serial
   void buffer_RF_RX_EXTERNAL_FSK()
   {
     palSetLineMode(LINE_EXTVCP_RX, PAL_MODE_ALTERNATE(AF_LINE_EXTVCP_RX));
