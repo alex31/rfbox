@@ -62,14 +62,14 @@ namespace Ope {
     case Mode::RF_RX_EXTERNAL_OOK:
       rfMode = RfMode::RX;
       buffer_RF_RX_EXTERNAL_OOK();
-      Dio2Spy::start(LINE_MCU_RX);
+      Dio2Spy::start(LINE_EXTVCP_TX);
       ModeExternal::start(rfMode, board.getBaud());
       break ;
       
     case Mode::RF_TX_EXTERNAL_OOK:
       rfMode = RfMode::TX;
       buffer_RF_TX_EXTERNAL_OOK();
-      Dio2Spy::start(LINE_MCU_RX);
+      Dio2Spy::start(LINE_EXTVCP_TX);
       break ;
       
      case Mode::RF_RX_EXTERNAL_FSK:
@@ -87,7 +87,7 @@ namespace Ope {
     case Mode::RF_RX_INTERNAL:
       rfMode = RfMode::RX;
       buffer_RF_RX_INTERNAL();
-      Dio2Spy::start(LINE_MCU_RX);
+      Dio2Spy::start(LINE_EXTVCP_TX);
       ModeTest::start(rfMode, board.getBaud());
       break ;
       
@@ -106,7 +106,7 @@ namespace Ope {
 
 	goto end;
       }
-      Dio2Spy::start(LINE_MCU_RX);
+      Dio2Spy::start(LINE_EXTVCP_TX);
       ModeTest::start(rfMode, board.getBaud());
       break ; 
     }
@@ -150,12 +150,10 @@ namespace {
   void buffer_NORF_TX()
   {
     palSetLineMode(LINE_EXTVCP_TX, PAL_MODE_INPUT);
-#if DIO2_DIRECT
     // embedded ftdi cable has to be customised
     // https://github.com/eswierk/ft232r_prog
     // ft232r_prog --invert_rxd
     Buffer::setMode(Buffer::Mode::INVERTED_TX); 
-#endif
   }
 
   void buffer_NORF_RX()
@@ -163,22 +161,17 @@ namespace {
     palSetLineMode(LINE_EXTVCP_RX, PAL_MODE_INPUT);
     palSetLineMode(LINE_EXTVCP_TX,
 		   PAL_MODE_OUTPUT_PUSHPULL | PAL_STM32_OSPEED_HIGHEST);
-#if DIO2_DIRECT
     Buffer::setMode(Buffer::Mode::RX);
-#endif
   }
   
   void buffer_RF_CALIBRATE_RSSI()
   {
-    palSetLineMode(LINE_MCU_RX, PAL_MODE_INPUT);
-#if DIO2_DIRECT == false
-    Buffer::setMode(Buffer::Mode::RX);
-#endif
+    palSetLineMode(LINE_EXTVCP_TX, PAL_MODE_INPUT);
   }
   
   void buffer_RF_RX_EXTERNAL_OOK()
   {
-    palSetLineMode(LINE_MCU_RX, PAL_MODE_ALTERNATE(AF_LINE_MCU_RX));
+    palSetLineMode(LINE_EXTVCP_TX, PAL_MODE_ALTERNATE(AF_LINE_EXTVCP_TX));
 #if INVERT_UART_LEVEL == false
     Buffer::setMode(Buffer::Mode::RX);
 #else
@@ -188,7 +181,7 @@ namespace {
   
   void buffer_RF_TX_EXTERNAL_OOK()
   {
-    palSetLineMode(LINE_MCU_RX, PAL_MODE_INPUT);
+    palSetLineMode(LINE_EXTVCP_TX, PAL_MODE_INPUT);
 #if INVERT_UART_LEVEL == false
     Buffer::setMode(Buffer::Mode::TX);
 #else
@@ -210,33 +203,12 @@ namespace {
   
   void buffer_RF_RX_INTERNAL() // mode BER
   {
-    palSetLineMode(LINE_MCU_RX, PAL_MODE_ALTERNATE(AF_LINE_MCU_RX));
-#if DIO2_DIRECT == false
-    Buffer::setMode(INVERT_UART_LEVEL ? Buffer::Mode::INVERTED_RX : Buffer::Mode::RX);
-#endif
+    palSetLineMode(LINE_EXTVCP_TX, PAL_MODE_ALTERNATE(AF_LINE_EXTVCP_TX));
   }
   
   ElectricalStatus buffer_RF_TX_INTERNAL()
   {
-#if DIO2_DIRECT == false
-    for (uint32_t i=0; i < 100; i++) {
-      palSetLineMode(LINE_MCU_RX, PAL_MODE_INPUT_PULLUP);
-      chThdSleepMicroseconds(1);
-      if (palReadLine(LINE_MCU_RX) != PAL_HIGH) {
-	DebugTrace("iteration %lu read low instead high", i);
-	return ElectricalStatus::HOLD;
-      }
-      palSetLineMode(LINE_MCU_RX, PAL_MODE_INPUT_PULLDOWN);
-      chThdSleepMicroseconds(1);
-      if (palReadLine(LINE_MCU_RX) != PAL_LOW) {
-	DebugTrace("iteration %lu read high instead low", i);
-	return ElectricalStatus::HOLD;
-      }
-    }
-    Buffer::setMode(INVERT_UART_LEVEL ? Buffer::Mode::INVERTED_TX :
-		    Buffer::Mode::TX);
-#endif    
-    palSetLineMode(LINE_MCU_RX, PAL_MODE_ALTERNATE(AF_LINE_MCU_RX));
+    palSetLineMode(LINE_EXTVCP_TX, PAL_MODE_ALTERNATE(AF_LINE_EXTVCP_TX));
     return ElectricalStatus::FREE;
   }
 

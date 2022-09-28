@@ -11,9 +11,7 @@
 #include "hardwareConf.hpp"
 #include "oledDisplay.hpp"
 #include "bboard.hpp"
-#ifdef STM32F4xx_MCUCONF
-#include "notGate.hpp"
-#endif
+
 
 void _init_chibios() __attribute__ ((constructor(101)));
 void _init_chibios() {
@@ -113,18 +111,13 @@ int main (void)
 
   }
   
-#ifdef STM32F4xx_MCUCONF
-  notGateStart(PWMD1);
-#endif
+
 
 #ifdef NOSHELL
   wdgStart(&WDGD1, &wdgcfg);
 #endif
   
   while (true) {
-#ifdef LINE_LED_HEARTBEAT
-    palToggleLine(LINE_LED_HEARTBEAT);
-#endif
     chThdSleepMilliseconds(100);
 #ifdef NOSHELL
     wdgReset(&WDGD1);

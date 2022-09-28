@@ -10,14 +10,10 @@ namespace {
   //  THD_WORKING_AREA(waMsgStreamIn, 1280);
   //  THD_WORKING_AREA(waSurveyRestartRx, 512);
   
-  static  SerialConfig meteoSerialConfig =  {
-    .speed = 4800,
+  static  SerialConfig ftdiSerialConfig =  {
+    .speed = 19200,
     .cr1 = 0,
-    .cr2 = USART_CR2_STOP1_BITS | USART_CR2_LINEN
-#if DIO2_DIRECT && INVERT_UART_LEVEL && !defined(STM32F4xx_MCUCONF)
-    | USART_CR2_TXINV | USART_CR2_RXINV
-#endif
-    ,
+    .cr2 = USART_CR2_STOP1_BITS | USART_CR2_LINEN,
     .cr3 = 0
   };
 }
@@ -26,14 +22,10 @@ namespace ModeFsk {
 
   void start(RfMode rfMode, uint32_t baud)
   {
-    meteoSerialConfig.speed = baud;
+    ftdiSerialConfig.speed = baud;
     // DIO is connected on UART1_TX
-#if !defined(STM32F4xx_MCUCONF)
-    if (rfMode == RfMode::RX) 
-      meteoSerialConfig.cr2 |= USART_CR2_SWAP;
-#endif
     if (rfMode == RfMode::RX) {
-      sdStart(&SD_METEO, &meteoSerialConfig);
+      sdStart(&SD_METEO, &ftdiSerialConfig);
       // chThdCreateStatic(waMsgStreamIn, sizeof(waMsgStreamIn),
       // 			NORMALPRIO, &msgStreamIn, nullptr);
       // chThdCreateStatic(waSurveyRestartRx, sizeof(waSurveyRestartRx),

@@ -1,21 +1,17 @@
 #pragma once
 
-#ifdef STM32F4xx_MCUCONF
-#define LINE_MCU_RX    LINE_EXTVCP_RX
-#define AF_LINE_MCU_RX AF_LINE_EXTVCP_RX
-inline constexpr uint32_t fPclk = STM32_PCLK2;
-#else
-#define LINE_MCU_RX    LINE_EXTVCP_TX
-#define AF_LINE_MCU_RX AF_LINE_EXTVCP_TX
+
+
 inline constexpr uint32_t fPclk = STM32_PCLK1;
-#endif
     
 
 #define CONCAT_NX(st1, st2) st1 ## st2
 #define CONCAT(st1, st2) CONCAT_NX(st1, st2)
 
-#define DIO2_DIRECT true
 #define INVERT_UART_LEVEL true
+
+#define PROTOBOARD	  true
+
 inline constexpr size_t oledWidth = 22U;
 inline constexpr size_t oledHeight = 4U;
 

@@ -18,7 +18,7 @@ namespace {
     .speed = 4800,
     .cr1 = 0,
     .cr2 = USART_CR2_STOP1_BITS | USART_CR2_LINEN
-#if DIO2_DIRECT && INVERT_UART_LEVEL && !defined(STM32F4xx_MCUCONF)
+#if INVERT_UART_LEVEL 
     | USART_CR2_TXINV | USART_CR2_RXINV
 #endif
     ,
@@ -45,10 +45,9 @@ namespace ModeTest {
   {
     meteoSerialConfig.speed = baud;
     // DIO is connected on UART1_TX
-#if !defined(STM32F4xx_MCUCONF)
     if (rfMode == RfMode::RX) 
       meteoSerialConfig.cr2 |= USART_CR2_SWAP;
-#endif
+
     sdStart(&SD_METEO, &meteoSerialConfig);
     if (rfMode == RfMode::TX) {
       chThdCreateStatic(waAutonomousTest, sizeof(waAutonomousTest),

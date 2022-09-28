@@ -460,10 +460,10 @@ void Rfm69OokRadio::forceRestartRx()
 void Rfm69OokRadio::calibrateRssiThresh(void)
 {
   auto isDioStableLow = [] {
-    const bool low = palReadLine(LINE_MCU_RX) == PAL_LOW; 
+    const bool low = palReadLine(LINE_EXTVCP_TX) == PAL_LOW; 
     DebugTrace("level = %s", low ? "LOW" : "HIGH");
     if (low) {
-      const bool stable = palWaitLineTimeout(LINE_MCU_RX, TIME_MS2I(35)) == MSG_TIMEOUT;
+      const bool stable = palWaitLineTimeout(LINE_EXTVCP_TX, TIME_MS2I(35)) == MSG_TIMEOUT;
       DebugTrace("stable = %s", stable ? "YES" : "NO");
       return stable;
     } else {
@@ -473,7 +473,7 @@ void Rfm69OokRadio::calibrateRssiThresh(void)
 
   Ope::setMode(Ope::Mode::RF_CALIBRATE_RSSI, 0, 0);
   
-  palEnableLineEvent(LINE_MCU_RX, PAL_EVENT_MODE_BOTH_EDGES);
+  palEnableLineEvent(LINE_EXTVCP_TX, PAL_EVENT_MODE_BOTH_EDGES);
   for (uint16_t t = 0xB0; t <= 0xFF; t++) {
     rfm69.reg.rssiThresh = t;
     DebugTrace("rfm69.reg.rssiThresh = %d", rfm69.reg.rssiThresh);
@@ -481,7 +481,7 @@ void Rfm69OokRadio::calibrateRssiThresh(void)
     if (isDioStableLow())
       break;
   }
-  palDisableLineEvent(LINE_MCU_RX);
+  palDisableLineEvent(LINE_EXTVCP_TX);
 
   // rfm69.reg.ookPeak_threshDec = ThresholdDec::EIGHT_TIMES;
   // rfm69.reg.ookPeak_threshStep = ThresholdStep::DB_0P5;

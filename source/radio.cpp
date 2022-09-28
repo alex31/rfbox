@@ -15,13 +15,7 @@ namespace {
     .ssline = LINE_RADIO_CS,
     /* 2.5 Mhz, 8 bits word, CPOL=0,  CPHA=0 */
     .cr1 = spiBr12Baud,
-#ifdef STM32L432_MCUCONF
     .cr2 = SPI_CR2_DS_2 | SPI_CR2_DS_1 | SPI_CR2_DS_0
-#elif defined STM32F405_MCUCONF
-    .cr2 = 0
-#else
-    #error "Unknown MCU target"
-#endif
   };
 }
 
