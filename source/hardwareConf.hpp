@@ -8,9 +8,7 @@ inline constexpr uint32_t fPclk = STM32_PCLK1;
 #define CONCAT_NX(st1, st2) st1 ## st2
 #define CONCAT(st1, st2) CONCAT_NX(st1, st2)
 
-#define INVERT_UART_LEVEL true
-
-#define PROTOBOARD	  true
+#define INVERT_OOK_MODUL true
 
 inline constexpr size_t oledWidth = 22U;
 inline constexpr size_t oledHeight = 4U;

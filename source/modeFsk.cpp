@@ -11,7 +11,7 @@ namespace {
   //  THD_WORKING_AREA(waSurveyRestartRx, 512);
   
   static  SerialConfig ftdiSerialConfig =  {
-    .speed = 19200,
+    .speed = baudHigh,
     .cr1 = 0,
     .cr2 = USART_CR2_STOP1_BITS | USART_CR2_LINEN,
     .cr3 = 0
@@ -24,13 +24,15 @@ namespace ModeFsk {
   {
     ftdiSerialConfig.speed = baud;
     // DIO is connected on UART1_TX
+    sdStart(&SD_METEO, &ftdiSerialConfig);
     if (rfMode == RfMode::RX) {
-      sdStart(&SD_METEO, &ftdiSerialConfig);
       // chThdCreateStatic(waMsgStreamIn, sizeof(waMsgStreamIn),
       // 			NORMALPRIO, &msgStreamIn, nullptr);
       // chThdCreateStatic(waSurveyRestartRx, sizeof(waSurveyRestartRx),
       // 			NORMALPRIO, &surveyRestartRx, nullptr);
-     } 
-  }
+    }
+  } 
+
 }
+
 

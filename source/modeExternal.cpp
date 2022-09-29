@@ -15,10 +15,10 @@ namespace {
   THD_WORKING_AREA(waSurveyRestartRx, 512);
   
   static  SerialConfig meteoSerialConfig =  {
-    .speed = 4800,
+    .speed = baudLow,
     .cr1 = 0,
     .cr2 = USART_CR2_STOP1_BITS | USART_CR2_LINEN
-#if INVERT_UART_LEVEL 
+#if INVERT_OOK_MODUL 
     | USART_CR2_TXINV | USART_CR2_RXINV
 #endif
     ,
