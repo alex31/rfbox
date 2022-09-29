@@ -7,6 +7,7 @@
 #include "bboard.hpp"
 #include "crcv1.h"
 #include "dio2Spy.hpp"
+#include "serialProtocol.hpp"
 
 constexpr uint8_t preambleByte = 0xff;
 
@@ -84,28 +85,16 @@ namespace {
     chVTSetContinuous(&vtWatchDog, TIME_MS2I(1500), lambda, nullptr);
 
     while (true) {
-      std::array<uint8_t, 2> sync = {};
-      uint8_t len = {};
-      std::array<uint8_t, 255> payload = {};
-      uint16_t distantCrc, localCrc;
-      
-      do {
-	sync[0] = sync[1];
-	sync[1] = sdGet(&SD_METEO);
-      } while ((sync[0] != 0xFE) or (sync[1] != 0xED));
-
-      len = sdGet(&SD_METEO);
-      if (len == 0)
-	continue;
-      
-      sdRead(&SD_METEO, payload.data(), len);
-      sdRead(&SD_METEO, reinterpret_cast<uint8_t *>(&distantCrc), sizeof(distantCrc));
-      crcReset(&CRCD1);
-      localCrc = crcCalc(&CRCD1, payload.data(), len);
-      if (localCrc != distantCrc) {
-	DebugTrace("CRC differ : L:0x%x != D:0x%x", localCrc, distantCrc);
-      } else {
+      const SerialProtocol::Msg msg = SerialProtocol::waitMsg(&SD_METEO);
+      switch (msg.status) {
+      case SerialProtocol::Status::CRC_ERROR:
+	DebugTrace("CRC differ : L:0x%x != D:0x%x", msg.crc.local, msg.crc.distant);
+	break;
+      case SerialProtocol::Status::SUCCESS:
 	chVTSetContinuous(&vtWatchDog, TIME_MS2I(1500), lambda, nullptr);
+	break;
+      case SerialProtocol::Status::LEN_ERROR:
+	break;
       }
     }
   }
