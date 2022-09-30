@@ -13,7 +13,9 @@ namespace {
   constexpr uint8_t readMask =  0x0;
   constexpr uint8_t writeMask = 0x80;
   MUTEX_DECL(protectMtx);
+#if PARANOID_REGREAD
   Rfm69Rmap regCheck;
+#endif
 }
 
 #define NOREENT()   Lock m(protectMtx) 
@@ -64,6 +66,7 @@ Rfm69Status Rfm69Spi::init(const SPIConfig& spiCfg)
 void Rfm69Spi::cacheRead(Rfm69RegIndex idx, size_t len)
 {
   spiAcquireBus(&spid);
+#if PARANOID_REGREAD
   do {
     spiSelect(&spid);
     const uint8_t slaveAddr = static_cast<uint8_t>(idx) | readMask;
@@ -81,6 +84,14 @@ void Rfm69Spi::cacheRead(Rfm69RegIndex idx, size_t len)
   }
   while (memcmp(&regCheck, const_cast<Rfm69Rmap *>(&reg),
 		sizeof(reg)) != 0);
+#else
+    spiSelect(&spid);
+    const uint8_t slaveAddr = static_cast<uint8_t>(idx) | readMask;
+    spiSend(&spid, 1, &slaveAddr);
+    spiReceive(&spid, len, const_cast<uint8_t *>(reg.raw) +
+	       static_cast<uint32_t>(idx));
+    spiUnselect(&spid);
+#endif
    // chThdSleepMicroseconds(10);
   spiReleaseBus(&spid);
   // chThdSleepMicroseconds(10);
@@ -90,15 +101,36 @@ void Rfm69Spi::cacheWrite(Rfm69RegIndex idx, size_t len)
 {
   spiAcquireBus(&spid);
   spiSelect(&spid);
-  // chThdSleepMicroseconds(10);
   const uint8_t slaveAddr = static_cast<uint8_t>(idx) | writeMask;
   spiSend(&spid, 1, &slaveAddr);
   spiSend(&spid, len, const_cast<uint8_t *>(reg.raw) + static_cast<uint32_t>(idx));
-  // chThdSleepMicroseconds(10);
   spiUnselect(&spid);
   spiReleaseBus(&spid);
-  // chThdSleepMicroseconds(10);
 }
+
+void Rfm69Spi::fifoRead(void *buffer, const uint8_t len)
+{
+  spiAcquireBus(&spid);
+  spiSelect(&spid);
+  const uint8_t slaveAddr = 0U | readMask;
+  spiSend(&spid, 1, &slaveAddr);
+  spiReceive(&spid, len, static_cast<uint8_t *>(buffer));
+  spiUnselect(&spid);
+  
+  spiReleaseBus(&spid);
+}
+
+void Rfm69Spi::fifoWrite(const void *buffer, const uint8_t len)
+{
+  spiAcquireBus(&spid);
+  spiSelect(&spid);
+  const uint8_t slaveAddr = 0U | writeMask;
+  spiSend(&spid, 1, &slaveAddr);
+  spiSend(&spid, len, static_cast<const uint8_t *>(buffer));
+  spiUnselect(&spid);
+  spiReleaseBus(&spid);
+}
+
 
 void Rfm69Spi::saveReg(void)
 {

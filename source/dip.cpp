@@ -10,7 +10,7 @@ namespace DIP {
 
 namespace {
   const ioline_t diplines[] = {LINE_DIP_RFENABLE, LINE_DIP_FREQ, LINE_DIP_BER,
-    LINE_DIP_BERBAUD, LINE_DIP_RXTX, LINE_DIP_PWRLVL};
+    LINE_DIP_BAUD_MODUL, LINE_DIP_RXTX, LINE_DIP_PWRLVL};
 
   THD_WORKING_AREA(waSurvey, 304);
   void survey (void *arg)		
@@ -43,7 +43,7 @@ namespace DIP {
   inline uint8_t getAllDips()
   {
     return rl(LINE_DIP_RFENABLE) | rl(LINE_DIP_FREQ) << 1U |
-      (rl(LINE_DIP_BER) << 2U) | (rl(LINE_DIP_BERBAUD) << 3U)  |
+      (rl(LINE_DIP_BER) << 2U) | (rl(LINE_DIP_BAUD_MODUL) << 3U)  |
       (rl(LINE_DIP_RXTX) << 4U) | (rl(LINE_DIP_PWRLVL) << 5U);
   }
 

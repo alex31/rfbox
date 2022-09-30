@@ -60,7 +60,7 @@ int main (void)
   const int8_t amplificationLevelDb = DIP::getDip(DIPSWITCH::PWRLVL) ?
     ampLevelDbHigh : ampLevelDbLow;
   const bool berMode = DIP::getDip(DIPSWITCH::BER);
-  const uint32_t baud = DIP::getDip(DIPSWITCH::BERBAUD) ? baudHigh : baudLow;
+  const uint32_t baud = DIP::getDip(DIPSWITCH::BAUD_MODUL) ? baudHigh : baudLow;
   board.setBaud(baud);
   
   DebugTrace("carrier frequency %lu @ %d Db level", frequencyCarrier, amplificationLevelDb);

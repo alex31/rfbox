@@ -18,6 +18,8 @@ public:
   bool isInit(void) {return spid.state >= SPI_READY;}
   void cacheWrite(Rfm69RegIndex idx, size_t len = 1);
   void cacheRead(Rfm69RegIndex idx, size_t len = 1);
+  void fifoWrite(const void *buffer, const uint8_t len);
+  void fifoRead(void *buffer, const uint8_t len);
   void reset(void);
 
   volatile Rfm69Rmap reg {}; // registers are public to avoid massive
@@ -85,16 +87,10 @@ protected:
   Rfm69Spi rfm69;
   RfMode mode {RfMode::SLEEP};
   
-  GSET_DECL(Dagc, FadingMargin, testDagc, TestDagc);
-  GSET_DECL(LowBetaOn, bool, afcCtrl_lowBetaOn, AfcCtrl);
-  GSET_DECL(OokFix_threshold, uint8_t, ookFix_threshold, OokFix);
-  GSET_DECL(Rssi_threshold, uint8_t, rssiThresh, RssiThresh);
-  GSET_DECL(Afc_autoOn, bool, afc_autoOn, AfcFei);
-  GSET_DECL(Ocp_on, bool, ocp_on, Ocp);
-
+ 
   virtual void setReceptionTuning(void) = 0;
   virtual void setEmissionTuning(void) = 0;
- void setFrequencyCarrier(uint32_t frequencyCarrier);
+  void setFrequencyCarrier(uint32_t frequencyCarrier);
   void setPowerAmp(uint8_t pmask, RampTime rt, int8_t gain);
   void setLna(LnaGain gain, LnaInputImpedance imp);
   void setRxBw(BandwithMantissa, uint8_t exp, uint8_t dccFreq);
@@ -112,6 +108,12 @@ public:
   void coldReset();
 
 protected:
+  GSET_DECL(Dagc, FadingMargin, testDagc, TestDagc);
+  GSET_DECL(LowBetaOn, bool, afcCtrl_lowBetaOn, AfcCtrl);
+  GSET_DECL(OokFix_threshold, uint8_t, ookFix_threshold, OokFix);
+  GSET_DECL(Rssi_threshold, uint8_t, rssiThresh, RssiThresh);
+  GSET_DECL(Afc_autoOn, bool, afc_autoOn, AfcFei);
+  GSET_DECL(Ocp_on, bool, ocp_on, Ocp);
 
   void calibrateRssiThresh(void);
   void setReceptionTuning(void) override;
@@ -131,6 +133,7 @@ public:
 
   void checkModeMismatch(void) override;
 protected:
+  
   void setReceptionTuning(void) override;
   void setEmissionTuning(void) override;
 

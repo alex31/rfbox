@@ -128,7 +128,9 @@ endif
 
 # Define project name here
 PROJECT = ch
-BOARD = NUCLEO432
+
+# proto is v1, definitive is v2
+HARDWARE_VERSION = v1
 
 # Target settings.
 MCU  = cortex-m4
@@ -244,7 +246,7 @@ include $(RULESPATH)/rules.mk
 $(OBJS): $(CONFDIR)/board.h
 
 
-$(CONFDIR)/board.h: $(CONFDIR)/board.cfg
+$(CONFDIR)/board.h: $(CONFDIR)/board_$(HARDWARE_VERSION).cfg
 	boardGen.pl --no-pp-line --no-adcp-in $<  $@
 
 

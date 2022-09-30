@@ -183,7 +183,7 @@ static void cmd_dip(BaseSequentialStream *, int ,const char* const []) {
   DIP::getDip(DIPSWITCH::RFENABLE);
   DIP::getDip(DIPSWITCH::FREQ);
   DIP::getDip(DIPSWITCH::BER);
-  DIP::getDip(DIPSWITCH::BERBAUD);
+  DIP::getDip(DIPSWITCH::BAUD_MODUL);
   DIP::getDip(DIPSWITCH::RXTX);
   DIP::getDip(DIPSWITCH::PWRLVL);
 }
