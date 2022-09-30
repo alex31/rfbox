@@ -132,17 +132,6 @@ void Rfm69Spi::fifoWrite(const void *buffer, const uint8_t len)
 }
 
 
-void Rfm69Spi::saveReg(void)
-{
-  memcpy(&regSave, const_cast<const Rfm69Rmap *>(&reg), sizeof(reg));
-}
-
-void Rfm69Spi::restoreReg(void)
-{
-  memcpy(const_cast<Rfm69Rmap *>(&reg), const_cast<const Rfm69Rmap *>(&regSave),
-	 sizeof(reg));
-}
-
 /*
 #                 ____                          _____                _    _                  
 #                |  _ \                        |  __ \              | |  (_)                 

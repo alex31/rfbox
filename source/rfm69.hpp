@@ -24,12 +24,10 @@ public:
 
   volatile Rfm69Rmap reg {}; // registers are public to avoid massive
   // setter getters code with the numerous bitfields
-  Rfm69Rmap regSave {};
+
 private:
   SPIDriver& spid;
   ioline_t  lineReset;
-  void saveReg(void);
-  void restoreReg(void);
 };
 
 #define GET_DECL(name, bft, bfn, regi)		\
