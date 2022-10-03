@@ -49,13 +49,10 @@ private:
   SET_DECL(name, bft, bfn, regi)
 
 class Rfm69BaseRadio {
-  static constexpr uint32_t xtalHz = 32e6;
-  static constexpr float synthStepHz = xtalHz / powf(2,19);
-
 public:
   Rfm69BaseRadio(SPIDriver& spid, ioline_t lineReset) :
     rfm69(spid, lineReset) {};
-  Rfm69Status init(const SPIConfig& spiCfg);
+  virtual Rfm69Status init(const SPIConfig& spiCfg) = 0;
   bool isInit(void) {return rfm69.isInit();}
   Rfm69Status setRfParam(RfMode _mode, 
 			 uint32_t frequencyCarrier,
@@ -78,6 +75,9 @@ public:
   virtual void checkRestartRxNeeded(void) {};
 
 protected:
+  static constexpr uint32_t xtalHz = 32e6;
+  static constexpr float synthStepHz = xtalHz / powf(2,19);
+  
   thread_t *rfHealthSurveyThd = nullptr;
   static THD_WORKING_AREA(waSurvey, 512);
   static void rfHealthSurvey(void *arg);
@@ -92,6 +92,7 @@ protected:
   void setPowerAmp(uint8_t pmask, RampTime rt, int8_t gain);
   void setLna(LnaGain gain, LnaInputImpedance imp);
   void setRxBw(BandwithMantissa, uint8_t exp, uint8_t dccFreq);
+  void coldReset();
 
 };
 
@@ -99,11 +100,11 @@ class Rfm69OokRadio : public Rfm69BaseRadio {
 public:
   Rfm69OokRadio(SPIDriver& spid, ioline_t lineReset) :
     Rfm69BaseRadio(spid, lineReset) {};
+  Rfm69Status init(const SPIConfig& spiCfg) override;
 
   void checkModeMismatch(void) override;
   void checkRestartRxNeeded(void) override;
   void forceRestartRx() override;
-  void coldReset();
 
 protected:
   GSET_DECL(Dagc, FadingMargin, testDagc, TestDagc);
@@ -128,14 +129,27 @@ class Rfm69FskRadio : public Rfm69BaseRadio {
 public:
   Rfm69FskRadio(SPIDriver& spid, ioline_t lineReset) :
     Rfm69BaseRadio(spid, lineReset) {};
-
+  Rfm69Status init(const SPIConfig& spiCfg) override;
   void checkModeMismatch(void) override;
+  void fifoWrite(const void *buffer, const uint8_t len);
+  void fifoRead(void *buffer, uint8_t *len);
+
+  GET_DECL(PayloadReady, bool, irqFlags_payloadReady, IrqFlags2);
+  GET_DECL(PacketSent, bool, irqFlags_packetSent, IrqFlags2);
+  GET_DECL(FifoOverrun, bool, irqFlags_fifoOverrun, IrqFlags2);
+  GET_DECL(FifoNotEmpty, bool, irqFlags_fifoNotEmpty, IrqFlags2);
+  GET_DECL(FifoFull, bool, irqFlags_fifoFull, IrqFlags2);
 protected:
-  
   void setReceptionTuning(void) override;
   void setEmissionTuning(void) override;
-
+  void setFrequencyDeviation(uint32_t frequencyDeviation);
   
 private:
+  static constexpr uint8_t fifoMaxLen = 66U;
+  static constexpr uint8_t preembleSize = 6U;
+  static constexpr uint8_t syncWordSize = 2U;
+  static constexpr uint8_t interPacketRxDelay = 4U;
+  static constexpr uint32_t frequencyDev = 80'000U;
+  void configPacketMode(void);
   ~Rfm69FskRadio() = delete;
 };

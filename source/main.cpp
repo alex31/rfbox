@@ -91,7 +91,7 @@ int main (void)
   
   Ope::Status opStatus = {};
   do {
-    Radio::init();
+    Radio::init(opMode);
     opStatus = Ope::setMode(opMode, frequencyCarrier,
 			    amplificationLevelDb);
     if (opStatus != Ope::Status::OK) {

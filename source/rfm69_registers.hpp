@@ -120,7 +120,7 @@ enum class ClockOut  : uint8_t {
   OSCDIV32, RC, OFF 
 };
 
-enum class AdressFiltering  : uint8_t {
+enum class AddressFiltering  : uint8_t {
   NONE, NODE, NODE_AND_BROADCAST
 };
 
@@ -319,7 +319,7 @@ struct Rfm69Rmap {
       uint64_t syncValue; // beware BIG ENDIAN
       
     uint8_t :1; // unused
-      AdressFiltering packetConfig_addressFiltering :2;
+      AddressFiltering packetConfig_addressFiltering :2;
       bool packetConfig_crcAutoClearOff :1;
       bool packetConfig_crcOn :1;
       DCFree packetConfig_dcFree :2;

@@ -1,25 +1,22 @@
-Methode pour recalculer le gain sur les octets de preambule d'un message :
+BUGFIX :
 
-Machine à états : GAIN_TUNED_FOR_PREAMPLE, GAIN_TUNED_FOR_MESSAGES
+Ne pas modifier les registes après avoir mis le mode : entre init et setRfParam y a des trucs qui sont à vérifier.
 
-° declarer objet watchdog
+SetRfParam est-il pertinent ? essayer de tout rapatrier dans init
 
-° en mode source externe, décoder le message (juste header, len, payload, crc)
-  thread de reception de messages
-  si reception de message : reset du watch dog à 10 secondes
+Idée : avant l'objet radio etait construit statiquement, setRfParam permettait
+d'activer ou non la RF en fonction du mode, mais maintenant que l'objet est construit dynamiquement,
+il n'y a plus besoin de setRfPram : un refactoring est necessaire.
 
-° lancer un watchdog : 10 secondes sans messages
-                       rxRestart -> état GAIN_TUNED_FOR_PREAMPLE
+===================
 
-° thread preambleSurvey : utiliser un dio2integrator sur 6.4 millisecondes : 64 echantillons : 64 bits
-                          si état GAIN_TUNE_FOR_PREAMPLE
-                          à chaque push tester avg : si avg > 0.95
-			  lancer un SetRestartRx(true)
-			  passer en mode GAIN_TUNED_FOR_MESSAGES
+Pour le mode paquet.
 
-
-° changement : on garde le DIO2 survey pour l'affichage, mais on ne prend plus de decision basée sur
-  dio2Avg
+exemple message avec 1 float :
+° serial frame
+sync(2) len(1[v=4]) payload(4) crc(2)
+° spi frame
+len(1[v=6]) payload(4) crc(2)
 
 
 ==================================
@@ -136,40 +133,3 @@ En mode emission :
 
 
 ============
-
-keep for archive
-
-
-enum class Label
-
-class FieldParam
-° constexpr constructor
-° const length
-° const fixTxt
-° const pos(x,y)
-° const bool active
-
-truc declaratif : une const map FieldParamDict
-key [std::pair<Ope::Mode, Label>] -> fieldParam
-
-class Field :
-° const Label
-° const length
-° fixTxt
-° pos(x,y)
-° bool active
-° static std::array<Field*, NUM_FIELDS>
-° void setMode(Ope::Mode) -> fabrique la clef std::pair<field, label> pour faire le lookup dans FieldParamDict
-° void display(dynTxt)
-
-
-
-
-
-class OledDisplay :
-° OledDisplay() : init hardware, register all fields
-° map<enum class Label, field> fieldMap
-° Ope::Mode mode
-° setMode(Ope::Mode mode) foreach fields : field.setMode(
-° void display()
-° setField(Field, fmt, ...)

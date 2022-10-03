@@ -141,30 +141,6 @@ void Rfm69Spi::fifoWrite(const void *buffer, const uint8_t len)
 #                |____/   \__,_| |___/   \___| |_|  \_\  \__,_|  \__,_|  |_|   \___/         
 */
 
-// if one want to try CONTINUOUS_SYNC here : frame preamble
-// 16 bits patern has to be 0xAAAA instead of 0xFFFF
-Rfm69Status Rfm69BaseRadio::init(const SPIConfig& spiCfg)
-{
-  Rfm69Status status = rfm69.init(spiCfg);
-  if (status != Rfm69Status::OK)
-    goto end;
-
-  if ((status = calibrate()) != Rfm69Status::OK)
-    goto end;
-  
-  rfm69.reg.opMode_mode = mode; // mode or RfMode::FS
-  rfm69.reg.opMode_sequencerOff = 0; // sequencer is activated
-  rfm69.reg.opMode_listenOn = 0; 
-  rfm69.reg.datamodul_dataMode = DataMode::CONTINUOUS_NOSYNC;
-  rfm69.reg.bitrate = SWAP_ENDIAN16(xtalHz / board.getBaud());
-  rfm69.reg.datamodul_shaping = DataModul::OOK_NOSHAPING;
-  rfm69.cacheWrite(Rfm69RegIndex::DataModul,
-		   Rfm69RegIndex::AesKey - Rfm69RegIndex::DataModul);
-  rfm69.cacheWrite(Rfm69RegIndex::RfMode);
-  waitReady();
- end:
-  return status;
-}
 
 float Rfm69BaseRadio::getRssi()
 {
@@ -176,14 +152,16 @@ float Rfm69BaseRadio::getRssi()
 
 void	 Rfm69BaseRadio::setBaudRate(uint32_t br)
 {
-  rfm69.reg.bitrate = SWAP_ENDIAN16(xtalHz / br);
+  const uint16_t bitrate = xtalHz / br;
+  rfm69.reg.bitrate = SWAP_ENDIAN16(bitrate);
   rfm69.cacheWrite(Rfm69RegIndex::Bitrate);
 }
 
 
 Rfm69Status Rfm69BaseRadio::setRfParam(RfMode _mode,
-				      uint32_t frequencyCarrier,
-				      int8_t amplificationLevelDb)
+				       uint32_t frequencyCarrier,
+				       int8_t amplificationLevelDb
+				       )
 {
   mode = _mode;
   if (rfHealthSurveyThd != nullptr) {
@@ -323,7 +301,6 @@ void Rfm69BaseRadio::setFrequencyCarrier(uint32_t frequencyCarrier)
 	      "out of bound frequency carrier");
   rfm69.reg.frf = SWAP_ENDIAN24(frequencyCarrier / synthStepHz);
   rfm69.cacheWrite(Rfm69RegIndex::Frf, 3);
-
 }
 
 
@@ -401,6 +378,20 @@ void Rfm69BaseRadio::rfHealthSurvey(void *arg)
   chThdExit(MSG_OK);
 }
 
+void Rfm69BaseRadio::coldReset()
+{
+  do {
+    rfm69.reset();
+    rfm69.cacheWrite(Rfm69RegIndex::DataModul, Rfm69RegIndex::Last - Rfm69RegIndex::DataModul);
+    waitReady();
+    setModeAndWait(mode);
+    calibrate();
+    rfm69.cacheRead(Rfm69RegIndex::RfMode);
+    rfm69.cacheRead(Rfm69RegIndex::IrqFlags1);
+  } while  ((mode == RfMode::RX) and (rfm69.reg.irqFlags1 != 0xD8));
+}
+
+
 THD_WORKING_AREA(Rfm69BaseRadio::waSurvey, 512);
 
 /*
@@ -413,6 +404,29 @@ THD_WORKING_AREA(Rfm69BaseRadio::waSurvey, 512);
 */
 
 
+Rfm69Status Rfm69OokRadio::init(const SPIConfig& spiCfg)
+{
+  Rfm69Status status = rfm69.init(spiCfg);
+  if (status != Rfm69Status::OK)
+    goto end;
+
+  if ((status = calibrate()) != Rfm69Status::OK)
+    goto end;
+  
+  rfm69.reg.opMode_mode = mode; // mode or RfMode::FS
+  rfm69.reg.opMode_sequencerOff = 0; // sequencer is activated
+  rfm69.reg.opMode_listenOn = 0; 
+  rfm69.reg.datamodul_dataMode = DataMode::CONTINUOUS_NOSYNC;
+  rfm69.reg.bitrate = SWAP_ENDIAN16(xtalHz / board.getBaud());
+  rfm69.reg.datamodul_shaping = DataModul::OOK_NOSHAPING;
+  rfm69.cacheWrite(Rfm69RegIndex::DataModul,
+		   Rfm69RegIndex::AesKey - Rfm69RegIndex::DataModul);
+  setBaudRate(board.getBaud());
+  rfm69.cacheWrite(Rfm69RegIndex::RfMode);
+  waitReady();
+ end:
+  return status;
+}
 
 
 
@@ -457,18 +471,6 @@ void Rfm69OokRadio::checkRestartRxNeeded()
 }
 
 
-void Rfm69OokRadio::coldReset()
-{
-  do {
-    rfm69.reset();
-    rfm69.cacheWrite(Rfm69RegIndex::DataModul, Rfm69RegIndex::Last - Rfm69RegIndex::DataModul);
-    waitReady();
-    setModeAndWait(mode);
-    calibrate();
-    rfm69.cacheRead(Rfm69RegIndex::RfMode);
-    rfm69.cacheRead(Rfm69RegIndex::IrqFlags1);
-  } while  ((mode == RfMode::RX) and (rfm69.reg.irqFlags1 != 0xD8));
-}
 
 void Rfm69OokRadio::forceRestartRx()
 {
@@ -561,3 +563,107 @@ void Rfm69OokRadio::setOokPeak(ThresholdType t, ThresholdDec d,
 #                | |      \__ \  |   <  | | \ \  | (_| | | (_| |  | |  | (_) |        
 #                |_|      |___/  |_|\_\ |_|  \_\  \__,_|  \__,_|  |_|   \___/         
 */
+Rfm69Status Rfm69FskRadio::init(const SPIConfig& spiCfg)
+{
+  Rfm69Status status = rfm69.init(spiCfg);
+  if (status != Rfm69Status::OK)
+    goto end;
+
+  if ((status = calibrate()) != Rfm69Status::OK)
+    goto end;
+
+  // in packet mode, we want rf transfert to be faster than wire transfert
+  // to avoid congestion
+  setBaudRate(board.getBaud() * 2U);
+  rfm69.reg.opMode_mode = mode; // mode or RfMode::FS
+  rfm69.reg.opMode_sequencerOff = 0; // sequencer is activated
+  rfm69.reg.opMode_listenOn = 0; 
+  rfm69.reg.datamodul_dataMode = DataMode::PACKET;
+  rfm69.reg.bitrate = SWAP_ENDIAN16(xtalHz / board.getBaud());
+  rfm69.reg.datamodul_shaping = DataModul::FSK_NOSHAPING;
+  rfm69.reg.dioMapping_io1 = 0b11;
+  rfm69.reg.dioMapping_io0 = 
+    rfm69.reg.dioMapping_io2 = 
+    rfm69.reg.dioMapping_io3 = 
+    rfm69.reg.dioMapping_io4 = 
+    rfm69.reg.dioMapping_io5 = 0b10; // DIO2 is HiZ in Tx and Rx modes and won't mess with UART_TX
+
+  configPacketMode();
+  setFrequencyDeviation(frequencyDev); // roughly 3x the bitrate
+  
+  rfm69.cacheWrite(Rfm69RegIndex::DataModul,
+		   Rfm69RegIndex::AesKey - Rfm69RegIndex::DataModul);
+  rfm69.cacheWrite(Rfm69RegIndex::RfMode);
+  waitReady();
+ end:
+  return status;
+}
+
+
+void Rfm69FskRadio::checkModeMismatch()
+{
+  NOREENT();
+  rfm69.cacheRead(Rfm69RegIndex::RfMode);
+  if ((mode != RfMode::SLEEP) and (rfm69.reg.opMode_mode != mode)) {
+    DebugTrace("mismatch found mode %u instead %u, reset...",
+	       static_cast<uint16_t>(rfm69.reg.opMode_mode),
+	       static_cast<uint16_t>(mode));
+    board.setError("Radio lockout");
+    coldReset();
+  } else {
+    board.clearError();
+  }
+}
+
+
+void  Rfm69FskRadio::configPacketMode(void)
+{
+  rfm69.reg.preambleSize = SWAP_ENDIAN16(preembleSize);
+  rfm69.reg.syncConfig_tol = 0;
+  rfm69.reg.syncConfig_size = syncWordSize - 1U;
+  rfm69.reg.syncConfig_fifoFillCondition = true;
+  rfm69.reg.syncConfig_syncOn = true;
+  rfm69.reg.syncValue = 0xFEEDFEEDFEEDFEED;
+  rfm69.reg.packetConfig_addressFiltering = AddressFiltering::NONE;
+  rfm69.reg.packetConfig_crcOn = false;
+  rfm69.reg.packetConfig_dcFree = DCFree::WHITENING;
+  rfm69.reg.packetConfig_packetFormat = PacketFormat::VARIABLE_LEN;
+  rfm69.reg.payloadLength = fifoMaxLen + 1U;
+  rfm69.reg.autoModes_enterCondition = EnterCondition::NONE;
+  rfm69.reg.autoModes_exitCondition = ExitCondition::NONE;
+  rfm69.reg.fifoThresh_txStartCondition = TxStartCondition::FIFO_NOT_EMPTY;
+  rfm69.reg.packetConfig2_interPacketRxDelay = interPacketRxDelay;
+  rfm69.reg.packetConfig2_autoRxRestartOn = true;
+  rfm69.reg.packetConfig2_aesOn = false;
+}
+
+void Rfm69FskRadio::setFrequencyDeviation(uint32_t frequencyDeviation)
+{
+  const uint32_t fdev = frequencyDeviation / synthStepHz;
+  chDbgAssert((fdev > 20U) and (fdev < (1U << 14U)),
+	      "out of bound deviation frequency");
+  
+  rfm69.reg.fdev = SWAP_ENDIAN16(fdev);
+}
+
+void Rfm69FskRadio::fifoWrite(const void *buffer, const uint8_t len)
+{
+  rfm69.fifoWrite(buffer, len);
+}
+
+void Rfm69FskRadio::fifoRead(void *buffer, uint8_t *len)
+{
+  rfm69.fifoRead(len, 1);
+  if (*len != 0U) 
+    rfm69.fifoRead(buffer, *len);
+}
+
+void Rfm69FskRadio::setReceptionTuning(void)
+{
+}
+
+void Rfm69FskRadio::setEmissionTuning(void)
+{
+
+}
+  

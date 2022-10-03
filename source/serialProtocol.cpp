@@ -8,8 +8,9 @@ namespace SerialProtocol {
   Msg waitMsg(SerialDriver *sd)
   {
     std::array<uint8_t, 2> sync = {};
-    Msg msg = {.len = 0, .status = SerialProtocol::Status::LEN_ERROR,
-      .crc = {}, .payload = {}};
+    Msg msg = {.len = 0, .payload = {}, .crc = {},
+      .status = SerialProtocol::Status::LEN_ERROR
+    };
     
     do {
       sync[0] = sync[1];
@@ -28,5 +29,17 @@ namespace SerialProtocol {
       SerialProtocol::Status::CRC_ERROR;
     return msg;
   }
+
+  void sendMsg(SerialDriver *sd, const Msg& msg)
+  {
+    // header, len and payload
+    sdWrite(sd, reinterpret_cast<const uint8_t *>(&msg.header),
+	    sizeof(msg.header) + sizeof(msg.len) + msg.len);
+    // crc
+    sdWrite(sd, reinterpret_cast<const uint8_t *>(&msg.crc.local),
+	    sizeof(msg.crc.local));
+  }
+
+
   
 }
