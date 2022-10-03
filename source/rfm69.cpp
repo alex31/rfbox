@@ -158,10 +158,17 @@ void	 Rfm69BaseRadio::setBaudRate(uint32_t br)
 }
 
 
-Rfm69Status Rfm69BaseRadio::setRfParam(RfMode _mode,
-				       uint32_t frequencyCarrier,
-				       int8_t amplificationLevelDb
-				       )
+void Rfm69BaseRadio::setCommonRfParam(uint32_t frequencyCarrier,
+					     int8_t amplificationLevelDb
+					     )
+{
+  setFrequencyCarrier(frequencyCarrier);
+  setPowerAmp(0b001, RampTime::US_20, amplificationLevelDb);
+  setRfTuning();
+  setLna(LnaGain::AGC, LnaInputImpedance::OHMS_50);
+}
+
+Rfm69Status Rfm69BaseRadio::healthSurveyStart(RfMode _mode)
 {
   mode = _mode;
   if (rfHealthSurveyThd != nullptr) {
@@ -173,31 +180,17 @@ Rfm69Status Rfm69BaseRadio::setRfParam(RfMode _mode,
     rfHealthSurveyThd = nullptr;
   }
 
-  if (mode == RfMode::TX) {
-    setFrequencyCarrier(frequencyCarrier);
-    setPowerAmp(0b001, RampTime::US_20, amplificationLevelDb);
-    setEmissionTuning();
-  } else  if (mode == RfMode::RX) {
-    setFrequencyCarrier(frequencyCarrier);
-    setReceptionTuning();
-  }  
-  setLna(LnaGain::AGC, LnaInputImpedance::OHMS_50);
+
   auto status = setModeAndWait(mode);
   DebugTrace("wait status for mode[%lx] = %lx",
 	     static_cast<uint32_t>(mode),
 	     static_cast<uint32_t>(status));
   if (status != Rfm69Status::OK)
     goto exit;
-  // optional : to be tested, optimisation of floor threshold
-  // works only in the absence of module emitting !!
   if (mode == RfMode::RX) {
-    // desactivate AGC, use minimal gain (to be tested)
-    //    calibrateRssiThresh();
     DebugTrace("current lna gain = %d ... RSSI = %.1f",
 	       getLnaGain(), getRssi());
   }
-
-  //  rfm69.saveReg();
 
   if ((mode == RfMode::RX) or (mode == RfMode::TX)) 
     rfHealthSurveyThd = chThdCreateStatic(waSurvey, sizeof(waSurvey),
@@ -412,7 +405,8 @@ Rfm69Status Rfm69OokRadio::init(const SPIConfig& spiCfg)
 
   if ((status = calibrate()) != Rfm69Status::OK)
     goto end;
-  
+
+  setCommonRfParam(board.getFreq(), board.getTxPower());
   rfm69.reg.opMode_mode = mode; // mode or RfMode::FS
   rfm69.reg.opMode_sequencerOff = 0; // sequencer is activated
   rfm69.reg.opMode_listenOn = 0; 
@@ -494,7 +488,7 @@ void Rfm69OokRadio::calibrateRssiThresh(void)
     }
   };
 
-  Ope::setMode(Ope::Mode::RF_CALIBRATE_RSSI, 0, 0);
+  Ope::setMode(Ope::Mode::RF_CALIBRATE_RSSI);
   
   palEnableLineEvent(LINE_EXTVCP_TX, PAL_EVENT_MODE_BOTH_EDGES);
   for (uint16_t t = 0xB0; t <= 0xFF; t++) {
@@ -511,7 +505,7 @@ void Rfm69OokRadio::calibrateRssiThresh(void)
   // rfm69.cacheWrite(Rfm69RegIndex::OokPeak);
 }
 
-void Rfm69OokRadio::setReceptionTuning(void)
+void Rfm69OokRadio::setRfTuning(void)
 {
   setOokPeak(ThresholdType::PEAK, ThresholdDec::EIGHT_TIMES,
 	     ThresholdStep::DB_3);
@@ -532,12 +526,11 @@ void Rfm69OokRadio::setReceptionTuning(void)
   //  calibrateRssiThresh();
   // automatic frequency correction activated
   setAfc_autoOn(true);
-}
 
-void Rfm69OokRadio::setEmissionTuning(void)
-{
+  // overcurrent protection to limit current consomption : we don't care
   setOcp_on(false);
 }
+
     
 
 
@@ -574,6 +567,7 @@ Rfm69Status Rfm69FskRadio::init(const SPIConfig& spiCfg)
 
   // in packet mode, we want rf transfert to be faster than wire transfert
   // to avoid congestion
+  setCommonRfParam(board.getFreq(), board.getTxPower());
   setBaudRate(board.getBaud() * 2U);
   rfm69.reg.opMode_mode = mode; // mode or RfMode::FS
   rfm69.reg.opMode_sequencerOff = 0; // sequencer is activated
@@ -658,12 +652,6 @@ void Rfm69FskRadio::fifoRead(void *buffer, uint8_t *len)
     rfm69.fifoRead(buffer, *len);
 }
 
-void Rfm69FskRadio::setReceptionTuning(void)
+void Rfm69FskRadio::setRfTuning(void)
 {
 }
-
-void Rfm69FskRadio::setEmissionTuning(void)
-{
-
-}
-  

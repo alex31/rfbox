@@ -18,7 +18,5 @@ namespace Ope {
   const char* toAscii(Mode opMode);
   const char* toAscii(Status status);
   
-  Ope::Status setMode(Mode opMode, 
-		      uint32_t frequencyCarrier,
-		      int8_t amplificationLevelDb);
+  Ope::Status setMode(Mode opMode);
 }

@@ -22,21 +22,18 @@ namespace {
   void buffer_RF_RX_EXTERNAL_FSK();
   void buffer_RF_TX_EXTERNAL_FSK();
   void buffer_RF_RX_INTERNAL();
-  ElectricalStatus buffer_RF_TX_INTERNAL();
+  void buffer_RF_TX_INTERNAL();
 
   void startRxTxEcho(void);
   void stopRxTxEcho(void);
 }
 
 namespace Ope {
-  Status setMode(Mode opMode, 
-		 uint32_t frequencyCarrier,
-		 int8_t amplificationLevelDb) {
+  Status setMode(Mode opMode) {
     Status status = Status::OK;
     RfMode rfMode = RfMode::SLEEP;
     Buffer::setMode(Buffer::Mode::HiZ);
     stopRxTxEcho();
-
  
     switch (opMode) {
     case Mode::NONE:
@@ -93,29 +90,16 @@ namespace Ope {
       
     case Mode::RF_TX_INTERNAL:
       rfMode = RfMode::TX;
-      Radio::radio->setRfParam(rfMode,
-			      frequencyCarrier,
-			      amplificationLevelDb);
       chThdSleepMilliseconds(10);
-      if (buffer_RF_TX_INTERNAL() != ElectricalStatus::FREE) {
-	DebugTrace("meteo uart data line not free");
-	status = Status::DATA_LINE_HOLD;
-	Radio::radio->setRfParam(RfMode::SLEEP,
-				frequencyCarrier,
-				amplificationLevelDb);
-
-	goto end;
-      }
+      buffer_RF_TX_INTERNAL();
       Dio2Spy::start(LINE_EXTVCP_TX);
       ModeTest::start(rfMode, board.getBaud());
       break ; 
     }
     
-    if (Radio::radio->setRfParam(rfMode,
-				frequencyCarrier,
-				amplificationLevelDb)
+    if (Radio::radio->healthSurveyStart(rfMode)
 	!= Rfm69Status::OK) {
-      DebugTrace("Radio::radio->setRfParam failed");
+      DebugTrace("Radio::radio->healthSurveyStart failed");
       status = Status::RFM69_ERROR;
       goto end;
     }
@@ -199,10 +183,9 @@ namespace {
     palSetLineMode(LINE_EXTVCP_TX, PAL_MODE_ALTERNATE(AF_LINE_EXTVCP_TX));
   }
   
-  ElectricalStatus buffer_RF_TX_INTERNAL()
+  void buffer_RF_TX_INTERNAL()
   {
     palSetLineMode(LINE_EXTVCP_TX, PAL_MODE_ALTERNATE(AF_LINE_EXTVCP_TX));
-    return ElectricalStatus::FREE;
   }
 
 

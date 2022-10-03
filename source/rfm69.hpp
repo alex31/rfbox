@@ -54,9 +54,9 @@ public:
     rfm69(spid, lineReset) {};
   virtual Rfm69Status init(const SPIConfig& spiCfg) = 0;
   bool isInit(void) {return rfm69.isInit();}
-  Rfm69Status setRfParam(RfMode _mode, 
-			 uint32_t frequencyCarrier,
-			 int8_t amplificationLevelDb);
+  Rfm69Status healthSurveyStart(RfMode _mode);
+  void setCommonRfParam(uint32_t frequencyCarrier,
+			int8_t amplificationLevelDb);
   void	setBaudRate(uint32_t br);
   Rfm69Status waitReady(void);
   Rfm69Status calibrate(void);
@@ -86,8 +86,7 @@ protected:
   RfMode mode {RfMode::SLEEP};
   
  
-  virtual void setReceptionTuning(void) = 0;
-  virtual void setEmissionTuning(void) = 0;
+  virtual void setRfTuning(void) = 0;
   void setFrequencyCarrier(uint32_t frequencyCarrier);
   void setPowerAmp(uint8_t pmask, RampTime rt, int8_t gain);
   void setLna(LnaGain gain, LnaInputImpedance imp);
@@ -115,8 +114,7 @@ protected:
   GSET_DECL(Ocp_on, bool, ocp_on, Ocp);
 
   void calibrateRssiThresh(void);
-  void setReceptionTuning(void) override;
-  void setEmissionTuning(void) override;
+  void setRfTuning(void) override;
   void setOokPeak(ThresholdType t, ThresholdDec d, ThresholdStep s);
   
   
@@ -140,8 +138,7 @@ public:
   GET_DECL(FifoNotEmpty, bool, irqFlags_fifoNotEmpty, IrqFlags2);
   GET_DECL(FifoFull, bool, irqFlags_fifoFull, IrqFlags2);
 protected:
-  void setReceptionTuning(void) override;
-  void setEmissionTuning(void) override;
+  void setRfTuning(void) override;
   void setFrequencyDeviation(uint32_t frequencyDeviation);
   
 private:

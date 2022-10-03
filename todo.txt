@@ -1,12 +1,3 @@
-BUGFIX :
-
-Ne pas modifier les registes après avoir mis le mode : entre init et setRfParam y a des trucs qui sont à vérifier.
-
-SetRfParam est-il pertinent ? essayer de tout rapatrier dans init
-
-Idée : avant l'objet radio etait construit statiquement, setRfParam permettait
-d'activer ou non la RF en fonction du mode, mais maintenant que l'objet est construit dynamiquement,
-il n'y a plus besoin de setRfPram : un refactoring est necessaire.
 
 ===================
 
