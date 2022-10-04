@@ -6,6 +6,7 @@
 #include "etl/string.h"
 #include "bboard.hpp"
 #include "common.hpp"
+#include <tuple>
 
 #define SWAP_ENDIAN24(x) __builtin_bswap32(static_cast<uint32_t>(x) << 8)
 
@@ -20,37 +21,40 @@ namespace {
   enum class RxBwModul {OOK=3, FSK=2};
   
   struct Rxbw {
+    int32_t actualBw;
     BandwithMantissa mant;
     uint8_t exp:3;
   };
 
   
-  constexpr Rxbw getRxBw(float freq, RxBwModul modul)
+  consteval Rxbw getRxBw(float freq, RxBwModul modul)
   {
-    constexpr auto iterate = [] (float f, RxBwModul m) -> std::pair<int, int> {
+    constexpr auto bw = [] (int mant, int exp, RxBwModul m) -> int32_t {
+      return 32e6/(mant * powf(2, exp + static_cast<float>(m)));
+    };
+    constexpr auto iterate = [bw] (float f, RxBwModul m) -> std::tuple<int, int, int> {
       for (int exp = 7 ; exp >= 0; exp--) {
-        for (int mant = 24; mant >= 16; mant -= 8) {
-	  if ((32e6/(mant * powf(2, exp + static_cast<float>(m))) ) > f)
-            return {mant, exp};
+        for (int mant = 24; mant >= 16; mant -= 4) {
+	  if (const int bwv = bw(mant, exp, m); bwv > f)
+            return {bwv, mant, exp};
         }
       }
-      return {-1, -1};
+      return {-1, -1, -1};
     };
-
-    auto [exp, mant] = iterate(freq, modul);
-    BandwithMantissa emant;
-    if (exp < 0) {
-      emant = BandwithMantissa::MANT_ERROR;
-    } else {
-        emant =
+    
+    const auto [bwv, mant, exp] = iterate(freq, modul);
+    BandwithMantissa emant = BandwithMantissa::MANT_16;
+    if (bwv > 0) {
+      emant =
 	mant == 24 ? BandwithMantissa::MANT_24 :
 	mant == 20 ? BandwithMantissa::MANT_20 :
 	BandwithMantissa::MANT_16;
     }
     
-    return  {emant, static_cast<uint8_t>(exp)};
+    return  {bwv, emant, static_cast<uint8_t>(exp)};
   }
-}  
+}
+
 #define NOREENT()   Lock m(protectMtx) 
 
 /*
@@ -201,7 +205,6 @@ void Rfm69BaseRadio::setCommonRfParam(uint32_t frequencyCarrier,
 
   setLowBetaOn(true);
   setDagc(FadingMargin::IMPROVE_LOW_BETA_ON);
-  setAutoRxRestart(true);
   
 
   // in case of false '1', raise the value to 0xFF cf datasheet p61
@@ -556,12 +559,17 @@ void Rfm69OokRadio::calibrateRssiThresh(void)
 void Rfm69OokRadio::setRfTuning(void)
 {
  // settings for RxBw depending on baudrate
-  constexpr Rxbw rxbw = getRxBw(baudLow * 2.1f, RxBwModul::OOK);
-  static_assert(rxbw.mant != BandwithMantissa::MANT_ERROR);
-  /* dccfreq default 4 % of rxbx */
-  setRxBw(rxbw.mant, rxbw.exp, 2); 
-  setOokPeak(ThresholdType::PEAK, ThresholdDec::EIGHT_TIMES,
-            ThresholdStep::DB_3);
+   constexpr Rxbw rxbw = getRxBw(baudLow * 2.1f, RxBwModul::OOK);
+   static_assert(rxbw.actualBw > 0);
+   static_assert(rxbw.exp > 0);
+   /* dccfreq default 4 % of rxbx */
+   setRxBw(rxbw.mant, rxbw.exp, 2);
+   DebugTrace("**************** actual OOK bandwith = %ld mant=%x exp=%u",
+	      rxbw.actualBw, static_cast<uint8_t>(rxbw.mant), rxbw.exp);
+   
+   setAutoRxRestart(false);
+   setOokPeak(ThresholdType::PEAK, ThresholdDec::EIGHT_TIMES,
+	      ThresholdStep::DB_3);
 }
 
     
@@ -688,7 +696,9 @@ void Rfm69FskRadio::fifoRead(void *buffer, uint8_t *len)
 void Rfm69FskRadio::setRfTuning(void)
 {
   constexpr Rxbw rxbw = getRxBw(fskBroadcastBitRate * 2.1f, RxBwModul::FSK);
-  static_assert(rxbw.mant != BandwithMantissa::MANT_ERROR);
+  static_assert(rxbw.actualBw > 0);
+  DebugTrace("actual FSK bandwith = %ld", rxbw.actualBw);
   /* dccfreq default 4 % of rxbx */
-  setRxBw(rxbw.mant, rxbw.exp, 2); 
+  setRxBw(rxbw.mant, rxbw.exp, 2);
+  setAutoRxRestart(true);
 }
