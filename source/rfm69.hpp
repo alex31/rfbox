@@ -57,7 +57,7 @@ public:
   Rfm69Status healthSurveyStart(RfMode _mode);
   void setCommonRfParam(uint32_t frequencyCarrier,
 			int8_t amplificationLevelDb);
-  void	setBaudRate(uint32_t br);
+  void	setBitRate(uint32_t br);
   Rfm69Status waitReady(void);
   Rfm69Status calibrate(void);
   float getRssi();
@@ -75,7 +75,13 @@ public:
   virtual void checkRestartRxNeeded(void) {};
 
 protected:
+  GSET_DECL(LowBetaOn, bool, afcCtrl_lowBetaOn, AfcCtrl);
+  GSET_DECL(Dagc, FadingMargin, testDagc, TestDagc);
+  GSET_DECL(Rssi_threshold, uint8_t, rssiThresh, RssiThresh);
+  GSET_DECL(Afc_autoOn, bool, afc_autoOn, AfcFei);
+  GSET_DECL(Ocp_on, bool, ocp_on, Ocp);
   static constexpr uint32_t xtalHz = 32e6;
+  static constexpr uint32_t fxOscHz = xtalHz;
   static constexpr float synthStepHz = xtalHz / powf(2,19);
   
   thread_t *rfHealthSurveyThd = nullptr;
@@ -106,12 +112,7 @@ public:
   void forceRestartRx() override;
 
 protected:
-  GSET_DECL(Dagc, FadingMargin, testDagc, TestDagc);
-  GSET_DECL(LowBetaOn, bool, afcCtrl_lowBetaOn, AfcCtrl);
   GSET_DECL(OokFix_threshold, uint8_t, ookFix_threshold, OokFix);
-  GSET_DECL(Rssi_threshold, uint8_t, rssiThresh, RssiThresh);
-  GSET_DECL(Afc_autoOn, bool, afc_autoOn, AfcFei);
-  GSET_DECL(Ocp_on, bool, ocp_on, Ocp);
 
   void calibrateRssiThresh(void);
   void setRfTuning(void) override;

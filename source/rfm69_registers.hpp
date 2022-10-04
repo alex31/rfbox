@@ -96,7 +96,7 @@ enum class LnaInputImpedance : uint8_t {
   OHMS_50, OHMS_200};
 
 enum class BandwithMantissa : uint8_t {
-  MANT_16, MANT_20, MANT_24};
+  MANT_16, MANT_20, MANT_24, MANT_ERROR};
 
 enum class ThresholdDec  : uint8_t {
   ONE, HALF, QUARTER, EIGHTH, TWICE, FOR_TIMES,

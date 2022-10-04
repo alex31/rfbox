@@ -16,8 +16,41 @@ namespace {
 #if PARANOID_REGREAD
   Rfm69Rmap regCheck;
 #endif
-}
 
+  enum class RxBwModul {OOK=3, FSK=2};
+  
+  struct Rxbw {
+    BandwithMantissa mant;
+    uint8_t exp:3;
+  };
+
+  
+  constexpr Rxbw getRxBw(float freq, RxBwModul modul)
+  {
+    constexpr auto iterate = [] (float f, RxBwModul m) -> std::pair<int, int> {
+      for (int exp = 7 ; exp >= 0; exp--) {
+        for (int mant = 24; mant >= 16; mant -= 8) {
+	  if ((32e6/(mant * powf(2, exp + static_cast<float>(m))) ) > f)
+            return {mant, exp};
+        }
+      }
+      return {-1, -1};
+    };
+
+    auto [exp, mant] = iterate(freq, modul);
+    BandwithMantissa emant;
+    if (exp < 0) {
+      emant = BandwithMantissa::MANT_ERROR;
+    } else {
+        emant =
+	mant == 24 ? BandwithMantissa::MANT_24 :
+	mant == 20 ? BandwithMantissa::MANT_20 :
+	BandwithMantissa::MANT_16;
+    }
+    
+    return  {emant, static_cast<uint8_t>(exp)};
+  }
+}  
 #define NOREENT()   Lock m(protectMtx) 
 
 /*
@@ -150,7 +183,7 @@ float Rfm69BaseRadio::getRssi()
   return rssi;
 }
 
-void	 Rfm69BaseRadio::setBaudRate(uint32_t br)
+void	 Rfm69BaseRadio::setBitRate(uint32_t br)
 {
   const uint16_t bitrate = xtalHz / br;
   rfm69.reg.bitrate = SWAP_ENDIAN16(bitrate);
@@ -164,8 +197,22 @@ void Rfm69BaseRadio::setCommonRfParam(uint32_t frequencyCarrier,
 {
   setFrequencyCarrier(frequencyCarrier);
   setPowerAmp(0b001, RampTime::US_20, amplificationLevelDb);
-  setRfTuning();
   setLna(LnaGain::AGC, LnaInputImpedance::OHMS_50);
+
+  setLowBetaOn(true);
+  setDagc(FadingMargin::IMPROVE_LOW_BETA_ON);
+  setAutoRxRestart(true);
+  
+
+  // in case of false '1', raise the value to 0xFF cf datasheet p61
+  setRssi_threshold(0xE4);
+  DebugTrace("rfm69.reg.rssiThresh = %d", rfm69.reg.rssiThresh);
+
+  // automatic frequency correction activated
+  setAfc_autoOn(true);
+
+  // overcurrent protection to limit current consomption : we don't care
+  setOcp_on(false);
 }
 
 Rfm69Status Rfm69BaseRadio::healthSurveyStart(RfMode _mode)
@@ -415,7 +462,8 @@ Rfm69Status Rfm69OokRadio::init(const SPIConfig& spiCfg)
   rfm69.reg.datamodul_shaping = DataModul::OOK_NOSHAPING;
   rfm69.cacheWrite(Rfm69RegIndex::DataModul,
 		   Rfm69RegIndex::AesKey - Rfm69RegIndex::DataModul);
-  setBaudRate(board.getBaud());
+  setBitRate(board.getBaud());
+  setRfTuning();
   rfm69.cacheWrite(Rfm69RegIndex::RfMode);
   waitReady();
  end:
@@ -507,28 +555,13 @@ void Rfm69OokRadio::calibrateRssiThresh(void)
 
 void Rfm69OokRadio::setRfTuning(void)
 {
+ // settings for RxBw depending on baudrate
+  constexpr Rxbw rxbw = getRxBw(baudLow * 2.1f, RxBwModul::OOK);
+  static_assert(rxbw.mant != BandwithMantissa::MANT_ERROR);
+  /* dccfreq default 4 % of rxbx */
+  setRxBw(rxbw.mant, rxbw.exp, 2); 
   setOokPeak(ThresholdType::PEAK, ThresholdDec::EIGHT_TIMES,
-	     ThresholdStep::DB_3);
-
-  setLowBetaOn(true);
-  setDagc(FadingMargin::IMPROVE_LOW_BETA_ON);
-  setAutoRxRestart(false);
-  
-  // settings for RxBw = 20Khz in OOK
-  if (board.getBaud() == baudLow)
-    setRxBw(BandwithMantissa::MANT_24, 4, 2); /* 10 Khz bandwith, dccfreq default 4 % of rxbx */
-  else
-    setRxBw(BandwithMantissa::MANT_24, 2, 2); /* 42Khz bandwith, dccfreq default 4 % of rxbx */
-  
-  // in case of false '1', raise the value to 0xFF cf datasheet p61
-  setRssi_threshold(0xE4);
-  DebugTrace("rfm69.reg.rssiThresh = %d", rfm69.reg.rssiThresh);
-  //  calibrateRssiThresh();
-  // automatic frequency correction activated
-  setAfc_autoOn(true);
-
-  // overcurrent protection to limit current consomption : we don't care
-  setOcp_on(false);
+            ThresholdStep::DB_3);
 }
 
     
@@ -568,12 +601,10 @@ Rfm69Status Rfm69FskRadio::init(const SPIConfig& spiCfg)
   // in packet mode, we want rf transfert to be faster than wire transfert
   // to avoid congestion
   setCommonRfParam(board.getFreq(), board.getTxPower());
-  setBaudRate(board.getBaud() * 2U);
   rfm69.reg.opMode_mode = mode; // mode or RfMode::FS
   rfm69.reg.opMode_sequencerOff = 0; // sequencer is activated
   rfm69.reg.opMode_listenOn = 0; 
   rfm69.reg.datamodul_dataMode = DataMode::PACKET;
-  rfm69.reg.bitrate = SWAP_ENDIAN16(xtalHz / board.getBaud());
   rfm69.reg.datamodul_shaping = DataModul::FSK_NOSHAPING;
   rfm69.reg.dioMapping_io1 = 0b11;
   rfm69.reg.dioMapping_io0 = 
@@ -582,9 +613,11 @@ Rfm69Status Rfm69FskRadio::init(const SPIConfig& spiCfg)
     rfm69.reg.dioMapping_io4 = 
     rfm69.reg.dioMapping_io5 = 0b10; // DIO2 is HiZ in Tx and Rx modes and won't mess with UART_TX
 
+  setBitRate(fskBroadcastBitRate);
   configPacketMode();
   setFrequencyDeviation(frequencyDev); // roughly 3x the bitrate
-  
+  setRfTuning();
+
   rfm69.cacheWrite(Rfm69RegIndex::DataModul,
 		   Rfm69RegIndex::AesKey - Rfm69RegIndex::DataModul);
   rfm69.cacheWrite(Rfm69RegIndex::RfMode);
@@ -654,4 +687,8 @@ void Rfm69FskRadio::fifoRead(void *buffer, uint8_t *len)
 
 void Rfm69FskRadio::setRfTuning(void)
 {
+  constexpr Rxbw rxbw = getRxBw(fskBroadcastBitRate * 2.1f, RxBwModul::FSK);
+  static_assert(rxbw.mant != BandwithMantissa::MANT_ERROR);
+  /* dccfreq default 4 % of rxbx */
+  setRxBw(rxbw.mant, rxbw.exp, 2); 
 }
