@@ -15,6 +15,7 @@ namespace {
     .speed = baudHigh,
     .cr1 = 0,
     .cr2 = USART_CR2_STOP1_BITS | USART_CR2_LINEN,
+    //  | USART_CR2_TXINV | USART_CR2_SWAP;
     .cr3 = 0
   };
 }
@@ -24,7 +25,13 @@ namespace ModeFsk {
   void start(RfMode rfMode, uint32_t baud)
   {
     ftdiSerialConfig.speed = baud;
-    // DIO is connected on UART1_TX
+    if (rfMode == RfMode::RX) {
+      ftdiSerialConfig.cr2 |= USART_CR2_TXINV;
+    } else {
+#if PACKET_EMISSION_READ_FROM_SERIAL
+      ftdiSerialConfig.cr2 |=  USART_CR2_SWAP;
+#endif
+    }
     sdStart(&SD_METEO, &ftdiSerialConfig);
     if (rfMode == RfMode::RX) {
       chThdCreateStatic(waMsgRelay, sizeof(waMsgRelay),

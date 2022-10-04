@@ -112,9 +112,11 @@ namespace Ope {
   {
     static const char* ascii[] = {
     "NONE", "NORF_TX", "NORF_RX", "RF_CALIBRATE_RSSI",
-    "RF_RX_EXTERNAL_OOK", "RF_TX_EXTERNAL_OOK", "RF_RX_INTERNAL",
-    "RF_TX_INTERNAL"
+    "RF_RX_EXTERNAL_OOK", "RF_TX_EXTERNAL_OOK",
+    "RF_RX_EXTERNAL_FSK", "RF_TX_EXTERNAL_FSK",
+    "RF_RX_INTERNAL", "RF_TX_INTERNAL"
     };
+    chDbgAssert(opMode <= Ope::Mode::RF_TX_INTERNAL, "out of bound");
     return ascii[static_cast<uint8_t>(opMode)];
   }
   
@@ -124,6 +126,7 @@ namespace Ope {
     "OK", "RFM69_ERROR", "DATA_LINE_HOLD",
     "INTERNAL_ERROR"
     };
+    chDbgAssert(status <= Ope::Status::INTERNAL_ERROR, "out of bound");
     return ascii[static_cast<uint8_t>(status)];
   }
   
@@ -165,17 +168,30 @@ namespace {
     Buffer::setMode(INVERT_OOK_MODUL ? Buffer::Mode::INVERTED_TX : Buffer::Mode::TX);
   }
 
-  // in this mode, data come from computer via ftdi, not sensors via devboard and serial
+  // in this mode, data come from antena, goes in packet fifo, is read from fifo
+  // and written in the serial in regular (non swap) mode.
+  // since the ftdi inverts what is sent to it, serial TX should be logic inverted
+  // data is also sent on serial in inverted mode to de-invert
   void buffer_RF_RX_EXTERNAL_FSK()
   {
-    palSetLineMode(LINE_EXTVCP_RX, PAL_MODE_ALTERNATE(AF_LINE_EXTVCP_RX));
-    Buffer::setMode(Buffer::Mode::HiZ);
+    palSetLineMode(LINE_EXTVCP_TX, PAL_MODE_ALTERNATE(AF_LINE_EXTVCP_TX));
+    Buffer::setMode(Buffer::Mode::INVERTED_RX);
   }
   
+  // in this mode, data come from computer via ftdi or sensors via devboard and serial
+  // depending on conditional compilation.
+  // if ftdi : serial not swaped, 
+  //           buffer HiZ
+  // if serial : serial swaped, bit level non inverted, buffer is TX
   void buffer_RF_TX_EXTERNAL_FSK()
   {
+#if PACKET_EMISSION_READ_FROM_SERIAL
+    palSetLineMode(LINE_EXTVCP_RX, PAL_MODE_ALTERNATE(AF_LINE_EXTVCP_RX));
+    Buffer::setMode(Buffer::Mode::HiZ);
+#else
     palSetLineMode(LINE_EXTVCP_TX, PAL_MODE_ALTERNATE(AF_LINE_EXTVCP_TX));
-    Buffer::setMode(Buffer::Mode::RX);
+    Buffer::setMode(Buffer::Mode::TX);
+#endif
   }
   
   void buffer_RF_RX_INTERNAL() // mode BER
