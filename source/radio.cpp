@@ -25,18 +25,32 @@ namespace Radio {
 
   void init(Ope::Mode opMode)
   {
-    if ((opMode == Ope::Mode::RF_RX_EXTERNAL_OOK) or
-	(opMode == Ope::Mode::RF_TX_EXTERNAL_OOK))
+    switch(opMode) {
+    case Ope::Mode::RF_RX_EXTERNAL_OOK :
+    case Ope::Mode::RF_TX_EXTERNAL_OOK :
+    case Ope::Mode::RF_RX_INTERNAL :
+    case Ope::Mode::RF_TX_INTERNAL :
+      
       Radio::radio = new Rfm69OokRadio(SPID1, LINE_RADIO_RESET);
-    else if ((opMode == Ope::Mode::RF_RX_EXTERNAL_FSK) or
-	     (opMode == Ope::Mode::RF_TX_EXTERNAL_FSK))
+      break;
+      
+    case Ope::Mode::RF_RX_EXTERNAL_FSK :
+    case Ope::Mode::RF_TX_EXTERNAL_FSK :
       Radio::radio = new Rfm69FskRadio(SPID1, LINE_RADIO_RESET);
-    else
+      break;
+
+    case Ope::Mode::NORF_TX :
+    case Ope::Mode::NORF_RX :
+      Radio::radio = nullptr;
+      break;
+      
+    default:
       chSysHalt("internal logic error : opMode not handled");
+    }
     
-    if (Radio::radio->init(spiCfg) != Rfm69Status::OK) {
+    if (Radio::radio and (Radio::radio->init(spiCfg) != Rfm69Status::OK)) {
       DebugTrace("radio->init failed");
     }
   }
   
-}
+} // end of anonymous namespace
