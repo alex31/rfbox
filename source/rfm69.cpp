@@ -124,9 +124,13 @@ void Rfm69Spi::cacheRead(Rfm69RegIndex idx, size_t len)
 #else
     spiSelect(&spid);
     const uint8_t slaveAddr = static_cast<uint8_t>(idx) | readMask;
-    spiSend(&spid, 1, &slaveAddr);
-    spiReceive(&spid, len, const_cast<uint8_t *>(reg.raw) +
-	       static_cast<uint32_t>(idx));
+    spiPolledExchange(&spid, slaveAddr);
+    if (len == 1U) {
+      reg.raw[static_cast<uint8_t>(idx)] = spiPolledExchange(&spid, 0);
+    } else {
+      spiReceive(&spid, len, const_cast<uint8_t *>(reg.raw) +
+		 static_cast<uint32_t>(idx));
+    }
     spiUnselect(&spid);
 #endif
    // chThdSleepMicroseconds(10);
@@ -139,8 +143,12 @@ void Rfm69Spi::cacheWrite(Rfm69RegIndex idx, size_t len)
   spiAcquireBus(&spid);
   spiSelect(&spid);
   const uint8_t slaveAddr = static_cast<uint8_t>(idx) | writeMask;
-  spiSend(&spid, 1, &slaveAddr);
-  spiSend(&spid, len, const_cast<uint8_t *>(reg.raw) + static_cast<uint32_t>(idx));
+  spiPolledExchange(&spid, slaveAddr);
+  if (len == 1) {
+    spiPolledExchange(&spid, reg.raw[static_cast<uint32_t>(idx)]);
+  } else {
+    spiSend(&spid, len, const_cast<uint8_t *>(reg.raw) + static_cast<uint32_t>(idx));
+  } 
   spiUnselect(&spid);
   spiReleaseBus(&spid);
 }

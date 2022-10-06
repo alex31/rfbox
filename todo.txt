@@ -1,14 +1,20 @@
 
-===================
+en mode emission FSK : afficher la source
+ps : la vitesse de la liaison série en emission sera dependante de la source :
+baudLow (4800) si liaison série, baudHigh (19200 [ou plus en fonction du TP]) si USB1
 
-Pour le mode paquet.
+en mode reception FSK le liaison serie sera toujours à baudHigh  comme ça, il y a la
+bande passance necessaire quelquesoit la source en emission
 
-exemple message avec 1 float :
-° serial frame
-sync(2) len(1[v=4]) payload(4) crc(2)
-° spi frame
-len(1[v=6]) payload(4) crc(2)
 
+idée pour une démo avec emission USB ?
+recup données flightradar... ?
+recup station radio ?
+
+ihm avec 4 slider qui :
+°affiche des trucs sur les 8 leds
+°module un son en amplitude et frequence
+°fait tourner un servo
 
 ==================================
 
