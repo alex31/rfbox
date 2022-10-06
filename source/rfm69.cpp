@@ -149,7 +149,7 @@ void Rfm69Spi::fifoRead(void *buffer, const uint8_t len)
 {
   spiAcquireBus(&spid);
   spiSelect(&spid);
-  const uint8_t slaveAddr = 0U | readMask;
+  const uint8_t slaveAddr = static_cast<uint8_t>(Rfm69RegIndex::Fifo) | readMask;
   spiSend(&spid, 1, &slaveAddr);
   spiReceive(&spid, len, static_cast<uint8_t *>(buffer));
   spiUnselect(&spid);
@@ -161,7 +161,7 @@ void Rfm69Spi::fifoWrite(const void *buffer, const uint8_t len)
 {
   spiAcquireBus(&spid);
   spiSelect(&spid);
-  const uint8_t slaveAddr = 0U | writeMask;
+  const uint8_t slaveAddr = static_cast<uint8_t>(Rfm69RegIndex::Fifo) | writeMask;
   spiSend(&spid, 1, &slaveAddr);
   spiSend(&spid, len, static_cast<const uint8_t *>(buffer));
   spiUnselect(&spid);
@@ -463,10 +463,11 @@ Rfm69Status Rfm69OokRadio::init(const SPIConfig& spiCfg)
   rfm69.reg.datamodul_dataMode = DataMode::CONTINUOUS_NOSYNC;
   rfm69.reg.bitrate = SWAP_ENDIAN16(xtalHz / board.getBaud());
   rfm69.reg.datamodul_shaping = DataModul::OOK_NOSHAPING;
-  rfm69.cacheWrite(Rfm69RegIndex::DataModul,
-		   Rfm69RegIndex::AesKey - Rfm69RegIndex::DataModul);
   setBitRate(board.getBaud());
   setRfTuning();
+  rfm69.cacheWrite(Rfm69RegIndex::DataModul,
+		   Rfm69RegIndex::AesKey - Rfm69RegIndex::DataModul);
+  waitReady();
   rfm69.cacheWrite(Rfm69RegIndex::RfMode);
   waitReady();
  end:
@@ -628,6 +629,7 @@ Rfm69Status Rfm69FskRadio::init(const SPIConfig& spiCfg)
 
   rfm69.cacheWrite(Rfm69RegIndex::DataModul,
 		   Rfm69RegIndex::AesKey - Rfm69RegIndex::DataModul);
+  waitReady();
   rfm69.cacheWrite(Rfm69RegIndex::RfMode);
   waitReady();
  end:
@@ -653,12 +655,12 @@ void Rfm69FskRadio::checkModeMismatch()
 
 void  Rfm69FskRadio::configPacketMode(void)
 {
-  rfm69.reg.preambleSize = SWAP_ENDIAN16(preembleSize);
+  rfm69.reg.preambleSize = SWAP_ENDIAN16(preambleSize);
   rfm69.reg.syncConfig_tol = 0;
   rfm69.reg.syncConfig_size = syncWordSize - 1U;
-  rfm69.reg.syncConfig_fifoFillCondition = true;
+  rfm69.reg.syncConfig_fifoFillCondition = FifoFillCondition::SYNC_MATCHES;
   rfm69.reg.syncConfig_syncOn = true;
-  rfm69.reg.syncValue = 0xFEEDFEEDFEEDFEED;
+  rfm69.reg.syncValue = 0x4224422442244224;
   rfm69.reg.packetConfig_addressFiltering = AddressFiltering::NONE;
   rfm69.reg.packetConfig_crcOn = false;
   rfm69.reg.packetConfig_dcFree = DCFree::WHITENING;
@@ -670,6 +672,8 @@ void  Rfm69FskRadio::configPacketMode(void)
   rfm69.reg.packetConfig2_interPacketRxDelay = interPacketRxDelay;
   rfm69.reg.packetConfig2_autoRxRestartOn = true;
   rfm69.reg.packetConfig2_aesOn = false;
+  rfm69.reg.fifoThresh_threshold = 4;
+  rfm69.reg.fifoThresh_txStartCondition = TxStartCondition::FIFO_LEVEL;
 }
 
 void Rfm69FskRadio::setFrequencyDeviation(uint32_t frequencyDeviation)
@@ -693,12 +697,17 @@ void Rfm69FskRadio::fifoRead(void *buffer, uint8_t *len)
     rfm69.fifoRead(buffer, *len);
 }
 
+void Rfm69FskRadio::rawFifoRead(void *buffer, uint8_t len)
+{
+  rfm69.fifoRead(buffer, len);
+}
+
 void Rfm69FskRadio::setRfTuning(void)
 {
-  constexpr Rxbw rxbw = getRxBw(fskBroadcastBitRate * 2.1f, RxBwModul::FSK);
+  constexpr Rxbw rxbw = getRxBw(fskBroadcastBitRate * 3, RxBwModul::FSK);
   static_assert(rxbw.actualBw > 0);
   DebugTrace("actual FSK bandwith = %ld", rxbw.actualBw);
   /* dccfreq default 4 % of rxbx */
   setRxBw(rxbw.mant, rxbw.exp, 2);
-  setAutoRxRestart(true);
+  //setAutoRxRestart(false);
 }

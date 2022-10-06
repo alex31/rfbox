@@ -26,14 +26,6 @@ namespace {
     .cr3 = 0
   };
 
-  static const CRCConfig crcCfgModbus = {
-    .poly_size = 16,
-    .poly = 0x8005,
-    .initial_val = 0xffff,
-    .final_val = 0x0000,
-    .reflect_data = true,
-    .reflect_remainder = true
-  };
 
   virtual_timer_t vtWatchDog;
   volatile bool shouldRestartRx = false;
@@ -51,24 +43,24 @@ namespace ModeExternal {
   {
     meteoSerialConfig.speed = baud;
     // DIO is connected on UART1_TX
-    if (rfMode == RfMode::RX) 
-      meteoSerialConfig.cr2 |= USART_CR2_SWAP;
 
     if (rfMode == RfMode::RX) {
+      meteoSerialConfig.cr2 |= USART_CR2_SWAP;
       crcInit();
       crcStart(&CRCD1, &crcCfgModbus);
       chVTSet(&vtWatchDog, TIME_S2I(3), [](ch_virtual_timer *, void *) {
 	shouldRestartRx = true;
       },
-	  nullptr);
+	nullptr);
       sdStart(&SD_METEO, &meteoSerialConfig);
       chThdCreateStatic(waMsgStreamIn, sizeof(waMsgStreamIn),
 			NORMALPRIO, &msgStreamIn, nullptr);
-     chThdCreateStatic(waSurveyRestartRx, sizeof(waSurveyRestartRx),
+      chThdCreateStatic(waSurveyRestartRx, sizeof(waSurveyRestartRx),
 			NORMALPRIO, &surveyRestartRx, nullptr);
-     } 
+    } 
   }
-}
+  
+} // end of namespace ModeExternal
 
 
 //    systime_t ts = chVTGetSystemTimeX();

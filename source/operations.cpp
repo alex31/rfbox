@@ -180,17 +180,18 @@ namespace {
   
   // in this mode, data come from computer via ftdi or sensors via devboard and serial
   // depending on conditional compilation.
+  // if serial : serial swaped, bit level non inverted, buffer is TX
+  //
   // if ftdi : serial not swaped, 
   //           buffer HiZ
-  // if serial : serial swaped, bit level non inverted, buffer is TX
   void buffer_RF_TX_EXTERNAL_FSK()
   {
 #if PACKET_EMISSION_READ_FROM_SERIAL
-    palSetLineMode(LINE_EXTVCP_RX, PAL_MODE_ALTERNATE(AF_LINE_EXTVCP_RX));
-    Buffer::setMode(Buffer::Mode::HiZ);
-#else
     palSetLineMode(LINE_EXTVCP_TX, PAL_MODE_ALTERNATE(AF_LINE_EXTVCP_TX));
     Buffer::setMode(Buffer::Mode::TX);
+#else
+    palSetLineMode(LINE_EXTVCP_RX, PAL_MODE_ALTERNATE(AF_LINE_EXTVCP_RX));
+    Buffer::setMode(Buffer::Mode::HiZ);
 #endif
   }
   

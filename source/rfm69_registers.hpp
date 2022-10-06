@@ -152,6 +152,10 @@ enum class TxStartCondition  : uint8_t {
   FIFO_LEVEL, FIFO_NOT_EMPTY
 };
 
+enum class FifoFillCondition  : uint8_t {
+  SYNC_MATCHES, ALWAYS
+};
+
 enum class TestLna  : uint8_t {
   NORMAL = 0x1B, HIGH_SENSITIVITY = 0x2D
 };
@@ -313,7 +317,7 @@ struct Rfm69Rmap {
 
       uint8_t syncConfig_tol :3;
       uint8_t syncConfig_size :3;
-      bool syncConfig_fifoFillCondition :1;
+      FifoFillCondition syncConfig_fifoFillCondition :1;
       bool syncConfig_syncOn :1;
 
       uint64_t syncValue; // beware BIG ENDIAN

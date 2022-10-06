@@ -4,6 +4,7 @@
 #include <hal.h>
 #include <math.h>
 #include "rfm69_registers.hpp"
+#include "hardwareConf.hpp"
 
 /*
  
@@ -132,22 +133,24 @@ public:
   void checkModeMismatch(void) override;
   void fifoWrite(const void *buffer, const uint8_t len);
   void fifoRead(void *buffer, uint8_t *len);
+  void rawFifoRead(void *buffer, uint8_t len);
 
   GET_DECL(PayloadReady, bool, irqFlags_payloadReady, IrqFlags2);
   GET_DECL(PacketSent, bool, irqFlags_packetSent, IrqFlags2);
   GET_DECL(FifoOverrun, bool, irqFlags_fifoOverrun, IrqFlags2);
   GET_DECL(FifoNotEmpty, bool, irqFlags_fifoNotEmpty, IrqFlags2);
   GET_DECL(FifoFull, bool, irqFlags_fifoFull, IrqFlags2);
+  GET_DECL(FifoLevel, bool, irqFlags_fifoLevel, IrqFlags2);
 protected:
   void setRfTuning(void) override;
   void setFrequencyDeviation(uint32_t frequencyDeviation);
   
 private:
   static constexpr uint8_t fifoMaxLen = 66U;
-  static constexpr uint8_t preembleSize = 6U;
-  static constexpr uint8_t syncWordSize = 2U;
-  static constexpr uint8_t interPacketRxDelay = 4U;
-  static constexpr uint32_t frequencyDev = 80'000U;
+  static constexpr uint8_t preambleSize = 8U;
+  static constexpr uint8_t syncWordSize = 4U;
+  static constexpr uint8_t interPacketRxDelay = 15U;
+  static constexpr uint32_t frequencyDev = fskBroadcastBitRate * 2;
   void configPacketMode(void);
   ~Rfm69FskRadio() = delete;
 };
