@@ -16,6 +16,14 @@ ihm avec 4 slider qui :
 °module un son en amplitude et frequence
 °fait tourner un servo
 
+============
+comment tester l'input USB maintenant, sans coder d'appli sur PC
+
+windbox -> devbm4 -> ftdi -> PC -> rfbox(usb)
+mettre les 2 ftdi (/dev/ttyUSB0 et ttyUSB1) en 4800 bauds d'un coup de screen
+cat /dev/ttyUSB0 > ttyUSB1
+
+
 ==================================
 
 FTDI JAUNE : RX (point de vue FTDI)

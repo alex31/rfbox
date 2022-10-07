@@ -4,22 +4,30 @@
 #include "crcv1.h"
 
 namespace SerialProtocol {
-
+  constexpr auto time_1s = TIME_S2I(1);
   Msg waitMsg(SerialDriver *sd)
   {
     std::array<uint8_t, 2> sync = {};
-    Msg msg = {.len = 0, .payload = {}, .crc = {},
-      .status = SerialProtocol::Status::LEN_ERROR
+    Msg msg = {.len = 0, .payload = {},
+      .crc = {}, .status = {}
     };
     
     do {
-      sync[0] = sync[1];
-      sync[1] = sdGet(sd);
+      auto newByte = sdGetTimeout(sd, time_1s);
+      if (newByte < 0) {// timout
+	msg.status = SerialProtocol::Status::TIMOUT;
+	return msg;
+      } else {
+	sync[0] = sync[1];
+	sync[1] = newByte;
+      }
     } while ((sync[0] != 0xFE) or (sync[1] != 0xED));
     
     msg.len = sdGet(sd);
-    if (msg.len == 0)
+    if (msg.len == 0) {
+      msg.status = SerialProtocol::Status::LEN_ERROR;
       return msg;
+    }
     
     sdRead(sd, msg.payload.data(), msg.len);
     sdRead(sd, reinterpret_cast<uint8_t *>(&msg.crc.distant), sizeof(msg.crc.distant));

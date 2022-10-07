@@ -82,6 +82,7 @@ namespace {
 	fskr->fifoWrite(&msg.crc.distant, sizeof(msg.crc.distant));
 	break;
       case SerialProtocol::Status::LEN_ERROR:
+      case SerialProtocol::Status::TIMOUT:
 	break;
       }
     }

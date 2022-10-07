@@ -7,7 +7,7 @@
 
 
 namespace SerialProtocol {
-  enum class Status {LEN_ERROR, CRC_ERROR, SUCCESS};
+  enum class Status {LEN_ERROR, CRC_ERROR, TIMOUT, SUCCESS};
   struct Msg {
     struct {
       const uint16_t header = SWAP_ENDIAN16(0xFEED);

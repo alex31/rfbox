@@ -85,6 +85,7 @@ namespace {
       case SerialProtocol::Status::SUCCESS:
 	chVTSetContinuous(&vtWatchDog, TIME_MS2I(1500), lambda, nullptr);
 	break;
+      case SerialProtocol::Status::TIMOUT:
       case SerialProtocol::Status::LEN_ERROR:
 	break;
       }
