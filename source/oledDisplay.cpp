@@ -155,7 +155,7 @@ namespace {
     chsnprintf(oledScreen[0].begin(), oledScreen[0].capacity(),
   	       "RX %lu Mhz", board.getFreq() / 1'000'000U);
     chsnprintf(oledScreen[1].begin(), oledScreen[1].capacity(),
-  	       "Sortie Ext Av %.2f", board.getDioAvg());
+  	       "->%lu Av %.2f", board.getBaud(), board.getDioAvg());
     chsnprintf(oledScreen[2].begin(), oledScreen[2].capacity(),
   	       "Lna %d db", board.getLnaGain());
     chsnprintf(oledScreen[3].begin(), oledScreen[3].capacity(),
@@ -167,7 +167,7 @@ namespace {
     chsnprintf(oledScreen[0].begin(), oledScreen[0].capacity(),
   	       "TX %lu Mhz", board.getFreq() / 1'000'000U);
     chsnprintf(oledScreen[1].begin(), oledScreen[1].capacity(),
-  	       "Source Externe");
+  	       "<- @%lu b", board.getBaud());
     chsnprintf(oledScreen[2].begin(), oledScreen[2].capacity(),
   	       "P %d dbm", board.getTxPower());
     chsnprintf(oledScreen[3].begin(), oledScreen[3].capacity(),
@@ -179,7 +179,7 @@ namespace {
     chsnprintf(oledScreen[0].begin(), oledScreen[0].capacity(),
   	       "FSK RX %lu Mhz", board.getFreq() / 1'000'000U);
     chsnprintf(oledScreen[1].begin(), oledScreen[1].capacity(),
-  	       "Sortie Externe");
+  	       "-> @%lu b", board.getBaud());
     chsnprintf(oledScreen[2].begin(), oledScreen[2].capacity(),
   	       "Lna %d db", board.getLnaGain());
     chsnprintf(oledScreen[3].begin(), oledScreen[3].capacity(),
@@ -191,7 +191,7 @@ namespace {
     chsnprintf(oledScreen[0].begin(), oledScreen[0].capacity(),
   	       "FSK TX %lu Mhz", board.getFreq() / 1'000'000U);
     chsnprintf(oledScreen[1].begin(), oledScreen[1].capacity(),
-  	       "Source Externe");
+  	       "<- @%lu b", board.getBaud());
     chsnprintf(oledScreen[2].begin(), oledScreen[2].capacity(),
   	       "P %d dbm", board.getTxPower());
   }
@@ -203,7 +203,7 @@ namespace {
     chsnprintf(oledScreen[1].begin(), oledScreen[1].capacity(),
   	       "BER %04d / 1000", std::min(uint16_t{1000}, board.getBer()));
     chsnprintf(oledScreen[2].begin(), oledScreen[2].capacity(),
-  	       "Lna %d; %u baud", board.getLnaGain(), board.getBaud());
+  	       "Lna %d; %lu baud", board.getLnaGain(), board.getBaud());
     chsnprintf(oledScreen[3].begin(), oledScreen[3].capacity(),
   	       "Rssi %d dbm", board.getRssi());
   }
@@ -213,7 +213,7 @@ namespace {
     chsnprintf(oledScreen[0].begin(), oledScreen[0].capacity(),
   	       "TX %lu Mhz", board.getFreq() / 1'000'000U);
     chsnprintf(oledScreen[1].begin(), oledScreen[1].capacity(),
-  	       "BER %u baud", board.getBaud());
+  	       "BER %lu baud", board.getBaud());
     chsnprintf(oledScreen[2].begin(), oledScreen[2].capacity(),
   	       "Source Interne");
     chsnprintf(oledScreen[3].begin(), oledScreen[3].capacity(),

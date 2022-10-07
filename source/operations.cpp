@@ -11,6 +11,7 @@
 #include "dio2Spy.hpp"
 #include "bboard.hpp"
 #include "serialProtocol.hpp"
+#include <initializer_list>
 
 namespace {
   enum class ElectricalStatus {FREE, HOLD};
@@ -28,7 +29,8 @@ namespace {
   void startRxTxEcho(void);
   void stopRxTxEcho(void);
 
-  ModeFsk::Source getConnectedSource(void);
+  using SourceParams = std::pair<uint32_t, ModeFsk::Source>;
+  SourceParams getConnectedSource(void);
 }
 
 namespace Ope {
@@ -85,9 +87,10 @@ namespace Ope {
     case Mode::RF_TX_EXTERNAL_FSK: {
       crcStart(&CRCD1, &crcCfgModbus);
       rfMode = RfMode::TX;
-      const auto activeSource = getConnectedSource();
+      const auto [baud, activeSource] = getConnectedSource();
+      board.setBaud(baud);
       buffer_RF_TX_EXTERNAL_FSK(activeSource);
-      ModeFsk::start(rfMode, board.getBaud());
+      ModeFsk::start(rfMode, baud);
     } break ;
       
     case Mode::RF_RX_INTERNAL:
@@ -231,7 +234,7 @@ namespace {
     palDisableLineEvent(LINE_EXTVCP_RX);
   }
 
-  ModeFsk::Source getConnectedSource(void)
+  SourceParams getConnectedSource(void)
   {
     SerialConfig ftdiSerialConfig =  {
       .speed = baudLow,
@@ -239,36 +242,30 @@ namespace {
       .cr2 = USART_CR2_STOP1_BITS | USART_CR2_LINEN,
       .cr3 = 0
     };
-    ModeFsk::Source source = ModeFsk::Source::NONE;
-
+    
     // wait indefinitely until a source is found
     board.setSource("Searching");
     DebugTrace("looking for source");
     while(true) {
-       source = ModeFsk::Source::SERIAL;
-       buffer_RF_TX_EXTERNAL_FSK(source);
-       ftdiSerialConfig.speed = baudLow;
-       ftdiSerialConfig.cr2 |=  USART_CR2_SWAP;
-       sdStart(&SD_METEO, &ftdiSerialConfig);
-       const SerialProtocol::Msg m1 = SerialProtocol::waitMsg(&SD_METEO);
-       sdStop(&SD_METEO);
-       if (m1.status == SerialProtocol::Status::SUCCESS)
-	 break;
-
-       source = ModeFsk::Source::USB_CDC;
-       buffer_RF_TX_EXTERNAL_FSK(source);
-       ftdiSerialConfig.speed = baudHigh;
-       ftdiSerialConfig.cr2 &=  ~USART_CR2_SWAP;
-       sdStart(&SD_METEO, &ftdiSerialConfig);
-       const  SerialProtocol::Msg m2 = SerialProtocol::waitMsg(&SD_METEO);
-       sdStop(&SD_METEO);
-       if (m2.status == SerialProtocol::Status::SUCCESS)
-	 break;
+      for (auto baud : {baudLow, baudHigh}) {
+	for (auto source : {ModeFsk::Source::SERIAL, ModeFsk::Source::USB_CDC}) {
+	  buffer_RF_TX_EXTERNAL_FSK(source);
+	  ftdiSerialConfig.speed = baud;
+	  if (source == ModeFsk::Source::SERIAL)
+	    ftdiSerialConfig.cr2 |=  USART_CR2_SWAP;
+	  else
+	    ftdiSerialConfig.cr2 &=  ~USART_CR2_SWAP;
+	  sdStart(&SD_METEO, &ftdiSerialConfig);
+	  const SerialProtocol::Msg m1 = SerialProtocol::waitMsg(&SD_METEO);
+	  sdStop(&SD_METEO);
+	  if (m1.status == SerialProtocol::Status::SUCCESS) {
+	    board.setSource(source == ModeFsk::Source::SERIAL ? "Serial" : "USB");
+	    DebugTrace("found source %s @ %lu bauds", board.getSource().c_str(), baud);
+	    return {baud, source};
+	  }
+	}
+      }
     }
-
-    board.setSource(source == ModeFsk::Source::SERIAL ? "Serial" : "USB");
-    DebugTrace("found source %s", board.getSource().c_str());
-    return source;
   }
 
   
