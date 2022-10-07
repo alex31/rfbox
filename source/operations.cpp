@@ -256,9 +256,9 @@ namespace {
 	  else
 	    ftdiSerialConfig.cr2 &=  ~USART_CR2_SWAP;
 	  sdStart(&SD_METEO, &ftdiSerialConfig);
-	  const SerialProtocol::Msg m1 = SerialProtocol::waitMsg(&SD_METEO);
+	  const SerialProtocol::Msg msg = SerialProtocol::waitMsg(&SD_METEO);
 	  sdStop(&SD_METEO);
-	  if (m1.status == SerialProtocol::Status::SUCCESS) {
+	  if (msg.status == SerialProtocol::Status::SUCCESS) {
 	    board.setSource(source == ModeFsk::Source::SERIAL ? "Serial" : "USB");
 	    DebugTrace("found source %s @ %lu bauds", board.getSource().c_str(), baud);
 	    return {baud, source};
