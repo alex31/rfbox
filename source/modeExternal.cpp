@@ -5,7 +5,6 @@
 #include "radio.hpp"
 #include "hardwareConf.hpp"
 #include "bboard.hpp"
-#include "crcv1.h"
 #include "dio2Spy.hpp"
 #include "serialProtocol.hpp"
 
@@ -46,8 +45,6 @@ namespace ModeExternal {
 
     if (rfMode == RfMode::RX) {
       meteoSerialConfig.cr2 |= USART_CR2_SWAP;
-      crcInit();
-      crcStart(&CRCD1, &crcCfgModbus);
       chVTSet(&vtWatchDog, TIME_S2I(3), [](ch_virtual_timer *, void *) {
 	shouldRestartRx = true;
       },

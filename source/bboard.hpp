@@ -8,6 +8,7 @@ class BBoard
 {
 public:
   using error_t = etl::string<16>;
+  using source_t = etl::string<10>;
   void setMode(Ope::Mode _mode) {mode = _mode;}
   void setRssi(int16_t _rssi) {rssi = _rssi;}
   void setLnaGain(int16_t _lnaGain) {lnaGain = _lnaGain;}
@@ -20,6 +21,8 @@ public:
   void setError(etl::string_view _error) {Lock m(mtx);
     error =  error_t{_error};}
   void clearError(void) {Lock m(mtx); error.clear();}
+  void setSource(etl::string_view _source) {Lock m(mtx);
+    source =  source_t{_source};}
 
   Ope::Mode getMode(void) {return mode;}
   int16_t getRssi(void) {return rssi;}
@@ -31,6 +34,7 @@ public:
   bool getRfEnable(void) {return rfEnable;}
   int16_t getTxPower(void) {return txPower;}
   const error_t& getError(void) {Lock m(mtx); return error;}
+  const source_t& getSource(void) {Lock m(mtx); return source;}
   
 private:
   // scalar assignment is atomic on arm32 arch, so mutex
@@ -46,6 +50,7 @@ private:
   bool    rfEnable = false;
   uint8_t txPower = {};
   error_t error = {};
+  source_t source = {};
 };
 
 extern BBoard board;

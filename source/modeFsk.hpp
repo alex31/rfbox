@@ -5,5 +5,6 @@
 
 
 namespace ModeFsk {
- void start(RfMode rfMode, uint32_t baud);
+  enum class Source {NONE, SERIAL, USB_CDC};
+  void start(RfMode rfMode, uint32_t baud, Source source = Source::NONE);
 }

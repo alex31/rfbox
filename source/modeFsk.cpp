@@ -1,4 +1,4 @@
-#include "modeTest.hpp"
+#include "modeFsk.hpp"
 #include "ch.h"
 #include "hal.h"
 #include "stdutil.h"
@@ -6,18 +6,13 @@
 #include "hardwareConf.hpp"
 #include "bboard.hpp"
 #include "serialProtocol.hpp"
-#include "crcv1.h"
 
 namespace {
   THD_WORKING_AREA(waMsgRelay, 1280);
   [[noreturn]] void msgRelaySerialToSpi(void *arg);
   [[noreturn]] void msgRelaySpiToSerial(void *arg);
   static  SerialConfig ftdiSerialConfig =  {
-#if PACKET_EMISSION_READ_FROM_SERIAL
     .speed = baudLow,
-#else
-    .speed = baudHigh,
-#endif
     .cr1 = 0,
     .cr2 = USART_CR2_STOP1_BITS | USART_CR2_LINEN,
     .cr3 = 0
@@ -26,17 +21,15 @@ namespace {
 
 namespace ModeFsk {
 
-  void start(RfMode rfMode, uint32_t )
+  void start(RfMode rfMode, uint32_t baud, Source source)
   {
+    ftdiSerialConfig.speed = baud;
     if (rfMode == RfMode::RX) {
       ftdiSerialConfig.cr2 |= USART_CR2_TXINV;
     } else {
-#if PACKET_EMISSION_READ_FROM_SERIAL
-      ftdiSerialConfig.cr2 |=  USART_CR2_SWAP;
-#endif
+      if (source == ModeFsk::Source::SERIAL)
+	ftdiSerialConfig.cr2 |=  USART_CR2_SWAP;
     }
-    crcInit();
-    crcStart(&CRCD1, &crcCfgModbus);
     sdStart(&SD_METEO, &ftdiSerialConfig);
     if (rfMode == RfMode::RX) {
       chThdCreateStatic(waMsgRelay, sizeof(waMsgRelay),

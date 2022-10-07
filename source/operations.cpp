@@ -10,6 +10,7 @@
 #include "hardwareConf.hpp"
 #include "dio2Spy.hpp"
 #include "bboard.hpp"
+#include "serialProtocol.hpp"
 
 namespace {
   enum class ElectricalStatus {FREE, HOLD};
@@ -20,12 +21,14 @@ namespace {
   void buffer_RF_RX_EXTERNAL_OOK();
   void buffer_RF_TX_EXTERNAL_OOK();
   void buffer_RF_RX_EXTERNAL_FSK();
-  void buffer_RF_TX_EXTERNAL_FSK();
+  void buffer_RF_TX_EXTERNAL_FSK(ModeFsk::Source source);
   void buffer_RF_RX_INTERNAL();
   void buffer_RF_TX_INTERNAL();
 
   void startRxTxEcho(void);
   void stopRxTxEcho(void);
+
+  ModeFsk::Source getConnectedSource(void);
 }
 
 namespace Ope {
@@ -57,6 +60,7 @@ namespace Ope {
       break ;
       
     case Mode::RF_RX_EXTERNAL_OOK:
+      crcStart(&CRCD1, &crcCfgModbus);
       rfMode = RfMode::RX;
       buffer_RF_RX_EXTERNAL_OOK();
       Dio2Spy::start(LINE_EXTVCP_TX);
@@ -64,22 +68,27 @@ namespace Ope {
       break ;
       
     case Mode::RF_TX_EXTERNAL_OOK:
+      crcStart(&CRCD1, &crcCfgModbus);
       rfMode = RfMode::TX;
       buffer_RF_TX_EXTERNAL_OOK();
       Dio2Spy::start(LINE_EXTVCP_TX);
       break ;
       
      case Mode::RF_RX_EXTERNAL_FSK:
+      crcStart(&CRCD1, &crcCfgModbus);
       rfMode = RfMode::RX;
       buffer_RF_RX_EXTERNAL_FSK();
-      ModeFsk::start(rfMode, board.getBaud());
+      ModeFsk::start(rfMode, baudHigh); // in this mode, inconditionnaly use high baudate
       break ;
-      
-    case Mode::RF_TX_EXTERNAL_FSK:
+
+      // in this mode, one should dynamically test which entry (serial or usb) is in use
+    case Mode::RF_TX_EXTERNAL_FSK: {
+      crcStart(&CRCD1, &crcCfgModbus);
       rfMode = RfMode::TX;
-      buffer_RF_TX_EXTERNAL_FSK();
+      const auto activeSource = getConnectedSource();
+      buffer_RF_TX_EXTERNAL_FSK(activeSource);
       ModeFsk::start(rfMode, board.getBaud());
-      break ;
+    } break ;
       
     case Mode::RF_RX_INTERNAL:
       rfMode = RfMode::RX;
@@ -184,15 +193,17 @@ namespace {
   //
   // if ftdi : serial not swaped, 
   //           buffer HiZ
-  void buffer_RF_TX_EXTERNAL_FSK()
+  void buffer_RF_TX_EXTERNAL_FSK(ModeFsk::Source source)
   {
-#if PACKET_EMISSION_READ_FROM_SERIAL
-    palSetLineMode(LINE_EXTVCP_TX, PAL_MODE_ALTERNATE(AF_LINE_EXTVCP_TX));
-    Buffer::setMode(Buffer::Mode::TX);
-#else
-    palSetLineMode(LINE_EXTVCP_RX, PAL_MODE_ALTERNATE(AF_LINE_EXTVCP_RX));
-    Buffer::setMode(Buffer::Mode::HiZ);
-#endif
+    if (source == ModeFsk::Source::SERIAL) {
+      palSetLineMode(LINE_EXTVCP_TX, PAL_MODE_ALTERNATE(AF_LINE_EXTVCP_TX));
+      Buffer::setMode(Buffer::Mode::TX);
+    } else if (source == ModeFsk::Source::USB_CDC) {
+      palSetLineMode(LINE_EXTVCP_RX, PAL_MODE_ALTERNATE(AF_LINE_EXTVCP_RX));
+      Buffer::setMode(Buffer::Mode::HiZ);
+    } else {
+      chSysHalt("source cannot be ModeFsk::Source::NONE");
+    }
   }
   
   void buffer_RF_RX_INTERNAL() // mode BER
@@ -219,4 +230,46 @@ namespace {
   {
     palDisableLineEvent(LINE_EXTVCP_RX);
   }
-}
+
+  ModeFsk::Source getConnectedSource(void)
+  {
+    SerialConfig ftdiSerialConfig =  {
+      .speed = baudLow,
+      .cr1 = 0,
+      .cr2 = USART_CR2_STOP1_BITS | USART_CR2_LINEN,
+      .cr3 = 0
+    };
+    ModeFsk::Source source = ModeFsk::Source::NONE;
+
+    // wait indefinitely until a source is found
+    board.setSource("Searching");
+    DebugTrace("looking for source");
+    while(true) {
+       source = ModeFsk::Source::SERIAL;
+       buffer_RF_TX_EXTERNAL_FSK(source);
+       ftdiSerialConfig.speed = baudLow;
+       ftdiSerialConfig.cr2 |=  USART_CR2_SWAP;
+       sdStart(&SD_METEO, &ftdiSerialConfig);
+       const SerialProtocol::Msg m1 = SerialProtocol::waitMsg(&SD_METEO);
+       sdStop(&SD_METEO);
+       if (m1.status == SerialProtocol::Status::SUCCESS)
+	 break;
+
+       source = ModeFsk::Source::USB_CDC;
+       buffer_RF_TX_EXTERNAL_FSK(source);
+       ftdiSerialConfig.speed = baudHigh;
+       ftdiSerialConfig.cr2 &=  ~USART_CR2_SWAP;
+       sdStart(&SD_METEO, &ftdiSerialConfig);
+       const  SerialProtocol::Msg m2 = SerialProtocol::waitMsg(&SD_METEO);
+       sdStop(&SD_METEO);
+       if (m2.status == SerialProtocol::Status::SUCCESS)
+	 break;
+    }
+
+    board.setSource(source == ModeFsk::Source::SERIAL ? "Serial" : "USB");
+    DebugTrace("found source %s", board.getSource().c_str());
+    return source;
+  }
+
+  
+} // end of anonymous namespace
