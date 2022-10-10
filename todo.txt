@@ -20,9 +20,9 @@ ihm avec 4 slider qui :
 comment tester l'input USB maintenant, sans coder d'appli sur PC
 
 windbox -> devbm4 -> ftdi -> PC -> rfbox(usb)
-conf ftdi connecté à la devbm4 : /dev/ttyUSB0 en 4800 bauds (d'un coup de screen)
-conf ftdi connecté à la rfbox : /dev/ttyUSB1 en 19200 bauds (d'un coup de screen)
-cat /dev/ttyUSB0 > ttyUSB1
+conf ftdi externe connecté à la devbm4 : /dev/ttyUSB0 en 4800 bauds (d'un coup de screen)
+conf ftdi inside rfbox : /dev/ttyUSB1 en 19200 bauds (d'un coup de screen)
+cat < /dev/ttyUSB0 > ttyUSB1
 
 
 ==================================

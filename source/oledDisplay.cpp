@@ -192,7 +192,9 @@ namespace {
   	       "FSK TX %lu Mhz", board.getFreq() / 1'000'000U);
     chsnprintf(oledScreen[1].begin(), oledScreen[1].capacity(),
   	       "<- @%lu b", board.getBaud());
-    chsnprintf(oledScreen[2].begin(), oledScreen[2].capacity(),
+    chsnprintf(oledScreen[2].begin(), oledScreen[1].capacity(),
+  	       "<- %s", board.getSource().c_str());
+    chsnprintf(oledScreen[3].begin(), oledScreen[2].capacity(),
   	       "P %d dbm", board.getTxPower());
   }
   
