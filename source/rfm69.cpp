@@ -446,12 +446,18 @@ void Rfm69BaseRadio::rfHealthSurvey(void *arg)
 
 void Rfm69BaseRadio::coldReset()
 {
+  static uint32_t count = 0;
+  if (++count == 100) {
+    RTCD1.rtc->BKP0R = warmBootSysRst;
+    systemReset();
+  }
   do {
     rfm69.reset();
     rfm69.cacheWrite(Rfm69RegIndex::DataModul, Rfm69RegIndex::Last - Rfm69RegIndex::DataModul);
     waitReady();
     setModeAndWait(mode);
     calibrate();
+    chThdSleepMilliseconds(100);
     rfm69.cacheRead(Rfm69RegIndex::RfMode);
     rfm69.cacheRead(Rfm69RegIndex::IrqFlags1);
   } while  ((mode == RfMode::RX) and (rfm69.reg.irqFlags1 != 0xD8));
