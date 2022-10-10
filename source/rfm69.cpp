@@ -53,7 +53,22 @@ namespace {
     
     return  {bwv, emant, static_cast<uint8_t>(exp)};
   }
-}
+
+  constexpr std::array<Rxbw, +BitRateIndex::UpBound> rxbwFsk = {
+    getRxBw(baudRates[+BitRateIndex::Low] * 3, RxBwModul::FSK),
+    getRxBw(baudRates[+BitRateIndex::High] * 3, RxBwModul::FSK),
+    getRxBw(baudRates[+BitRateIndex::VeryHigh] * 3, RxBwModul::FSK)
+  };
+
+  constexpr std::array<Rxbw, +BitRateIndex::UpBound - 1> rxbwOok = {
+    getRxBw(baudRates[+BitRateIndex::Low] * 3, RxBwModul::OOK),
+    getRxBw(baudRates[+BitRateIndex::High] * 3, RxBwModul::OOK)
+  };
+
+
+} // end of anonymous namespace
+
+
 
 #define NOREENT()   Lock m(protectMtx) 
 
@@ -568,7 +583,7 @@ void Rfm69OokRadio::calibrateRssiThresh(void)
 void Rfm69OokRadio::setRfTuning(void)
 {
  // settings for RxBw depending on baudrate
-   constexpr Rxbw rxbw = getRxBw(baudLow * 2.1f, RxBwModul::OOK);
+   constexpr Rxbw rxbw = getRxBw(baudRates[+BitRateIndex::Low] * 2.1f, RxBwModul::OOK);
    static_assert(rxbw.actualBw > 0);
    static_assert(rxbw.exp > 0);
    /* dccfreq default 4 % of rxbx */
@@ -608,6 +623,7 @@ void Rfm69OokRadio::setOokPeak(ThresholdType t, ThresholdDec d,
 */
 Rfm69Status Rfm69FskRadio::init(const SPIConfig& spiCfg)
 {
+  const BitRateIndex bri = board.getBitRateIdx();
   Rfm69Status status = rfm69.init(spiCfg);
   if (status != Rfm69Status::OK)
     goto end;
@@ -630,9 +646,9 @@ Rfm69Status Rfm69FskRadio::init(const SPIConfig& spiCfg)
     rfm69.reg.dioMapping_io4 = 
     rfm69.reg.dioMapping_io5 = 0b10; // DIO2 is HiZ in Tx and Rx modes and won't mess with UART_TX
 
-  setBitRate(fskBroadcastBitRate);
+  setBitRate(baudRates[+bri] * fskBroadcastBitRateRatio);
   configPacketMode();
-  setFrequencyDeviation(frequencyDev); // roughly 3x the bitrate
+  setFrequencyDeviation(frequencyDev[+bri]); // roughly 3x the bitrate
   setRfTuning();
 
   rfm69.cacheWrite(Rfm69RegIndex::DataModul,
@@ -712,8 +728,14 @@ void Rfm69FskRadio::rawFifoRead(void *buffer, uint8_t len)
 
 void Rfm69FskRadio::setRfTuning(void)
 {
-  constexpr Rxbw rxbw = getRxBw(fskBroadcastBitRate * 3, RxBwModul::FSK);
-  static_assert(rxbw.actualBw > 0);
+  static_assert(rxbwFsk[+BitRateIndex::Low].actualBw > 0);
+  static_assert(rxbwFsk[+BitRateIndex::High].actualBw > 0);
+  static_assert(rxbwFsk[+BitRateIndex::VeryHigh].actualBw > 0);
+  static_assert(rxbwOok[+BitRateIndex::Low].actualBw > 0);
+  static_assert(rxbwOok[+BitRateIndex::High].actualBw > 0);
+
+  const BitRateIndex bri = board.getBitRateIdx();
+  const Rxbw rxbw = rxbwFsk[+bri];
   DebugTrace("actual FSK bandwith = %ld", rxbw.actualBw);
   /* dccfreq default 4 % of rxbx */
   setRxBw(rxbw.mant, rxbw.exp, 2);

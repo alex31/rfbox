@@ -11,8 +11,10 @@ namespace SerialProtocol {
     Msg msg = {.len = 0, .payload = {},
       .crc = {}, .status = {}
     };
-    
+    const systime_t start = chVTGetSystemTimeX();
+    systime_t now;
     do {
+      now = chVTGetSystemTimeX();
       auto newByte = sdGetTimeout(sd, time_500ms);
       if (newByte < 0) {// timout
 	msg.status = SerialProtocol::Status::TIMOUT;
@@ -21,7 +23,8 @@ namespace SerialProtocol {
 	sync[0] = sync[1];
 	sync[1] = newByte;
       }
-    } while ((sync[0] != 0xFE) or (sync[1] != 0xED));
+    } while (((sync[0] != 0xFE) or (sync[1] != 0xED)) and
+	     (chTimeDiffX(start, now) < time_500ms));
     
     msg.len = sdGet(sd);
     if (msg.len == 0) {

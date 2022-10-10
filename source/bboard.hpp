@@ -3,6 +3,7 @@
 #include "etl/string.h"
 #include "etl/string_view.h"
 #include "common.hpp"
+#include "hardwareConf.hpp"
 
 class BBoard
 {
@@ -14,7 +15,7 @@ public:
   void setLnaGain(int16_t _lnaGain) {lnaGain = _lnaGain;}
   void setBer(uint16_t _ber) {ber = _ber;}
   void setDioAvg(float _dioAvg) {dioAvg = _dioAvg;}
-  void setBaud(uint32_t _baud) {baud = _baud;}
+  void setBitRateIdx(BitRateIndex _baudIdx) {baudIdx = _baudIdx;}
   void setFreq(uint32_t _freq) {freq = _freq;}
   void setRfEnable(bool _rfEnable) {rfEnable = _rfEnable;}
   void setTxPower(int16_t _txPower) {txPower = _txPower;}
@@ -29,7 +30,8 @@ public:
   int16_t getLnaGain(void) {return lnaGain;}
   uint16_t getBer(void) {return ber;}
   float   getDioAvg(void) {return dioAvg;}
-  uint32_t getBaud(void) {return baud;}
+  BitRateIndex getBitRateIdx(void) {return baudIdx;}
+  uint32_t getBaud(void) {return baudRates[+baudIdx];}
   uint32_t getFreq(void) {return freq;}
   bool getRfEnable(void) {return rfEnable;}
   int16_t getTxPower(void) {return txPower;}
@@ -45,7 +47,7 @@ private:
   int16_t lnaGain = {};
   uint16_t ber = {};
   float   dioAvg = {};
-  uint32_t baud = {};
+  BitRateIndex baudIdx = {};
   uint32_t freq = {};
   bool    rfEnable = false;
   uint8_t txPower = {};

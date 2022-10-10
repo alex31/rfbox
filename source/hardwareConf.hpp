@@ -1,6 +1,6 @@
 #pragma once
 #include "crcv1.h"
-
+#include <array>
 
 
 inline constexpr uint32_t fPclk = STM32_PCLK1;
@@ -14,6 +14,19 @@ inline constexpr uint32_t fPclk = STM32_PCLK1;
 
 inline constexpr size_t oledWidth = 22U;
 inline constexpr size_t oledHeight = 4U;
+
+enum class BitRateIndex {Low, High, VeryHigh, UpBound};
+
+constexpr std::underlying_type_t<BitRateIndex> operator+(BitRateIndex i) noexcept
+{
+    return static_cast<std::underlying_type_t<BitRateIndex>>(i);
+}
+constexpr BitRateIndex operator++(BitRateIndex i) noexcept
+{
+  const std::underlying_type_t<BitRateIndex> utv =
+    static_cast<std::underlying_type_t<BitRateIndex>>(i) + 1U; 
+  return static_cast<BitRateIndex>(utv);
+}
 
 constexpr uint32_t getBr12(uint32_t speed)
 {
@@ -38,9 +51,8 @@ inline constexpr uint32_t carrierFrequencyLow = 868'000'000;
 inline constexpr uint32_t carrierFrequencyHigh = 870'000'000;
 inline constexpr int8_t   ampLevelDbLow = 0;
 inline constexpr int8_t   ampLevelDbHigh = 18;
-inline constexpr uint32_t baudLow = 4800;
-inline constexpr uint32_t baudHigh = 19200;
-inline constexpr uint32_t fskBroadcastBitRate = (baudHigh * 3) / 2;
+inline constexpr std::array<uint32_t, +BitRateIndex::UpBound> baudRates = {4800, 19200, 115200};
+inline constexpr float    fskBroadcastBitRateRatio = 1.5f;
 inline constexpr SerialDriver &SD_METEO = CONCAT(SD, EXTVCP_TX_USART);
 inline constexpr uint32_t warmBootWdg = 0xDEADC0DE;
 inline constexpr uint32_t warmBootSysRst = 0xBADCAFFE;

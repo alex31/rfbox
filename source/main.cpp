@@ -62,8 +62,10 @@ int main (void)
   const int8_t amplificationLevelDb = DIP::getDip(DIPSWITCH::PWRLVL) ?
     ampLevelDbHigh : ampLevelDbLow;
   const bool berMode = DIP::getDip(DIPSWITCH::BER);
-  const uint32_t baud = DIP::getDip(DIPSWITCH::BAUD_MODUL) ? baudHigh : baudLow;
-  board.setBaud(baud);
+  const  BitRateIndex bitRateIndex = DIP::getDip(DIPSWITCH::BAUD_MODUL) ?
+    BitRateIndex::High :
+    BitRateIndex::Low;
+  board.setBitRateIdx(bitRateIndex);
   
   DebugTrace("carrier frequency %lu @ %d Db level", frequencyCarrier, amplificationLevelDb);
   board.setFreq(frequencyCarrier);
@@ -81,7 +83,7 @@ int main (void)
     if (berMode) {
       opMode = rfMode == RfMode::RX ? Ope::Mode::RF_RX_INTERNAL : Ope::Mode::RF_TX_INTERNAL;
     } else { // not in ber mode : regular mode
-      if (baud == baudLow)
+      if (bitRateIndex == BitRateIndex::Low)
 	opMode = rfMode == RfMode::RX ? Ope::Mode::RF_RX_EXTERNAL_OOK : Ope::Mode::RF_TX_EXTERNAL_OOK;
       else
 	opMode = rfMode == RfMode::RX ? Ope::Mode::RF_RX_EXTERNAL_FSK : Ope::Mode::RF_TX_EXTERNAL_FSK;

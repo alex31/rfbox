@@ -125,6 +125,12 @@ private:
 };
 
 
+struct FrequencyDev {
+  uint32_t low;
+  uint32_t high;
+  uint32_t veryHigh;
+} ;
+
 class Rfm69FskRadio : public Rfm69BaseRadio {
 public:
   Rfm69FskRadio(SPIDriver& spid, ioline_t lineReset) :
@@ -150,7 +156,11 @@ private:
   static constexpr uint8_t preambleSize = 8U;
   static constexpr uint8_t syncWordSize = 4U;
   static constexpr uint8_t interPacketRxDelay = 15U;
-  static constexpr uint32_t frequencyDev = fskBroadcastBitRate * 2;
+  static constexpr std::array<uint32_t, +BitRateIndex::UpBound> frequencyDev = {
+    static_cast<uint32_t>(baudRates[+BitRateIndex::Low] * 2 * fskBroadcastBitRateRatio),
+    static_cast<uint32_t>(baudRates[+BitRateIndex::High] * 2 * fskBroadcastBitRateRatio),
+    static_cast<uint32_t>(baudRates[+BitRateIndex::VeryHigh] * 2 * fskBroadcastBitRateRatio),
+  };
   void configPacketMode(void);
   ~Rfm69FskRadio() = delete;
 };
