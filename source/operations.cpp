@@ -76,12 +76,18 @@ namespace Ope {
       Dio2Spy::start(LINE_EXTVCP_TX);
       break ;
       
-     case Mode::RF_RX_EXTERNAL_FSK:
+    case Mode::RF_RX_EXTERNAL_FSK: {
       crcStart(&CRCD1, &crcCfgModbus);
       rfMode = RfMode::RX;
       buffer_RF_RX_EXTERNAL_FSK();
-      ModeFsk::start(rfMode, baudRates[+BitRateIndex::High]); // in this mode, inconditionnaly use high baudate
-      break ;
+      // in this mode, use high baudate if txpower is low or
+      // veryhigh  if txpower is high
+      const BitRateIndex bri = board.getTxPower() == ampLevelDbLow ?
+	BitRateIndex::High :
+	BitRateIndex::VeryHigh;
+      board.setBitRateIdx(bri);
+      ModeFsk::start(rfMode, baudRates[+bri]);
+    } break ;
 
       // in this mode, one should dynamically test which entry (serial or usb) is in use
     case Mode::RF_TX_EXTERNAL_FSK: {
@@ -247,7 +253,7 @@ namespace {
     board.setSource("Searching");
     DebugTrace("looking for source");
     while(true) {
-      for (auto bri : {BitRateIndex::Low, BitRateIndex::High}) {
+      for (auto bri : {BitRateIndex::Low, BitRateIndex::High, BitRateIndex::VeryHigh}) {
 	for (auto source : {ModeFsk::Source::SERIAL, ModeFsk::Source::USB_CDC}) {
 	  buffer_RF_TX_EXTERNAL_FSK(source);
 	  ftdiSerialConfig.speed = baudRates[+bri];
