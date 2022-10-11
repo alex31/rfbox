@@ -55,21 +55,27 @@ namespace {
   }
 
   
+ constexpr std::array<uint32_t, +BitRateIndex::UpBound> chipRates = {
+   static_cast<uint32_t>(baudRates[+BitRateIndex::High] * fskBroadcastBitRateRatio),
+   static_cast<uint32_t>(baudRates[+BitRateIndex::High] * fskBroadcastBitRateRatio),
+   static_cast<uint32_t>(baudRates[+BitRateIndex::VeryHigh] * fskBroadcastBitRateRatio)
+  };
+
   constexpr std::array<Rxbw, +BitRateIndex::UpBound> rxbwFsk = {
-    getRxBw(baudRates[+BitRateIndex::High] * 3, RxBwModul::FSK),
-    getRxBw(baudRates[+BitRateIndex::High] * 3, RxBwModul::FSK),
-    getRxBw(baudRates[+BitRateIndex::VeryHigh] * 3, RxBwModul::FSK),
+    getRxBw(chipRates[+BitRateIndex::Low] * 2, RxBwModul::FSK),
+    getRxBw(chipRates[+BitRateIndex::High] * 2, RxBwModul::FSK),
+    getRxBw(chipRates[+BitRateIndex::VeryHigh] * 2, RxBwModul::FSK)
   };
 
   constexpr std::array<uint32_t, +BitRateIndex::UpBound> frequencyDev = {
-    static_cast<uint32_t>(baudRates[+BitRateIndex::High] * 2 * fskBroadcastBitRateRatio),
-    static_cast<uint32_t>(baudRates[+BitRateIndex::High] * 2 * fskBroadcastBitRateRatio),
-    static_cast<uint32_t>(50'000) // magic number : highest Fdev is not reliable
+    chipRates[+BitRateIndex::Low] * 2U,
+    baudRates[+BitRateIndex::High] * 2u,
+    50'000 // magic number : highest Fdev is not reliable
   };
   
   constexpr std::array<Rxbw, +BitRateIndex::UpBound - 1> rxbwOok = {
-    getRxBw(baudRates[+BitRateIndex::Low] * 3, RxBwModul::OOK),
-    getRxBw(baudRates[+BitRateIndex::High] * 3, RxBwModul::OOK)
+    getRxBw(baudRates[+BitRateIndex::Low] * 3u, RxBwModul::OOK),
+    getRxBw(baudRates[+BitRateIndex::High] * 3u, RxBwModul::OOK)
   };
 
 
@@ -659,7 +665,7 @@ Rfm69Status Rfm69FskRadio::init(const SPIConfig& spiCfg)
     rfm69.reg.dioMapping_io4 = 
     rfm69.reg.dioMapping_io5 = 0b10; // DIO2 is HiZ in Tx and Rx modes and won't mess with UART_TX
 
-  setBitRate(baudRates[+bri] * fskBroadcastBitRateRatio);
+  setBitRate(chipRates[+bri]);
   configPacketMode();
   setFrequencyDeviation(frequencyDev[+bri]); // roughly 3x the bitrate
   setRfTuning();

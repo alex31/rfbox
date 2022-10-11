@@ -27,6 +27,7 @@ namespace ModeFsk {
     if (rfMode == RfMode::RX) {
       ftdiSerialConfig.cr2 |= USART_CR2_TXINV;
     } else {
+      chDbgCheck(source != Source::NONE);
       if (source == ModeFsk::Source::SERIAL)
 	ftdiSerialConfig.cr2 |=  USART_CR2_SWAP;
     }
@@ -53,7 +54,7 @@ namespace {
     
     while(true) {
       SerialProtocol::Msg msg = SerialProtocol::waitMsg(&SD_METEO);
-      //       DebugTrace("+++++++ Ser2Spi msg ++++++++");
+      //             DebugTrace("+++++++ Ser2Spi msg ++++++++");
       switch (msg.status) {
       case SerialProtocol::Status::CRC_ERROR:
 	//	DebugTrace("CRC differ : L:0x%x != D:0x%x", msg.crc.local, msg.crc.distant);
@@ -93,7 +94,7 @@ namespace {
 	chThdSleepMilliseconds(1);
       }
       fskr->fifoRead(msg.payload.data(), &msg.len);
-      //      DebugTrace("payload ready = %u", fskr->getPayloadReady());
+      DebugTrace("payload ready = %u", fskr->getPayloadReady());
       
       // after this call, len is complete len : len of payload + crc
       //   DebugTrace("+++++++ Spi2Ser msg len= %u ++++++++", msg.len);

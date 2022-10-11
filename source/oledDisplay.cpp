@@ -128,17 +128,19 @@ namespace {
     oledScreen = {
       "     BE MCU     ",
       "module radio OFF",
-      "mode USB-Serie  ",
-      "*** Emission ***"};
-  }
+      "mode Serie->USB ",
+      "tune baud on PC "
+    };
+  };
   
   void fillNoRfRx(void)
   {
     oledScreen = {
       "     BE MCU     ",
       "module radio OFF",
-      "mode USB-Serie  ",
-      "** Reception ** "};
+      "mode USB->Serie ",
+      "tune baud on PC "
+    };
   }
 
   void fillCalibrateRssi(void)

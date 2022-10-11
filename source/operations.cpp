@@ -86,7 +86,7 @@ namespace Ope {
 
       // in this mode, one should dynamically test which entry (serial or usb) is in use
     case Mode::RF_TX_EXTERNAL_FSK: {
-      chDbgAssert(source != ModeFsk::Source::NONE, "call ajustParamIfFsk before tgis method");
+      chDbgAssert(source != ModeFsk::Source::NONE, "call ajustParamIfFsk before this method");
       rfMode = RfMode::TX;
       const auto bri = board.getBitRateIdx();
       board.setBitRateIdx(bri);
@@ -118,7 +118,7 @@ namespace Ope {
       switch (opMode) {
       case Mode::RF_RX_EXTERNAL_FSK:
       case Mode::RF_TX_EXTERNAL_FSK:
-	ModeFsk::start(rfMode, baudRates[+board.getBitRateIdx()]);
+	ModeFsk::start(rfMode, baudRates[+board.getBitRateIdx()], source);
 	break;
       default:
 	break;
