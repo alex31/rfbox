@@ -54,12 +54,19 @@ namespace {
     return  {bwv, emant, static_cast<uint8_t>(exp)};
   }
 
+  
   constexpr std::array<Rxbw, +BitRateIndex::UpBound> rxbwFsk = {
-    getRxBw(baudRates[+BitRateIndex::Low] * 3, RxBwModul::FSK),
     getRxBw(baudRates[+BitRateIndex::High] * 3, RxBwModul::FSK),
-    getRxBw(baudRates[+BitRateIndex::VeryHigh] * 3, RxBwModul::FSK)
+    getRxBw(baudRates[+BitRateIndex::High] * 3, RxBwModul::FSK),
+    getRxBw(baudRates[+BitRateIndex::VeryHigh] * 3, RxBwModul::FSK),
   };
 
+  constexpr std::array<uint32_t, +BitRateIndex::UpBound> frequencyDev = {
+    static_cast<uint32_t>(baudRates[+BitRateIndex::High] * 2 * fskBroadcastBitRateRatio),
+    static_cast<uint32_t>(baudRates[+BitRateIndex::High] * 2 * fskBroadcastBitRateRatio),
+    static_cast<uint32_t>(50'000) // magic number : highest Fdev is not reliable
+  };
+  
   constexpr std::array<Rxbw, +BitRateIndex::UpBound - 1> rxbwOok = {
     getRxBw(baudRates[+BitRateIndex::Low] * 3, RxBwModul::OOK),
     getRxBw(baudRates[+BitRateIndex::High] * 3, RxBwModul::OOK)
@@ -742,7 +749,10 @@ void Rfm69FskRadio::setRfTuning(void)
 
   const BitRateIndex bri = board.getBitRateIdx();
   const Rxbw rxbw = rxbwFsk[+bri];
-  DebugTrace("actual FSK bandwith = %ld", rxbw.actualBw);
+  DebugTrace("actual FSK bandwith for baud @%lu bri:%u = %ld",
+	     board.getBaud(),
+	     +bri,
+	     rxbw.actualBw);
   /* dccfreq default 4 % of rxbx */
   setRxBw(rxbw.mant, rxbw.exp, 2);
   //setAutoRxRestart(false);

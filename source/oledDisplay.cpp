@@ -155,7 +155,7 @@ namespace {
     chsnprintf(oledScreen[0].begin(), oledScreen[0].capacity(),
   	       "RX %lu Mhz", board.getFreq() / 1'000'000U);
     chsnprintf(oledScreen[1].begin(), oledScreen[1].capacity(),
-  	       "->%lu Av %.2f", board.getBaud(), board.getDioAvg());
+  	       "<- %lu Av %.2f", board.getBaud(), board.getDioAvg());
     chsnprintf(oledScreen[2].begin(), oledScreen[2].capacity(),
   	       "Lna %d db", board.getLnaGain());
     chsnprintf(oledScreen[3].begin(), oledScreen[3].capacity(),
@@ -167,7 +167,7 @@ namespace {
     chsnprintf(oledScreen[0].begin(), oledScreen[0].capacity(),
   	       "TX %lu Mhz", board.getFreq() / 1'000'000U);
     chsnprintf(oledScreen[1].begin(), oledScreen[1].capacity(),
-  	       "<- @%lu b", board.getBaud());
+  	       "-> @%lu b", board.getBaud());
     chsnprintf(oledScreen[2].begin(), oledScreen[2].capacity(),
   	       "P %d dbm", board.getTxPower());
     chsnprintf(oledScreen[3].begin(), oledScreen[3].capacity(),
@@ -179,7 +179,7 @@ namespace {
     chsnprintf(oledScreen[0].begin(), oledScreen[0].capacity(),
   	       "FSK RX %lu Mhz", board.getFreq() / 1'000'000U);
     chsnprintf(oledScreen[1].begin(), oledScreen[1].capacity(),
-  	       "-> @%lu b", board.getBaud());
+  	       "<- @%lu b", board.getBaud());
     chsnprintf(oledScreen[2].begin(), oledScreen[2].capacity(),
   	       "Lna %d db", board.getLnaGain());
     chsnprintf(oledScreen[3].begin(), oledScreen[3].capacity(),
@@ -191,9 +191,9 @@ namespace {
     chsnprintf(oledScreen[0].begin(), oledScreen[0].capacity(),
   	       "FSK TX %lu Mhz", board.getFreq() / 1'000'000U);
     chsnprintf(oledScreen[1].begin(), oledScreen[1].capacity(),
-  	       "<- @%lu b", board.getBaud());
+  	       "-> @%lu b", board.getBaud());
     chsnprintf(oledScreen[2].begin(), oledScreen[1].capacity(),
-  	       "<- %s", board.getSource().c_str());
+  	       "-> %s", board.getSource().c_str());
     chsnprintf(oledScreen[3].begin(), oledScreen[2].capacity(),
   	       "P %d dbm", board.getTxPower());
   }

@@ -94,6 +94,7 @@ int main (void)
   DebugTrace("Ope::opMode = %u", static_cast<uint16_t>(opMode));
   
   Ope::Status opStatus = {};
+  Ope::ajustParamIfFsk(opMode);
   do {
     Radio::init(opMode);
     opStatus = Ope::setMode(opMode);

@@ -31,6 +31,7 @@ namespace {
 
   using SourceParams = std::pair<BitRateIndex, ModeFsk::Source>;
   SourceParams getConnectedSource(void);
+  ModeFsk::Source source = ModeFsk::Source::NONE;
 }
 
 namespace Ope {
@@ -77,26 +78,19 @@ namespace Ope {
       break ;
       
     case Mode::RF_RX_EXTERNAL_FSK: {
-      crcStart(&CRCD1, &crcCfgModbus);
       rfMode = RfMode::RX;
       buffer_RF_RX_EXTERNAL_FSK();
       // in this mode, use high baudate if txpower is low or
       // veryhigh  if txpower is high
-      const BitRateIndex bri = board.getTxPower() == ampLevelDbLow ?
-	BitRateIndex::High :
-	BitRateIndex::VeryHigh;
-      board.setBitRateIdx(bri);
-      ModeFsk::start(rfMode, baudRates[+bri]);
     } break ;
 
       // in this mode, one should dynamically test which entry (serial or usb) is in use
     case Mode::RF_TX_EXTERNAL_FSK: {
-      crcStart(&CRCD1, &crcCfgModbus);
+      chDbgAssert(source != ModeFsk::Source::NONE, "call ajustParamIfFsk before tgis method");
       rfMode = RfMode::TX;
-      const auto [bri, activeSource] = getConnectedSource();
+      const auto bri = board.getBitRateIdx();
       board.setBitRateIdx(bri);
-      buffer_RF_TX_EXTERNAL_FSK(activeSource);
-      ModeFsk::start(rfMode, baudRates[+bri]);
+      buffer_RF_TX_EXTERNAL_FSK(source);
     } break ;
       
     case Mode::RF_RX_INTERNAL:
@@ -120,12 +114,44 @@ namespace Ope {
       DebugTrace("Radio::radio->healthSurveyStart failed");
       status = Status::RFM69_ERROR;
       goto end;
+    } else {
+      switch (opMode) {
+      case Mode::RF_RX_EXTERNAL_FSK:
+      case Mode::RF_TX_EXTERNAL_FSK:
+	ModeFsk::start(rfMode, baudRates[+board.getBitRateIdx()]);
+	break;
+      default:
+	break;
+      }
     }
     
   end:
     return status;
   }
 
+  void ajustParamIfFsk(Mode opMode)
+  {
+    switch (opMode) {
+    case Mode::RF_RX_EXTERNAL_FSK: {
+      crcStart(&CRCD1, &crcCfgModbus);
+      const BitRateIndex bri = board.getTxPower() == ampLevelDbLow ?
+	BitRateIndex::High :
+	BitRateIndex::VeryHigh;
+      board.setBitRateIdx(bri);
+    } break;
+      
+    case Mode::RF_TX_EXTERNAL_FSK: {
+      crcStart(&CRCD1, &crcCfgModbus);
+      const auto [bri, activeSource] = getConnectedSource();
+      board.setBitRateIdx(bri);
+      source = activeSource;
+    } break;
+      
+    default:
+      break;
+    }
+  }
+  
   const char* toAscii(Mode opMode)
   {
     static const char* ascii[] = {
@@ -202,12 +228,12 @@ namespace {
   //
   // if ftdi : serial not swaped, 
   //           buffer HiZ
-  void buffer_RF_TX_EXTERNAL_FSK(ModeFsk::Source source)
+  void buffer_RF_TX_EXTERNAL_FSK(ModeFsk::Source src)
   {
-    if (source == ModeFsk::Source::SERIAL) {
+    if (src == ModeFsk::Source::SERIAL) {
       palSetLineMode(LINE_EXTVCP_TX, PAL_MODE_ALTERNATE(AF_LINE_EXTVCP_TX));
       Buffer::setMode(Buffer::Mode::TX);
-    } else if (source == ModeFsk::Source::USB_CDC) {
+    } else if (src == ModeFsk::Source::USB_CDC) {
       palSetLineMode(LINE_EXTVCP_RX, PAL_MODE_ALTERNATE(AF_LINE_EXTVCP_RX));
       Buffer::setMode(Buffer::Mode::HiZ);
     } else {
@@ -253,11 +279,14 @@ namespace {
     board.setSource("Searching");
     DebugTrace("looking for source");
     while(true) {
-      for (auto bri : {BitRateIndex::Low, BitRateIndex::High, BitRateIndex::VeryHigh}) {
-	for (auto source : {ModeFsk::Source::SERIAL, ModeFsk::Source::USB_CDC}) {
-	  buffer_RF_TX_EXTERNAL_FSK(source);
+      for (auto src : {ModeFsk::Source::SERIAL, ModeFsk::Source::USB_CDC}) {
+	for (auto bri : {BitRateIndex::VeryHigh, BitRateIndex::High, BitRateIndex::Low}) {
+	  DebugTrace("try source %s @%lu",
+		     src == ModeFsk::Source::SERIAL ? "serial" : "USB",
+		     baudRates[+bri]);
+	  buffer_RF_TX_EXTERNAL_FSK(src);
 	  ftdiSerialConfig.speed = baudRates[+bri];
-	  if (source == ModeFsk::Source::SERIAL)
+	  if (src == ModeFsk::Source::SERIAL)
 	    ftdiSerialConfig.cr2 |=  USART_CR2_SWAP;
 	  else
 	    ftdiSerialConfig.cr2 &=  ~USART_CR2_SWAP;
@@ -265,10 +294,10 @@ namespace {
 	  const SerialProtocol::Msg msg = SerialProtocol::waitMsg(&SD_METEO);
 	  sdStop(&SD_METEO);
 	  if (msg.status == SerialProtocol::Status::SUCCESS) {
-	    board.setSource(source == ModeFsk::Source::SERIAL ? "Serial" : "USB");
+	    board.setSource(src == ModeFsk::Source::SERIAL ? "Serial" : "USB");
 	    DebugTrace("found source %s @ %lu bauds", board.getSource().c_str(),
 		       ftdiSerialConfig.speed);
-	    return {bri, source};
+	    return {bri, src};
 	  } else {
 	    DebugTrace("WaitMsg status = %u", static_cast<uint16_t>(msg.status));
 	  }
