@@ -40,6 +40,7 @@ namespace ModeExternal {
 
   void start(RfMode rfMode, uint32_t baud)
   {
+    board.setDio2Threshold({0.01f, 0.70f});
     meteoSerialConfig.speed = baud;
     // DIO is connected on UART1_TX
 

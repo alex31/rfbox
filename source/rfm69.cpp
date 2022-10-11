@@ -523,6 +523,7 @@ void Rfm69OokRadio::checkModeMismatch()
 {
   NOREENT();
   rfm69.cacheRead(Rfm69RegIndex::RfMode);
+  const auto [min, max] = board.getDio2Threshold();
   if ((mode != RfMode::SLEEP) and (rfm69.reg.opMode_mode != mode)) {
     DebugTrace("mismatch found mode %u instead %u, reset...",
 	       static_cast<uint16_t>(rfm69.reg.opMode_mode),
@@ -530,7 +531,7 @@ void Rfm69OokRadio::checkModeMismatch()
     board.setError("Radio lockout");
     coldReset();
   } else if (const float av = Dio2Spy::getAverageLevel();
-	     (mode == RfMode::RX) and ((av < 0.01) or (av > 0.70f))) {
+	     (mode == RfMode::RX) and ((av < min) or (av > max))) {
     DebugTrace("dio2 average not valid = %.2f", av);
     board.setError("DIO2 Avg Err");
     coldReset();

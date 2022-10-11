@@ -43,6 +43,7 @@ namespace ModeTest {
 
   void start(RfMode rfMode, uint32_t baud)
   {
+    board.setDio2Threshold({0.48f, 0.62f});
     meteoSerialConfig.speed = baud;
     // DIO is connected on UART1_TX
     if (rfMode == RfMode::RX) 

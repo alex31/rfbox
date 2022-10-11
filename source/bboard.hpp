@@ -10,6 +10,7 @@ class BBoard
 public:
   using error_t = etl::string<16>;
   using source_t = etl::string<10>;
+  using dio2Threshold_t = std::pair<float, float>;
   void setMode(Ope::Mode _mode) {mode = _mode;}
   void setRssi(int16_t _rssi) {rssi = _rssi;}
   void setLnaGain(int16_t _lnaGain) {lnaGain = _lnaGain;}
@@ -19,6 +20,7 @@ public:
   void setFreq(uint32_t _freq) {freq = _freq;}
   void setRfEnable(bool _rfEnable) {rfEnable = _rfEnable;}
   void setTxPower(int16_t _txPower) {txPower = _txPower;}
+  void setDio2Threshold(dio2Threshold_t dt) {dio2Threshold = dt;}
   void setError(etl::string_view _error) {Lock m(mtx);
     error =  error_t{_error};}
   void clearError(void) {Lock m(mtx); error.clear();}
@@ -35,6 +37,7 @@ public:
   uint32_t getFreq(void) {return freq;}
   bool getRfEnable(void) {return rfEnable;}
   int16_t getTxPower(void) {return txPower;}
+  dio2Threshold_t getDio2Threshold(void) {return dio2Threshold;}
   const error_t& getError(void) {Lock m(mtx); return error;}
   const source_t& getSource(void) {Lock m(mtx); return source;}
   
@@ -53,6 +56,7 @@ private:
   uint8_t txPower = {};
   error_t error = {};
   source_t source = {};
+  dio2Threshold_t dio2Threshold = {0, 1};
 };
 
 extern BBoard board;
