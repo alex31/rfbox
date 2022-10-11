@@ -113,7 +113,7 @@ namespace {
     oledScreen = {
       RTCD1.rtc->BKP0R == warmBootWdg ?
       "*WATCHDOG Reset*" :
-      "**** RF Box ****",
+      "*** RF Box " xstr(HARDWARE_VERSION) " ***",
       xstr(GIT_TAG),
       "Enac/ELE Gorraz",
       "        Bustico"};
