@@ -388,10 +388,11 @@ void Rfm69BaseRadio::setPowerAmp(uint8_t pmask, RampTime rt, int8_t gain)
 void Rfm69BaseRadio::setRxBw(BandwithMantissa bm, uint8_t exp,
 			    uint8_t dccFreq)
 {
-  rfm69.reg.rxBw_mant =  bm;
-  rfm69.reg.rxBw_exp = exp;
-  rfm69.reg.rxBw_dccFreq = dccFreq; // default 4 % of rxbw
+  rfm69.reg.rxBw_mant =  rfm69.reg.afcBw_mant =  bm;
+  rfm69.reg.rxBw_exp = rfm69.reg.afcBw_exp = exp;
+  rfm69.reg.rxBw_dccFreq = rfm69.reg.afcBw_dccFreq = dccFreq; // default 4 % of rxbw
   rfm69.cacheWrite(Rfm69RegIndex::RxBw);
+  rfm69.cacheWrite(Rfm69RegIndex::AfcBw);
 }
 
 void Rfm69BaseRadio::setFrequencyCarrier(uint32_t frequencyCarrier)
@@ -797,8 +798,7 @@ void Rfm69FskRadio::setRfTuning(void)
 	     rxbw.actualBw);
   /* dccfreq default 4 % of rxbx */
   setRxBw(rxbw.mant, rxbw.exp, 2);
-  /* in fsk mode, overwrite ramptime with smallest value */
-  setPowerAmp(0b001, RampTime::US_10, board.getTxPower());
-  //setAutoRxRestart(false);
+  /* in fsk mode, overwrite ramptime with higher value */
+  setPowerAmp(0b001, RampTime::US_50, board.getTxPower());
 }
 
