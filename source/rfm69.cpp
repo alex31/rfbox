@@ -54,6 +54,7 @@ namespace {
     return  {bwv, emant, static_cast<uint8_t>(exp)};
   }
 
+
   
  constexpr std::array<uint32_t, +BitRateIndex::UpBound> chipRates = {
    static_cast<uint32_t>(baudRates[+BitRateIndex::High] * fskBroadcastBitRateRatio),
@@ -61,23 +62,43 @@ namespace {
    static_cast<uint32_t>(baudRates[+BitRateIndex::VeryHigh] * fskBroadcastBitRateRatio)
   };
 
-  constexpr std::array<Rxbw, +BitRateIndex::UpBound> rxbwFsk = {
-    getRxBw(chipRates[+BitRateIndex::Low] * 2, RxBwModul::FSK),
-    getRxBw(chipRates[+BitRateIndex::High] * 2, RxBwModul::FSK),
-    getRxBw(chipRates[+BitRateIndex::VeryHigh] * 2, RxBwModul::FSK)
-  };
 
   constexpr std::array<uint32_t, +BitRateIndex::UpBound> frequencyDev = {
     chipRates[+BitRateIndex::Low] * 2U,
-    baudRates[+BitRateIndex::High] * 2u,
-    50'000 // magic number : highest Fdev is not reliable
+    chipRates[+BitRateIndex::High] * 2U,
+    chipRates[+BitRateIndex::VeryHigh] * 2U,
+    //    50'000 // magic number : highest Fdev is not reliable
   };
-  
+
+  constexpr std::array<Rxbw, +BitRateIndex::UpBound> rxbwFsk = {
+    getRxBw(frequencyDev[+BitRateIndex::Low] + chipRates[+BitRateIndex::Low] / 1.8f, RxBwModul::FSK),
+    getRxBw(frequencyDev[+BitRateIndex::High] + chipRates[+BitRateIndex::High] / 1.8f, RxBwModul::FSK),
+    getRxBw(frequencyDev[+BitRateIndex::VeryHigh] + chipRates[+BitRateIndex::VeryHigh] / 1.8f, RxBwModul::FSK),
+  };
+
   constexpr std::array<Rxbw, +BitRateIndex::UpBound - 1> rxbwOok = {
     getRxBw(baudRates[+BitRateIndex::Low] * 3u, RxBwModul::OOK),
     getRxBw(baudRates[+BitRateIndex::High] * 3u, RxBwModul::OOK)
   };
 
+  template<uint32_t FDEV, uint32_t BR, uint32_t RXBW>
+  consteval void checkRfConstraint()
+  {
+    constexpr float MI = (2.0f * FDEV) / BR;
+    static_assert(BR < 2U * RXBW);
+    static_assert(MI > 0.5f and MI < 10.0f);
+    static_assert(RXBW >= FDEV + (BR / 2U));
+    static_assert(FDEV + (BR / 2) < 500'000U);
+  }
+
+  template<BitRateIndex BRI>
+  consteval void checkRfConstraint()
+  {
+    checkRfConstraint<frequencyDev[+BRI],
+		      chipRates[+BRI],
+		      rxbwFsk[+BRI].actualBw>();
+  }
+  
 
 } // end of anonymous namespace
 
@@ -232,8 +253,7 @@ void	 Rfm69BaseRadio::setBitRate(uint32_t br)
 
 
 void Rfm69BaseRadio::setCommonRfParam(uint32_t frequencyCarrier,
-					     int8_t amplificationLevelDb
-					     )
+					     int8_t amplificationLevelDb)
 {
   setFrequencyCarrier(frequencyCarrier);
   setPowerAmp(0b001, RampTime::US_20, amplificationLevelDb);
@@ -746,6 +766,7 @@ void Rfm69FskRadio::rawFifoRead(void *buffer, uint8_t len)
   rfm69.fifoRead(buffer, len);
 }
 
+// template<uint32_t FDEV, uint32_t BR, uint32_t RXBW>
 void Rfm69FskRadio::setRfTuning(void)
 {
   static_assert(rxbwFsk[+BitRateIndex::Low].actualBw > 0);
@@ -753,6 +774,10 @@ void Rfm69FskRadio::setRfTuning(void)
   static_assert(rxbwFsk[+BitRateIndex::VeryHigh].actualBw > 0);
   static_assert(rxbwOok[+BitRateIndex::Low].actualBw > 0);
   static_assert(rxbwOok[+BitRateIndex::High].actualBw > 0);
+  checkRfConstraint<BitRateIndex::Low>();
+  checkRfConstraint<BitRateIndex::High>();
+  checkRfConstraint<BitRateIndex::VeryHigh>();
+ 
 
   const BitRateIndex bri = board.getBitRateIdx();
   const Rxbw rxbw = rxbwFsk[+bri];
@@ -762,5 +787,7 @@ void Rfm69FskRadio::setRfTuning(void)
 	     rxbw.actualBw);
   /* dccfreq default 4 % of rxbx */
   setRxBw(rxbw.mant, rxbw.exp, 2);
+  /* in fsk mode, overwrite ramptime with smallest value */
+  setPowerAmp(0b001, RampTime::US_10, board.getTxPower());
   //setAutoRxRestart(false);
 }

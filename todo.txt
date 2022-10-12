@@ -1,4 +1,46 @@
 
+So the final set of rules I think looks like this (if using AFC):
+
+1)  0.5 <= 2 * Fdev/BR <= 10    (modulation index, MI)
+2)  BR < 2*RxBw     (bit rate)
+3)  RxBw >= Fdev + BR/2   (receiver bandwidth)
+4)  RxBwAfc >=  Fdev + BR/2 + LOoffset (receiver AFC bandwidth)
+5)  Fdev + BR/2 < 500kHz  (maximum RxBw setting)
+
+Or this (if not using AFC):
+1)  0.5 <= 2 * Fdev/BR <= 10    (modulation index, MI)
+2)  BR < 2*RxBw     (bit rate)
+3)  RxBw >=  Fdev + BR/2 + LOoffset (receiver bandwidth)
+4)  Fdev + BR/2 < 500kHz  (maximum RxBw setting)
+
+https://godbolt.org/z/ofhb7o73Y
+121:  const auto bitRate = SWAP_ENDIAN16(reg.bitrate);
+229:  rfm69.reg.bitrate = SWAP_ENDIAN16(bitrate);
+380:  rfm69.reg.frf = SWAP_ENDIAN24(frequencyCarrier / synthStepHz);
+505:  rfm69.reg.bitrate = SWAP_ENDIAN16(xtalHz / board.getBaud());
+701:  rfm69.reg.preambleSize = SWAP_ENDIAN16(preambleSize);
+728:  rfm69.reg.fdev = SWAP_ENDIAN16(fdev);
+729:  chDbgAssert(SWAP_ENDIAN16(rfm69.reg.fdev) == fdev, "14 bit narrowing error");
+
+
+0b 0011 1111 1111 1111 -> 3F FF
+swap 16
+   1111 1111 0011 1111
+
+decal à gauche de 2 bits
+1111 1111 1111 1100
+swap16
+1111 1100 1111 1111
+
+MCU : ghijklmn abcdef
+RFM : abcdefgh ijklmn
+
+
+return (mcudata & 0b111111) << 8 | ((mcudata & 0xff00) >>> 6)
+
+
+===============================
+
 en mode emission FSK : afficher la source
 ps : la vitesse de la liaison série en emission sera dependante de la source :
 baudLow (4800) si liaison série, baudHigh (19200 [ou plus en fonction du TP]) si USB1

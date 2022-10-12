@@ -178,7 +178,7 @@ struct Rfm69Rmap {
     struct {
       uint8_t fifo;   // not really a register : special case
       
-    uint8_t :2;     // bits 0-1 unused
+    uint8_t:2;     // bits 0-1 unused
       RfMode opMode_mode:3;
       bool opMode_listenAbort:1;
       bool opMode_listenOn:1;
@@ -186,126 +186,128 @@ struct Rfm69Rmap {
       
       DataModul datamodul_shaping:5;
       DataMode datamodul_dataMode:2;
-    uint8_t :1; // unused
+    uint8_t:1; // unused
 
       uint16_t bitrate; // big endian, (chip rate if manchester)
-      
-      uint16_t fdev:14; // big endian
-    uint8_t :2; // unused
+
+      // the 2 most significant bits are unused (zeroed) but
+      // declaring the bitfield as fdev:14 mess the swap endianness
+      // anyway, when keeping fdev in the limits, theses two bits are always 0
+      uint16_t fdev:16; // big endian
       
       uint32_t frf:24; // big endian frequency carrier
       
-    uint8_t :6; // unused
-      bool osc1_calibDone  :1;
-      bool osc1_calibStart :1;
+    uint8_t:6; // unused
+      bool osc1_calibDone:1;
+      bool osc1_calibStart:1;
 
-    uint8_t :5; // unused
-      bool afcCtrl_lowBetaOn :1;
-    uint8_t :2; // unused
+    uint8_t:5; // unused
+      bool afcCtrl_lowBetaOn:1;
+    uint8_t:2; // unused
 
       
-    uint8_t :8; // reserved
+    uint8_t:8; // reserved
 
-    bool :1; // unused
-      ListenEnd listen1_end :2;
-      bool listen1_criteriaSyncMatched :1;
-      ListenResolution listen1_resolutionRx :2;
-      ListenResolution listen1_resolutionIdle :2;
+    bool:1; // unused
+      ListenEnd listen1_end:2;
+      bool listen1_criteriaSyncMatched:1;
+      ListenResolution listen1_resolutionRx:2;
+      ListenResolution listen1_resolutionIdle:2;
 
       uint8_t listen2_coefIdle;
       uint8_t listen3_coefRx;
       uint8_t version;
       
       uint8_t paLevel_outputPower:5;
-      bool paLevel_pa2On :1;
-      bool paLevel_pa1On :1;
-      bool paLevel_pa0On :1;
+      bool paLevel_pa2On:1;
+      bool paLevel_pa1On:1;
+      bool paLevel_pa0On:1;
       
-      RampTime paRamp :4;
-      uint8_t :4; // unused
+      RampTime paRamp:4;
+      uint8_t:4; // unused
       
-      uint8_t ocp_trim :4;
-      bool ocp_on :1;
-      uint8_t :3; // unused
+      uint8_t ocp_trim:4;
+      bool ocp_on:1;
+      uint8_t:3; // unused
       
-    uint32_t :32; // reserved
+    uint32_t:32; // reserved
       
-      LnaGain lna_gain :3;
+      LnaGain lna_gain:3;
       LnaGain lna_currentGain:3;
-    uint8_t :1; // unused
+    uint8_t:1; // unused
       LnaInputImpedance lna_zIn:1;
 
-      uint8_t rxBw_exp :3;
-      BandwithMantissa rxBw_mant :2;
-      uint8_t rxBw_dccFreq :3;
+      uint8_t rxBw_exp:3;
+      BandwithMantissa rxBw_mant:2;
+      uint8_t rxBw_dccFreq:3;
 
-      uint8_t afcBw_exp :3;
-      BandwithMantissa afcBw_mant :2;
-      uint8_t afcBw_dccFreq :3;
+      uint8_t afcBw_exp:3;
+      BandwithMantissa afcBw_mant:2;
+      uint8_t afcBw_dccFreq:3;
 
-      ThresholdDec   ookPeak_threshDec :3;
-      ThresholdStep  ookPeak_threshStep :3;
-      ThresholdType  ookPeak_type :2;
+      ThresholdDec   ookPeak_threshDec:3;
+      ThresholdStep  ookPeak_threshStep:3;
+      ThresholdType  ookPeak_type:2;
 
       
-    uint8_t :6; // unused
-      ThresholdFilt ookAvg_threshFilt :2;
+    uint8_t:6; // unused
+      ThresholdFilt ookAvg_threshFilt:2;
 
       uint8_t ookFix_threshold;
       
-      bool afc_start :1;
-      bool afc_clear :1;
-      bool afc_autoOn :1;
-      bool afc_autoClearOn :1;
-      bool afc_done :1;
-      bool afc_feiStart :1;
-      bool afc_feiDone :1;
-    uint8_t :1; // unused
+      bool afc_start:1;
+      bool afc_clear:1;
+      bool afc_autoOn:1;
+      bool afc_autoClearOn:1;
+      bool afc_done:1;
+      bool afc_feiStart:1;
+      bool afc_feiDone:1;
+    uint8_t:1; // unused
 
       int16_t afc; // big endian
       int16_t fei; // big endian
 
-      bool rssiConfig_start :1;
-      bool rssiConfig_done :1;
-    uint8_t :6; // unused
+      bool rssiConfig_start:1;
+      bool rssiConfig_done:1;
+    uint8_t:6; // unused
       
       uint8_t rssi;
       
-      uint8_t dioMapping_io3 :2;
-      uint8_t dioMapping_io2 :2;
-      uint8_t dioMapping_io1 :2;
-      uint8_t dioMapping_io0 :2;
+      uint8_t dioMapping_io3:2;
+      uint8_t dioMapping_io2:2;
+      uint8_t dioMapping_io1:2;
+      uint8_t dioMapping_io0:2;
 
       
-      ClockOut dioMapping_clkOut :3;
-    uint8_t :1; // unused
-      uint8_t dioMapping_io5 :2;
-      uint8_t dioMapping_io4 :2;
+      ClockOut dioMapping_clkOut:3;
+    uint8_t:1; // unused
+      uint8_t dioMapping_io5:2;
+      uint8_t dioMapping_io4:2;
 
       union {
 	struct {
-	  bool irqFlags_syncAddressMatch :1;
-	  bool irqFlags_autoMode :1;
-	  bool irqFlags_timeOut :1;
-	  bool irqFlags_rssi :1;
-	  bool irqFlags_pllLock :1;
-	  bool irqFlags_txReady :1;
-	  bool irqFlags_rxReady :1;
-	  bool irqFlags_modeReady :1;
+	  bool irqFlags_syncAddressMatch:1;
+	  bool irqFlags_autoMode:1;
+	  bool irqFlags_timeOut:1;
+	  bool irqFlags_rssi:1;
+	  bool irqFlags_pllLock:1;
+	  bool irqFlags_txReady:1;
+	  bool irqFlags_rxReady:1;
+	  bool irqFlags_modeReady:1;
 	};
 	uint8_t irqFlags1;
       };
 
       union {
 	struct {
-	uint8_t :1; // unused
-	  bool irqFlags_crcOk :1; 
-	  bool irqFlags_payloadReady :1; 
-	  bool irqFlags_packetSent :1; 
-	  bool irqFlags_fifoOverrun :1; 
-	  bool irqFlags_fifoLevel :1; 
-	  bool irqFlags_fifoNotEmpty :1; 
-	  bool irqFlags_fifoFull :1; 
+	uint8_t:1; // unused
+	  bool irqFlags_crcOk:1; 
+	  bool irqFlags_payloadReady:1; 
+	  bool irqFlags_packetSent:1; 
+	  bool irqFlags_fifoOverrun:1; 
+	  bool irqFlags_fifoLevel:1; 
+	  bool irqFlags_fifoNotEmpty:1; 
+	  bool irqFlags_fifoFull:1; 
  	};
 	uint8_t irqFlags2;
       };
@@ -315,59 +317,59 @@ struct Rfm69Rmap {
       uint8_t rxTimeout2_rssiThresh;
       uint16_t preambleSize; // big endian
 
-      uint8_t syncConfig_tol :3;
-      uint8_t syncConfig_size :3;
-      FifoFillCondition syncConfig_fifoFillCondition :1;
-      bool syncConfig_syncOn :1;
+      uint8_t syncConfig_tol:3;
+      uint8_t syncConfig_size:3;
+      FifoFillCondition syncConfig_fifoFillCondition:1;
+      bool syncConfig_syncOn:1;
 
       uint64_t syncValue; // beware BIG ENDIAN
       
-    uint8_t :1; // unused
-      AddressFiltering packetConfig_addressFiltering :2;
-      bool packetConfig_crcAutoClearOff :1;
-      bool packetConfig_crcOn :1;
-      DCFree packetConfig_dcFree :2;
-      PacketFormat packetConfig_packetFormat :1;
+    uint8_t:1; // unused
+      AddressFiltering packetConfig_addressFiltering:2;
+      bool packetConfig_crcAutoClearOff:1;
+      bool packetConfig_crcOn:1;
+      DCFree packetConfig_dcFree:2;
+      PacketFormat packetConfig_packetFormat:1;
 
       uint8_t payloadLength;
       uint8_t nodeAddress;
       uint8_t broadcastAddress;
       
-      IntermediateMode autoModes_intermediateMode :2;
-      ExitCondition autoModes_exitCondition :3;
-      EnterCondition autoModes_enterCondition :3;
+      IntermediateMode autoModes_intermediateMode:2;
+      ExitCondition autoModes_exitCondition:3;
+      EnterCondition autoModes_enterCondition:3;
 
-      uint8_t fifoThresh_threshold :7;
-      TxStartCondition fifoThresh_txStartCondition : 1;
+      uint8_t fifoThresh_threshold:7;
+      TxStartCondition fifoThresh_txStartCondition: 1;
       
-      bool packetConfig2_aesOn :1;
-      bool packetConfig2_autoRxRestartOn :1;
-      bool packetConfig2_restartRx :1;
-    uint8_t :1; // unused
-      uint8_t packetConfig2_interPacketRxDelay :4;
+      bool packetConfig2_aesOn:1;
+      bool packetConfig2_autoRxRestartOn:1;
+      bool packetConfig2_restartRx:1;
+    uint8_t:1; // unused
+      uint8_t packetConfig2_interPacketRxDelay:4;
 
 
       
       std::array<uint8_t, 16> aesKey; // MSB first
 
-    uint8_t :2; // unused
-      bool temp_measureRunning :1;
-      bool temp_measureStart :1;
-    uint8_t :4; // unused
+    uint8_t:2; // unused
+      bool temp_measureRunning:1;
+      bool temp_measureStart:1;
+    uint8_t:4; // unused
       
       uint8_t temp_value;
       
-    uint64_t :64;   // unused
-      TestLna testLna_sensitivityBoost :8;
-    uint8_t :8; // unused
+    uint64_t:64;   // unused
+      TestLna testLna_sensitivityBoost:8;
+    uint8_t:8; // unused
       TestPa1 testPa1;
-    uint8_t :8; // unused
+    uint8_t:8; // unused
       TestPa2 testPa2;
-    uint64_t :64;   // unused
-    uint64_t :64;   // unused
-    uint16_t :16;   // unused
+    uint64_t:64;   // unused
+    uint64_t:64;   // unused
+    uint16_t:16;   // unused
       FadingMargin testDagc;
-    uint8_t :8; // unused
+    uint8_t:8; // unused
       uint8_t testAfc;
     } __attribute__((packed));
     uint8_t raw[0x72];
