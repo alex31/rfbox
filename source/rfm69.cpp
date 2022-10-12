@@ -766,6 +766,13 @@ void Rfm69FskRadio::rawFifoRead(void *buffer, uint8_t len)
   rfm69.fifoRead(buffer, len);
 }
 
+template<BitRateIndex... BRI>
+struct BRImpl {
+  void test(void) {
+    (checkRfConstraint<BRI>(), ...);
+  }
+};
+
 // template<uint32_t FDEV, uint32_t BR, uint32_t RXBW>
 void Rfm69FskRadio::setRfTuning(void)
 {
@@ -777,7 +784,10 @@ void Rfm69FskRadio::setRfTuning(void)
   checkRfConstraint<BitRateIndex::Low>();
   checkRfConstraint<BitRateIndex::High>();
   checkRfConstraint<BitRateIndex::VeryHigh>();
- 
+
+  // have to study to avoid declaring a dummy unused variable
+  // BRImpl<BitRateIndex::Low, BitRateIndex::High, BitRateIndex::VeryHigh> dummy;
+    
 
   const BitRateIndex bri = board.getBitRateIdx();
   const Rxbw rxbw = rxbwFsk[+bri];
@@ -791,3 +801,4 @@ void Rfm69FskRadio::setRfTuning(void)
   setPowerAmp(0b001, RampTime::US_10, board.getTxPower());
   //setAutoRxRestart(false);
 }
+
