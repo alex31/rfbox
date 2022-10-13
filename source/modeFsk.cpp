@@ -11,11 +11,20 @@ namespace {
   THD_WORKING_AREA(waMsgRelay, 1280);
   [[noreturn]] void msgRelaySerialToSpi(void *arg);
   [[noreturn]] void msgRelaySpiToSerial(void *arg);
+  THD_WORKING_AREA(waSurveyRestartRx, 512);
+  void surveyRestartRx (void *);
+  
   static  SerialConfig ftdiSerialConfig =  {
     .speed = baudRates[+BitRateIndex::Low],
     .cr1 = 0,
     .cr2 = USART_CR2_STOP1_BITS | USART_CR2_LINEN,
     .cr3 = 0
+  };
+
+  virtual_timer_t vtWatchDog;
+  volatile bool shouldRestartRx = false;
+  auto restartRxCb = [](ch_virtual_timer *, void *) {
+    shouldRestartRx = true;
   };
 }
 
@@ -35,6 +44,8 @@ namespace ModeFsk {
     if (rfMode == RfMode::RX) {
       chThdCreateStatic(waMsgRelay, sizeof(waMsgRelay),
        			NORMALPRIO, &msgRelaySpiToSerial, nullptr);
+      chThdCreateStatic(waSurveyRestartRx, sizeof(waSurveyRestartRx),
+			NORMALPRIO, &surveyRestartRx, nullptr);
     } else  if (rfMode == RfMode::TX) {
       chThdCreateStatic(waMsgRelay, sizeof(waMsgRelay),
        			NORMALPRIO, &msgRelaySerialToSpi, nullptr);
@@ -87,12 +98,15 @@ namespace {
     chRegSetThreadName("SPI to Serial");
     auto fskr = static_cast<Rfm69FskRadio *>(Radio::radio);
     SerialProtocol::Msg msg;
+
+    chVTSetContinuous(&vtWatchDog, TIME_MS2I(1500), restartRxCb, nullptr);
     
     while(true) {
       // we wait for the rfm69 fifo to filled with a complete message
       while(fskr->getPayloadReady() == false) {
 	chThdSleepMilliseconds(1);
       }
+      chVTSetContinuous(&vtWatchDog, TIME_MS2I(1500), restartRxCb, nullptr);
       fskr->fifoRead(msg.payload.data(), &msg.len);
       DebugTrace("payload ready = %u", fskr->getPayloadReady());
       
@@ -106,44 +120,19 @@ namespace {
     }
   }
   
-  // void msgRelaySerialToSpi(void *)
-  // {
-  //   chRegSetThreadName("Fake Serial to SPI");
-  //   auto fskr = static_cast<Rfm69FskRadio *>(Radio::radio);
-  //   const uint8_t buffer[9] = {8, 10, 20, 30, 40, 50, 60, 70, 80};
-    
-  //   while(true) {
-  //     while(fskr->getFifoNotEmpty() == true) {
-  // 	chThdSleepMilliseconds(1);
-  //     }
-  //     fskr->fifoWrite(buffer, sizeof(buffer));
-  //     chThdSleepMilliseconds(200);
-  //   }
-  // }
+ void surveyRestartRx (void *)		
+  {
+    chRegSetThreadName("survey Restart Rx");
+    while (true) {
+      if (shouldRestartRx) {
+	Radio::radio->forceRestartRx();
+	shouldRestartRx = false;
+	DebugTrace("restart Rx");
+      }
+      chThdSleepMilliseconds(100);
+    }
+  }
   
-  // void msgRelaySpiToSerial(void *)
-  // {
-  //  chRegSetThreadName("Fake SPI to Serial");
-  //  auto fskr = static_cast<Rfm69FskRadio *>(Radio::radio);
-  //  uint8_t buffer[64] = {};
-
-  //  while(true) {
-  //    // we wait for the rfm69 fifo to filled with a complete message
-  //    while(fskr->getPayloadReady() == false) {
-  //      chThdSleepMilliseconds(1);
-  //    }
-  //    uint8_t len;
-  //    fskr->fifoRead(buffer, &len);
-
-  //    DebugTrace("+++++++ Spi2Ser msg len= %u ++++++", len);
-     
-  //    chprintf(chp, "buffer = ");
-  //    for (size_t i=0; i<len; i++) {
-  //      chprintf(chp, "%u, ", buffer[i]);
-  //    }
-  //    chprintf(chp, "\r\n");
-  //  }
-  // }
 
 
 

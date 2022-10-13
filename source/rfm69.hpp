@@ -98,6 +98,7 @@ protected:
   void setPowerAmp(uint8_t pmask, RampTime rt, int8_t gain);
   void setLna(LnaGain gain, LnaInputImpedance imp);
   void setRxBw(BandwithMantissa, uint8_t exp, uint8_t dccFreq);
+  void setAfcBw(BandwithMantissa, uint8_t exp, uint8_t dccFreq);
   void coldReset();
 
 };

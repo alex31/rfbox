@@ -28,6 +28,9 @@ namespace {
 
   virtual_timer_t vtWatchDog;
   volatile bool shouldRestartRx = false;
+  auto restartRxCb = [](ch_virtual_timer *, void *) {
+    shouldRestartRx = true;
+  };
   
   void msgStreamIn (void *);
   void surveyRestartRx (void *);
@@ -46,10 +49,7 @@ namespace ModeExternal {
 
     if (rfMode == RfMode::RX) {
       meteoSerialConfig.cr2 |= USART_CR2_SWAP;
-      chVTSet(&vtWatchDog, TIME_S2I(3), [](ch_virtual_timer *, void *) {
-	shouldRestartRx = true;
-      },
-	nullptr);
+      chVTSet(&vtWatchDog, TIME_S2I(3), restartRxCb, nullptr);
       sdStart(&SD_METEO, &meteoSerialConfig);
       chThdCreateStatic(waMsgStreamIn, sizeof(waMsgStreamIn),
 			NORMALPRIO, &msgStreamIn, nullptr);
@@ -69,10 +69,7 @@ namespace {
   {
     chRegSetThreadName("Decode Meteo Msg");
     
-    auto lambda = [](ch_virtual_timer *, void *) {
-      shouldRestartRx = true;
-    };
-    chVTSetContinuous(&vtWatchDog, TIME_MS2I(1500), lambda, nullptr);
+    chVTSetContinuous(&vtWatchDog, TIME_MS2I(1500), restartRxCb, nullptr);
 
     while (true) {
       const SerialProtocol::Msg msg = SerialProtocol::waitMsg(&SD_METEO);
@@ -81,7 +78,7 @@ namespace {
 	DebugTrace("CRC differ : L:0x%x != D:0x%x", msg.crc.local, msg.crc.distant);
 	break;
       case SerialProtocol::Status::SUCCESS:
-	chVTSetContinuous(&vtWatchDog, TIME_MS2I(1500), lambda, nullptr);
+	chVTSetContinuous(&vtWatchDog, TIME_MS2I(1500), restartRxCb, nullptr);
 	break;
       case SerialProtocol::Status::TIMOUT:
       case SerialProtocol::Status::LEN_ERROR:

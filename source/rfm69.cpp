@@ -76,6 +76,12 @@ namespace {
     getRxBw(frequencyDev[+BitRateIndex::VeryHigh] + chipRates[+BitRateIndex::VeryHigh] / 1.8f, RxBwModul::FSK),
   };
 
+  constexpr std::array<Rxbw, +BitRateIndex::UpBound> afcbwFsk = {
+    getRxBw(frequencyDev[+BitRateIndex::Low] + chipRates[+BitRateIndex::Low] , RxBwModul::FSK),
+    getRxBw(frequencyDev[+BitRateIndex::High] + chipRates[+BitRateIndex::High] , RxBwModul::FSK),
+    getRxBw(frequencyDev[+BitRateIndex::VeryHigh] + chipRates[+BitRateIndex::VeryHigh] , RxBwModul::FSK),
+  };
+
   constexpr std::array<Rxbw, +BitRateIndex::UpBound - 1> rxbwOok = {
     getRxBw(baudRates[+BitRateIndex::Low] * 3u, RxBwModul::OOK),
     getRxBw(baudRates[+BitRateIndex::High] * 3u, RxBwModul::OOK)
@@ -97,6 +103,9 @@ namespace {
     checkRfConstraint<frequencyDev[+BRI],
 		      chipRates[+BRI],
 		      rxbwFsk[+BRI].actualBw>();
+    checkRfConstraint<frequencyDev[+BRI],
+		      chipRates[+BRI],
+		      afcbwFsk[+BRI].actualBw>();
   }
   
 
@@ -388,10 +397,18 @@ void Rfm69BaseRadio::setPowerAmp(uint8_t pmask, RampTime rt, int8_t gain)
 void Rfm69BaseRadio::setRxBw(BandwithMantissa bm, uint8_t exp,
 			    uint8_t dccFreq)
 {
-  rfm69.reg.rxBw_mant =  rfm69.reg.afcBw_mant =  bm;
-  rfm69.reg.rxBw_exp = rfm69.reg.afcBw_exp = exp;
-  rfm69.reg.rxBw_dccFreq = rfm69.reg.afcBw_dccFreq = dccFreq; // default 4 % of rxbw
+  rfm69.reg.rxBw_mant = bm;
+  rfm69.reg.rxBw_exp = exp;
+  rfm69.reg.rxBw_dccFreq = dccFreq; // default 4 % of rxbw
   rfm69.cacheWrite(Rfm69RegIndex::RxBw);
+}
+
+void Rfm69BaseRadio::setAfcBw(BandwithMantissa bm, uint8_t exp,
+			    uint8_t dccFreq)
+{
+  rfm69.reg.afcBw_mant =  bm;
+  rfm69.reg.afcBw_exp = exp;
+  rfm69.reg.afcBw_dccFreq = dccFreq; // default 4 % of rxbw
   rfm69.cacheWrite(Rfm69RegIndex::AfcBw);
 }
 
@@ -629,6 +646,7 @@ void Rfm69OokRadio::setRfTuning(void)
    static_assert(rxbw.exp > 0);
    /* dccfreq default 4 % of rxbx */
    setRxBw(rxbw.mant, rxbw.exp, 2);
+   setAfcBw(rxbw.mant, rxbw.exp, 2);
    DebugTrace("**************** actual OOK bandwith = %ld mant=%x exp=%u",
 	      rxbw.actualBw, static_cast<uint8_t>(rxbw.mant), rxbw.exp);
    
@@ -721,7 +739,7 @@ void Rfm69FskRadio::checkModeMismatch()
 void  Rfm69FskRadio::configPacketMode(void)
 {
   rfm69.reg.preambleSize = SWAP_ENDIAN16(preambleSize);
-  rfm69.reg.syncConfig_tol = 0;
+  rfm69.reg.syncConfig_tol = 2;
   rfm69.reg.syncConfig_size = syncWordSize - 1U;
   rfm69.reg.syncConfig_fifoFillCondition = FifoFillCondition::SYNC_MATCHES;
   rfm69.reg.syncConfig_syncOn = true;
@@ -792,12 +810,19 @@ void Rfm69FskRadio::setRfTuning(void)
 
   const BitRateIndex bri = board.getBitRateIdx();
   const Rxbw rxbw = rxbwFsk[+bri];
-  DebugTrace("actual FSK bandwith for baud @%lu bri:%u = %ld",
+  const Rxbw afcbw = afcbwFsk[+bri];
+  DebugTrace("actual RX FSK bandwith for baud @%lu bri:%u = %ld",
 	     board.getBaud(),
 	     +bri,
 	     rxbw.actualBw);
+  DebugTrace("actual AFC FSK bandwith for baud @%lu bri:%u = %ld",
+	     board.getBaud(),
+	     +bri,
+	     afcbw.actualBw);
   /* dccfreq default 4 % of rxbx */
   setRxBw(rxbw.mant, rxbw.exp, 2);
+
+  setAfcBw(afcbw.mant, afcbw.exp, 4);
   /* in fsk mode, overwrite ramptime with higher value */
   setPowerAmp(0b001, RampTime::US_50, board.getTxPower());
 }
