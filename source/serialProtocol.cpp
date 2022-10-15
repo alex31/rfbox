@@ -4,7 +4,7 @@
 #include "crcv1.h"
 
 namespace SerialProtocol {
-  constexpr auto time_500ms = TIME_MS2I(500);
+  constexpr auto timeout = TIME_MS2I(500);
   Msg waitMsg(SerialDriver *sd)
   {
     std::array<uint8_t, 2> sync = {};
@@ -12,10 +12,9 @@ namespace SerialProtocol {
       .crc = {}, .status = {}
     };
     const systime_t start = chVTGetSystemTimeX();
-    systime_t now;
+    sysinterval_t elapsed;
     do {
-      now = chVTGetSystemTimeX();
-      auto newByte = sdGetTimeout(sd, time_500ms);
+      auto newByte = sdGetTimeout(sd, timeout);
       if (newByte < 0) {// timout
 	msg.status = SerialProtocol::Status::TIMOUT;
 	return msg;
@@ -23,8 +22,15 @@ namespace SerialProtocol {
 	sync[0] = sync[1];
 	sync[1] = newByte;
       }
+
+      elapsed = chTimeDiffX(start, chVTGetSystemTimeX());
     } while (((sync[0] != 0xFE) or (sync[1] != 0xED)) and
-	     (chTimeDiffX(start, now) < time_500ms));
+	     (elapsed < timeout));
+
+    if (elapsed > timeout) {// timout
+      msg.status = SerialProtocol::Status::TIMOUT;
+      return msg;
+    }
     
     msg.len = sdGet(sd);
     if (msg.len == 0) {
