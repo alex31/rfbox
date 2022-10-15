@@ -74,6 +74,7 @@ public:
   virtual void forceRestartRx() {};
   virtual void checkModeMismatch(void) = 0;
   virtual void checkRestartRxNeeded(void) {};
+  void coldReset();
 
 protected:
   GSET_DECL(LowBetaOn, bool, afcCtrl_lowBetaOn, AfcCtrl);
@@ -99,7 +100,6 @@ protected:
   void setLna(LnaGain gain, LnaInputImpedance imp);
   void setRxBw(BandwithMantissa, uint8_t exp, uint8_t dccFreq);
   void setAfcBw(BandwithMantissa, uint8_t exp, uint8_t dccFreq);
-  void coldReset();
 
 };
 

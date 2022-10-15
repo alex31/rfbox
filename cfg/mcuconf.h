@@ -198,10 +198,15 @@
 /*
  * SERIAL driver system settings.
  */
-#define STM32_SERIAL_USE_USART1             TRUE
-#define STM32_SERIAL_USE_USART2             TRUE
+#define STM32_SERIAL_USE_USART1             TRUE // DTE
+#if (defined TRACE) || (! defined NOSHELL)
+#define STM32_SERIAL_USE_USART2             TRUE // shell and debug output for debug build.
+#else
+#define STM32_SERIAL_USE_USART2             FALSE // no shell neither debug output in release mode
+#endif
 #define STM32_SERIAL_USE_LPUART1            FALSE
-
+#define STM32_SERIAL_USART1_IN_BUF_SIZE     4096
+#define STM32_SERIAL_USART1_OUT_BUF_SIZE    2048
 /*
  * SIO driver system settings.
  */

@@ -77,9 +77,9 @@ namespace {
   };
 
   constexpr std::array<Rxbw, +BitRateIndex::UpBound> afcbwFsk = {
-    getRxBw(frequencyDev[+BitRateIndex::Low] + chipRates[+BitRateIndex::Low] , RxBwModul::FSK),
-    getRxBw(frequencyDev[+BitRateIndex::High] + chipRates[+BitRateIndex::High] , RxBwModul::FSK),
-    getRxBw(frequencyDev[+BitRateIndex::VeryHigh] + chipRates[+BitRateIndex::VeryHigh] , RxBwModul::FSK),
+    getRxBw(frequencyDev[+BitRateIndex::Low] + chipRates[+BitRateIndex::Low], RxBwModul::FSK),
+    getRxBw(frequencyDev[+BitRateIndex::High] + chipRates[+BitRateIndex::High], RxBwModul::FSK),
+    getRxBw(frequencyDev[+BitRateIndex::VeryHigh] + chipRates[+BitRateIndex::VeryHigh], RxBwModul::FSK),
   };
 
   constexpr std::array<Rxbw, +BitRateIndex::UpBound - 1> rxbwOok = {

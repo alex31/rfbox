@@ -105,28 +105,19 @@ int main (void)
     }
   } while (opStatus != Ope::Status::OK);
   board.clearError();
-  if (opStatus != Ope::Status::OK) {
-    while (true) {
-#ifdef LINE_LED_HEARTBEAT
-      palToggleLine(LINE_LED_HEARTBEAT);
-#endif
-      chThdSleepMilliseconds(100);
-  }
-
-  }
-  
-
 
 #ifdef NOSHELL
   wdgStart(&WDGD1, &wdgcfg);
 #endif
   
+#ifdef NOSHELL
   while (true) {
     chThdSleepMilliseconds(100);
-#ifdef NOSHELL
     wdgReset(&WDGD1);
-#endif
   }
+#else
+  chThdSleep(TIME_INFINITE);
+#endif
 }
 
 

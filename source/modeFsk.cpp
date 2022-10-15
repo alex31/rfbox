@@ -11,8 +11,8 @@ namespace {
   THD_WORKING_AREA(waMsgRelay, 1280);
   [[noreturn]] void msgRelaySerialToSpi(void *arg);
   [[noreturn]] void msgRelaySpiToSerial(void *arg);
-  THD_WORKING_AREA(waSurveyRestartRx, 512);
-  void surveyRestartRx (void *);
+  THD_WORKING_AREA(waSurveyResetRf, 512);
+  void surveyResetRf (void *);
   
   static  SerialConfig ftdiSerialConfig =  {
     .speed = baudRates[+BitRateIndex::Low],
@@ -22,9 +22,9 @@ namespace {
   };
 
   virtual_timer_t vtWatchDog;
-  volatile bool shouldRestartRx = false;
-  auto restartRxCb = [](ch_virtual_timer *, void *) {
-    shouldRestartRx = true;
+  volatile bool shouldResetRf = false;
+  auto resetRfCb = [](ch_virtual_timer *, void *) {
+    shouldResetRf = true;
   };
 }
 
@@ -44,8 +44,8 @@ namespace ModeFsk {
     if (rfMode == RfMode::RX) {
       chThdCreateStatic(waMsgRelay, sizeof(waMsgRelay),
        			NORMALPRIO, &msgRelaySpiToSerial, nullptr);
-      chThdCreateStatic(waSurveyRestartRx, sizeof(waSurveyRestartRx),
-			NORMALPRIO, &surveyRestartRx, nullptr);
+      chThdCreateStatic(waSurveyResetRf, sizeof(waSurveyResetRf),
+			NORMALPRIO, &surveyResetRf, nullptr);
     } else  if (rfMode == RfMode::TX) {
       chThdCreateStatic(waMsgRelay, sizeof(waMsgRelay),
        			NORMALPRIO, &msgRelaySerialToSpi, nullptr);
@@ -99,16 +99,16 @@ namespace {
     auto fskr = static_cast<Rfm69FskRadio *>(Radio::radio);
     SerialProtocol::Msg msg;
 
-    chVTSetContinuous(&vtWatchDog, TIME_MS2I(1500), restartRxCb, nullptr);
+    chVTSetContinuous(&vtWatchDog, TIME_MS2I(1500), resetRfCb, nullptr);
     
     while(true) {
       // we wait for the rfm69 fifo to filled with a complete message
       while(fskr->getPayloadReady() == false) {
 	chThdSleepMilliseconds(1);
       }
-      chVTSetContinuous(&vtWatchDog, TIME_MS2I(1500), restartRxCb, nullptr);
+      chVTSetContinuous(&vtWatchDog, TIME_MS2I(1500), resetRfCb, nullptr);
       fskr->fifoRead(msg.payload.data(), &msg.len);
-      DebugTrace("payload ready = %u", fskr->getPayloadReady());
+      //      DebugTrace("payload ready = %u", fskr->getPayloadReady());
       
       // after this call, len is complete len : len of payload + crc
       //   DebugTrace("+++++++ Spi2Ser msg len= %u ++++++++", msg.len);
@@ -120,14 +120,14 @@ namespace {
     }
   }
   
- void surveyRestartRx (void *)		
+ void surveyResetRf (void *)		
   {
     chRegSetThreadName("survey Restart Rx");
     while (true) {
-      if (shouldRestartRx) {
-	Radio::radio->forceRestartRx();
-	shouldRestartRx = false;
-	DebugTrace("restart Rx");
+      if (shouldResetRf) {
+	Radio::radio->coldReset();
+	shouldResetRf = false;
+	DebugTrace("surveyResetRf::coldReset");
       }
       chThdSleepMilliseconds(100);
     }
