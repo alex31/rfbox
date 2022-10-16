@@ -27,7 +27,8 @@ ifeq "$(GCCVERSIONGTEQ10)" "1"
 endif
 
 
-# unused options : -ftrapv 
+# unused options : -ftrapv
+
 
 
 ifeq ($(BUILD),DEBUG) 
