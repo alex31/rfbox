@@ -17,11 +17,8 @@ namespace {
   static  SerialConfig meteoSerialConfig =  {
     .speed = baudRates[+BitRateIndex::Low],
     .cr1 = 0,
-    .cr2 = USART_CR2_STOP1_BITS | USART_CR2_LINEN
-#if INVERT_OOK_MODUL 
-    | USART_CR2_TXINV | USART_CR2_RXINV
-#endif
-    ,
+    .cr2 = USART_CR2_STOP1_BITS | USART_CR2_LINEN |
+    invertOokModulation ? (USART_CR2_TXINV | USART_CR2_RXINV) : 0,
     .cr3 = 0
   };
 

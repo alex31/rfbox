@@ -203,13 +203,13 @@ namespace {
   void buffer_RF_RX_EXTERNAL_OOK()
   {
     palSetLineMode(LINE_EXTVCP_TX, PAL_MODE_ALTERNATE(AF_LINE_EXTVCP_TX));
-    Buffer::setMode(INVERT_OOK_MODUL ? Buffer::Mode::INVERTED_RX : Buffer::Mode::RX);
+    Buffer::setMode(invertOokModulation ? Buffer::Mode::INVERTED_RX : Buffer::Mode::RX);
   }
   
   void buffer_RF_TX_EXTERNAL_OOK()
   {
     palSetLineMode(LINE_EXTVCP_TX, PAL_MODE_INPUT);
-    Buffer::setMode(INVERT_OOK_MODUL ? Buffer::Mode::INVERTED_TX : Buffer::Mode::TX);
+    Buffer::setMode(invertOokModulation ? Buffer::Mode::INVERTED_TX : Buffer::Mode::TX);
   }
 
   // in this mode, data come from antena, goes in packet fifo, is read from fifo

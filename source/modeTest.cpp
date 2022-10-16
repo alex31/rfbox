@@ -14,21 +14,19 @@ namespace {
   using ErrorString = etl::string<48>;
   THD_WORKING_AREA(waAutonomousTest, 1280);
   
-  static  SerialConfig meteoSerialConfig =  {
+  SerialConfig meteoSerialConfig =  {
     .speed = baudRates[+BitRateIndex::Low],
     .cr1 = 0,
-    .cr2 = USART_CR2_STOP1_BITS | USART_CR2_LINEN
-#if INVERT_OOK_MODUL 
-    | USART_CR2_TXINV | USART_CR2_RXINV
-#endif
-    ,
+    .cr2 = USART_CR2_STOP1_BITS | USART_CR2_LINEN |
+    invertOokModulation ? (USART_CR2_TXINV | USART_CR2_RXINV) : 0,
     .cr3 = 0
   };
 
   void autonomousTestWrite (void *);		
   void autonomousTestRead (void *);
   Integrator<1024> integ;
-  
+  constexpr uint8_t frameLength = 160U;
+
   systime_t timoutTs = 0;
 }
 
@@ -76,7 +74,7 @@ namespace {
     while (true) {
       for (size_t i = 0; i < sizeof(frame); i++) {
 	frame[i] = counter++;
-	if (counter == 160)
+	if (counter == frameLength)
 	  counter = 0;
       }
       sdWrite(&SD_METEO, preamble, sizeof(preamble));
@@ -100,9 +98,9 @@ namespace {
 	ModeTest::getBer();
       }
       if (c < 0) {
-	if ((++zeroInRow) > 100) {
+	if ((++zeroInRow) > 100U) {
 	  zeroInRow = 0;
-	  DebugTrace("problem detected");
+	  DebugTrace("problem detected : Read Timeout");
 	  board.setError("Read Timeout");
 	}
 
@@ -115,7 +113,7 @@ namespace {
 	integ.push(true);
 	continue;
       } else if (c == 0) {
-	if ((++zeroInRow) > 10) {
+	if ((++zeroInRow) > 10U) {
 	  integ.push(true);
 	  zeroInRow = 0;
 	  DebugTrace("problem detected : Read only 0");
@@ -130,12 +128,12 @@ namespace {
 	  if (c != preambleByte) {
 	    integ.push(true);
 	    expectedByte = c+1;
-	    if(expectedByte == 160)
+	    if(expectedByte == frameLength)
 	      expectedByte = 0;
 	  } 
 	} else {
 	  integ.push(false);
-	  if(++expectedByte == 160) {
+	  if(++expectedByte == frameLength) {
 	    expectedByte = 0;
 	  }
 	}

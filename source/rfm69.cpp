@@ -14,10 +14,6 @@ namespace {
   constexpr uint8_t readMask =  0x0;
   constexpr uint8_t writeMask = 0x80;
   MUTEX_DECL(protectMtx);
-#if PARANOID_REGREAD
-  Rfm69Rmap regCheck;
-#endif
-
   enum class RxBwModul {OOK=3, FSK=2};
   
   struct Rxbw {
@@ -161,25 +157,26 @@ Rfm69Status Rfm69Spi::init(const SPIConfig& spiCfg)
 void Rfm69Spi::cacheRead(Rfm69RegIndex idx, size_t len)
 {
   spiAcquireBus(&spid);
-#if PARANOID_REGREAD
-  do {
-    spiSelect(&spid);
-    const uint8_t slaveAddr = static_cast<uint8_t>(idx) | readMask;
-    spiSend(&spid, 1, &slaveAddr);
-    spiReceive(&spid, len, const_cast<uint8_t *>(reg.raw) +
-	       static_cast<uint32_t>(idx));
-    spiUnselect(&spid);
-    memcpy(&regCheck, const_cast<Rfm69Rmap *>(&reg), sizeof(reg));
-    spiSelect(&spid);
-    spiSend(&spid, 1, &slaveAddr);
-    spiReceive(&spid, len, const_cast<uint8_t *>(reg.raw) +
-	       static_cast<uint32_t>(idx));
-    spiUnselect(&spid);
-    chThdSleepMicroseconds(1);
-  }
-  while (memcmp(&regCheck, const_cast<Rfm69Rmap *>(&reg),
-		sizeof(reg)) != 0);
-#else
+  if constexpr (paranoidRegisterRead) {
+    static Rfm69Rmap regCheck;
+    do {
+      spiSelect(&spid);
+      const uint8_t slaveAddr = static_cast<uint8_t>(idx) | readMask;
+      spiSend(&spid, 1, &slaveAddr);
+      spiReceive(&spid, len, const_cast<uint8_t *>(reg.raw) +
+		 static_cast<uint32_t>(idx));
+      spiUnselect(&spid);
+      memcpy(&regCheck, const_cast<Rfm69Rmap *>(&reg), sizeof(reg));
+      spiSelect(&spid);
+      spiSend(&spid, 1, &slaveAddr);
+      spiReceive(&spid, len, const_cast<uint8_t *>(reg.raw) +
+		 static_cast<uint32_t>(idx));
+      spiUnselect(&spid);
+      chThdSleepMicroseconds(1);
+    }
+    while (memcmp(&regCheck, const_cast<Rfm69Rmap *>(&reg),
+		  sizeof(reg)) != 0);
+  } else {
     spiSelect(&spid);
     const uint8_t slaveAddr = static_cast<uint8_t>(idx) | readMask;
     spiPolledExchange(&spid, slaveAddr);
@@ -190,8 +187,8 @@ void Rfm69Spi::cacheRead(Rfm69RegIndex idx, size_t len)
 		 static_cast<uint32_t>(idx));
     }
     spiUnselect(&spid);
-#endif
-   // chThdSleepMicroseconds(10);
+  }
+  // chThdSleepMicroseconds(10);
   spiReleaseBus(&spid);
   // chThdSleepMicroseconds(10);
 }
@@ -202,7 +199,7 @@ void Rfm69Spi::cacheWrite(Rfm69RegIndex idx, size_t len)
   spiSelect(&spid);
   const uint8_t slaveAddr = static_cast<uint8_t>(idx) | writeMask;
   spiPolledExchange(&spid, slaveAddr);
-  if (len == 1) {
+  if (len == 1U) {
     spiPolledExchange(&spid, reg.raw[static_cast<uint32_t>(idx)]);
   } else {
     spiSend(&spid, len, const_cast<uint8_t *>(reg.raw) + static_cast<uint32_t>(idx));
@@ -498,7 +495,7 @@ void Rfm69BaseRadio::rfHealthSurvey(void *arg)
 void Rfm69BaseRadio::coldReset()
 {
   static uint32_t count = 0;
-  if (++count == 100) {
+  if (++count == 100U) {
     RTCD1.rtc->BKP0R = warmBootSysRst;
     systemReset();
   }
