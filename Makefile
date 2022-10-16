@@ -49,7 +49,7 @@ else
    USE_LTO = yes  
 endif
 
-GIT_TAG := $(shell git describe --dirty --always --tags)
+GIT_TAG := $(shell git describe --dirty --always --tags --abbrev=1 | perl -apE 's/-\w{3,}//;')
 
 
 # C specific options here (added to USE_OPT).
