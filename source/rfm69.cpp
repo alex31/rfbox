@@ -459,7 +459,7 @@ void Rfm69BaseRadio::humanDisplayModeFlags(void)
   flags += ", ";
   flags += rfm69.reg.irqFlags_rxReady ? "rx_ready" : "RX_NOT_READY";
   flags += ", ";
-  flags += rfm69.reg.irqFlags_modeReady ? "ready" : "NOT_READY";
+  flags += rfm69.reg.irqFlags_modeReady ? "mode_ready" : "MODE_NOT_READY";
   DebugTrace("%s", flags.c_str());
 }
 
