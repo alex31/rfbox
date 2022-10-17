@@ -213,7 +213,7 @@ void Rfm69Spi::fifoRead(void *buffer, const uint8_t len)
   spiAcquireBus(&spid);
   spiSelect(&spid);
   const uint8_t slaveAddr = static_cast<uint8_t>(Rfm69RegIndex::Fifo) | readMask;
-  spiSend(&spid, 1, &slaveAddr);
+  spiSend(&spid, sizeof(len), &slaveAddr);
   spiReceive(&spid, len, static_cast<uint8_t *>(buffer));
   spiUnselect(&spid);
   
@@ -225,7 +225,7 @@ void Rfm69Spi::fifoWrite(const void *buffer, const uint8_t len)
   spiAcquireBus(&spid);
   spiSelect(&spid);
   const uint8_t slaveAddr = static_cast<uint8_t>(Rfm69RegIndex::Fifo) | writeMask;
-  spiSend(&spid, 1, &slaveAddr);
+  spiSend(&spid, sizeof(len), &slaveAddr);
   spiSend(&spid, len, static_cast<const uint8_t *>(buffer));
   spiUnselect(&spid);
   spiReleaseBus(&spid);
@@ -340,7 +340,7 @@ Rfm69Status Rfm69BaseRadio::calibrate()
     DebugTrace("calibration ends mode = 0x%x",
 	       static_cast<uint16_t>(rfm69.reg.opMode_mode));
   }
-  humanDisplayFlags();
+  humanDisplayModeFlags();
 
   return rfm69.reg.osc1_calibDone ? Rfm69Status::OK : Rfm69Status::TIMOUT;
 }
@@ -443,23 +443,45 @@ int8_t Rfm69BaseRadio::getLnaGain(void)
 }
 
 
-void Rfm69BaseRadio::humanDisplayFlags(void)
+void Rfm69BaseRadio::humanDisplayModeFlags(void)
 {
   rfm69.cacheRead(Rfm69RegIndex::IrqFlags1);
-  etl::string<80> flags = "FLAGS= ";
-  flags += rfm69.reg.irqFlags_autoMode ? "AUTO_MODE" : "auto_mode";
+  etl::string<130> flags = "RF FLAGS= ";
+  flags += rfm69.reg.irqFlags_autoMode ? "AUTO_MODE" : "no_auto_mode";
   flags += ", ";
-  flags += rfm69.reg.irqFlags_timeOut ? "TIME_OUT" : "time_out";
+  flags += rfm69.reg.irqFlags_timeOut ? "TIME_OUT" : "no_time_out";
   flags += ", ";
-  flags += rfm69.reg.irqFlags_rssi ? "RSSI" : "rssi";
+  flags += rfm69.reg.irqFlags_rssi ? "rssi" : "NO_RSSI";
   flags += ", ";
-  flags += rfm69.reg.irqFlags_pllLock ? "PLL_LOCK" : "pll_lock";
+  flags += rfm69.reg.irqFlags_pllLock ? "pll_lock" : "PLL_NOT_LOCK";
   flags += ", ";
-  flags += rfm69.reg.irqFlags_txReady ? "TX_READY" : "tx_ready";
+  flags += rfm69.reg.irqFlags_txReady ? "tx_ready" : "TX_NOT_READY";
   flags += ", ";
-  flags += rfm69.reg.irqFlags_rxReady ? "RX_READY" : "rx_ready";
+  flags += rfm69.reg.irqFlags_rxReady ? "rx_ready" : "RX_NOT_READY";
   flags += ", ";
-  flags += rfm69.reg.irqFlags_modeReady ? "MODE_READY" : "mode_ready";
+  flags += rfm69.reg.irqFlags_modeReady ? "ready" : "NOT_READY";
+  DebugTrace("%s", flags.c_str());
+}
+
+void Rfm69BaseRadio::humanDisplayFifoFlags(void)
+{
+  rfm69.cacheRead(Rfm69RegIndex::IrqFlags2);
+  etl::string<130> flags = "FIFO FLAGS= ";
+  flags += rfm69.reg.irqFlags_syncAddressMatch ? "sync" : "NO_SYNC";
+  flags += ", ";
+  flags += rfm69.reg.irqFlags_crcOk ? "crc_ok" : "CRC_ERROR";
+  flags += ", ";
+  flags += rfm69.reg.irqFlags_payloadReady ? "payload_ready" : "payload_not_ready";
+  flags += ", ";
+  flags += rfm69.reg.irqFlags_packetSent ?  "sent" : "NOT_SENT";
+  flags += ", ";
+  flags += rfm69.reg.irqFlags_fifoOverrun ?  "OVERRUN" : "no_overrun";
+  flags += ", ";
+  flags += rfm69.reg.irqFlags_fifoLevel ?  "OVER_LEVEL" : "below_level";
+  flags += ", ";
+  flags += rfm69.reg.irqFlags_fifoNotEmpty ?  "NOT_EMPTY" : "empty";
+  flags += ", ";
+  flags += rfm69.reg.irqFlags_fifoFull ?  "FULL" : "not full";
   DebugTrace("%s", flags.c_str());
 }
 
@@ -772,9 +794,13 @@ void Rfm69FskRadio::fifoWrite(const void *buffer, const uint8_t len)
 
 void Rfm69FskRadio::fifoRead(void *buffer, uint8_t *len)
 {
-  rfm69.fifoRead(len, 1);
-  if (*len != 0U) 
-    rfm69.fifoRead(buffer, *len);
+  rfm69.fifoRead(len, sizeof(*len));
+  if ((*len != 0U) && (*len < (fifoMaxLen - sizeof(*len)))) {
+      rfm69.fifoRead(buffer, *len);
+      board.clearError();
+    } else {
+      board.setError("Fifo size limit");
+    }
 }
 
 void Rfm69FskRadio::rawFifoRead(void *buffer, uint8_t len)

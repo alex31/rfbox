@@ -63,7 +63,8 @@ public:
   Rfm69Status calibrate(void);
   float getRssi();
   int8_t getLnaGain(void);
-  void humanDisplayFlags(void);
+  void humanDisplayModeFlags(void);
+  void humanDisplayFifoFlags(void);
   RfMode getOrderMode() {return mode;}
   GSET_DECL(RfMode, RfMode, opMode_mode, RfMode);
   GET_DECL(RxReady, bool, irqFlags_rxReady, IrqFlags1);
@@ -148,12 +149,12 @@ public:
   GET_DECL(FifoNotEmpty, bool, irqFlags_fifoNotEmpty, IrqFlags2);
   GET_DECL(FifoFull, bool, irqFlags_fifoFull, IrqFlags2);
   GET_DECL(FifoLevel, bool, irqFlags_fifoLevel, IrqFlags2);
+  static constexpr uint8_t fifoMaxLen = 66U;
 protected:
   void setRfTuning(void) override;
   void setFrequencyDeviation(uint32_t frequencyDeviation);
   
 private:
-  static constexpr uint8_t fifoMaxLen = 66U;
   static constexpr uint8_t preambleSize = 8U;
   static constexpr uint8_t syncWordSize = 4U;
   static constexpr uint8_t interPacketRxDelay = 15U;

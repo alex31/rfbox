@@ -1,5 +1,3 @@
-#define _GNU_SOURCE // enable strcasestr
-
 #include <cstdio>
 #include <cstdlib>
 #include <cctype>
@@ -243,7 +241,7 @@ static void cmd_threads(BaseSequentialStream *lchp, int argc,const char * const 
 
     totalTicks+= (float)tp->stats.cumulative;
     if (strcmp(chRegGetThreadNameX(tp), "idle") == 0)
-    idleTicks = (float)tp->stats.cumulative;
+      idleTicks = (float)tp->stats.cumulative;
     tp = chRegNextThread ((thread_t *)tp);
     idx++;
   } while (tp != NULL);

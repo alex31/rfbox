@@ -11,8 +11,12 @@ namespace {
   THD_WORKING_AREA(waMsgRelay, 1280);
   [[noreturn]] void msgRelaySerialToSpi(void *arg);
   [[noreturn]] void msgRelaySpiToSerial(void *arg);
+  
   THD_WORKING_AREA(waSurveyResetRf, 512);
   void surveyResetRf (void *);
+
+  // 3 for len and CRC
+  constexpr size_t frameMaxLen = Rfm69FskRadio::fifoMaxLen - 3U;
   
   static  SerialConfig ftdiSerialConfig =  {
     .speed = baudRates[+BitRateIndex::Low],
@@ -79,12 +83,17 @@ namespace {
 	// serial msg len is len of just payload
 	// spi_frame len is for : payload + crc
 	//	 DebugTrace("+++++++ Ser2Spi fifo W ++++++++");
-	msg.len += sizeof(msg.crc.distant);
-	//	DebugTrace("fifo send len = %u", msg.len);
-	// send payload
-	fskr->fifoWrite(&msg.len, msg.len + sizeof(msg.len) - sizeof(msg.crc.distant));
-	// send crc
-	fskr->fifoWrite(&msg.crc.distant, sizeof(msg.crc.distant));
+	if (msg.len < frameMaxLen) {
+	  board.clearError();
+	  msg.len += sizeof(msg.crc.distant);
+	  //	DebugTrace("fifo send len = %u", msg.len);
+	  // send payload
+	  fskr->fifoWrite(&msg.len, msg.len + sizeof(msg.len) - sizeof(msg.crc.distant));
+	  // send crc
+	  fskr->fifoWrite(&msg.crc.distant, sizeof(msg.crc.distant));
+	} else {
+	  board.setError("Frame too big");
+	}
 	break;
       case SerialProtocol::Status::LEN_ERROR:
       case SerialProtocol::Status::TIMOUT:
@@ -127,6 +136,8 @@ namespace {
       if (shouldResetRf) {
 	Radio::radio->coldReset();
 	shouldResetRf = false;
+	Radio::radio->humanDisplayModeFlags();
+	Radio::radio->humanDisplayFifoFlags();
 	DebugTrace("surveyResetRf::coldReset");
       }
       chThdSleepMilliseconds(100);
