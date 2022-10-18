@@ -137,19 +137,12 @@ HARDWARE_VERSION = v1
 MCU  = cortex-m4
 
 # Imported source files and paths.
-MY_DIRNAME=../../../ChibiOS_21.11_stable
-ifneq "$(wildcard $(MY_DIRNAME) )" ""
-   RELATIVE=../../..
-else
-  RELATIVE=../..
-endif
-
-CHIBIOS  := $(RELATIVE)/$(notdir $(MY_DIRNAME))
+CHIBIOS  := ext/chibios_svn_mirror
 CONFDIR  := ./cfg
 BUILDDIR := ./build
 DEPDIR   := ./.dep
 DRIVER_SRC := ./CubeMx/Drivers/STM32L4xx_HAL_Driver/Src
-VARIOUS = $(RELATIVE)/COMMON/various
+VARIOUS = ext/chibios_enac_various_common
 USBD_LIB = $(VARIOUS)/Chibios-USB-Devices
 COMMUNITY = $(VARIOUS)
 ETL_LIB = := ../../../../etl/include
