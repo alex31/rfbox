@@ -55,14 +55,14 @@ namespace {
  constexpr std::array<uint32_t, +BitRateIndex::UpBound> chipRates = {
    static_cast<uint32_t>(baudRates[+BitRateIndex::High] * fskBroadcastBitRateRatio),
    static_cast<uint32_t>(baudRates[+BitRateIndex::High] * fskBroadcastBitRateRatio),
-   static_cast<uint32_t>(baudRates[+BitRateIndex::VeryHigh] * fskBroadcastBitRateRatio)
+   static_cast<uint32_t>(baudRates[+BitRateIndex::VeryHigh] * 1.2f)
   };
 
 
   constexpr std::array<uint32_t, +BitRateIndex::UpBound> frequencyDev = {
     chipRates[+BitRateIndex::Low] * 2U,
     chipRates[+BitRateIndex::High] * 2U,
-    chipRates[+BitRateIndex::VeryHigh] * 2U,
+    chipRates[+BitRateIndex::VeryHigh],
     //    50'000 // magic number : highest Fdev is not reliable
   };
 
