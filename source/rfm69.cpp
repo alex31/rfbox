@@ -55,7 +55,7 @@ namespace {
  constexpr std::array<uint32_t, +BitRateIndex::UpBound> chipRates = {
    static_cast<uint32_t>(baudRates[+BitRateIndex::High] * fskBroadcastBitRateRatio),
    static_cast<uint32_t>(baudRates[+BitRateIndex::High] * fskBroadcastBitRateRatio),
-   static_cast<uint32_t>(baudRates[+BitRateIndex::VeryHigh] * 1.2f)
+   static_cast<uint32_t>(baudRates[+BitRateIndex::VeryHigh] * 1.1f)
   };
 
 
