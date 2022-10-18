@@ -57,7 +57,8 @@ inline constexpr int8_t   ampLevelDbLow = 0;
 inline constexpr int8_t   ampLevelDbHigh = 18;
 inline constexpr std::array<uint32_t, +BitRateIndex::UpBound> baudRates = {
   4800, 19200, /*57600*/ 115200};
-inline constexpr float    fskBroadcastBitRateRatio = 1.3f;
+inline constexpr float    fskBroadcastLowBitRate_ratio = 1.3f;
+inline constexpr float    fskBroadcastHighBitRate_ratio = 1.1f;
 
 // Calculated constant
 inline constexpr uint32_t spiBr12Baud = getBr12(spiBaudRate);
