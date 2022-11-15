@@ -74,16 +74,24 @@ namespace {
       case SerialProtocol::Status::CRC_ERROR:
 	//	DebugTrace("CRC differ : L:0x%x != D:0x%x", msg.crc.local, msg.crc.distant);
 	break;
-      case SerialProtocol::Status::SUCCESS:
+      case SerialProtocol::Status::SUCCESS: {
 	//	 // we wait for the rfm69 fifo to be empty
 	//	DebugTrace("+++++++ Ser2Spi Ok ++++++++");
-	while(fskr->getFifoNotEmpty() == true) {
-	  chThdSleepMilliseconds(1);
-	}
-	// serial msg len is len of just payload
-	// spi_frame len is for : payload + crc
-	//	 DebugTrace("+++++++ Ser2Spi fifo W ++++++++");
-	if (msg.len < frameMaxLen) {
+
+	if (msg.len > frameMaxLen) {
+	  board.setError("Frame too big");
+	} else if (fskr->getFifoFull() == true) {
+	  board.setError("Fifo Full");
+	} else {
+	  const int threshold = frameMaxLen - msg.len;
+	  fskr->setFifoThreshold(static_cast<uint8_t>(threshold));
+	  while((fskr->getFifoLevel() == true) && (fskr->cacheFifoNotEmpty() == true)) 
+	    chThdSleepMicroseconds(100);
+	  fskr->setFifoThreshold(0);
+	  
+	  // serial msg len is len of just payload
+	  // spi_frame len is for : payload + crc
+	  //	 DebugTrace("+++++++ Ser2Spi fifo W ++++++++");
 	  board.clearError();
 	  msg.len += sizeof(msg.crc.distant);
 	  //	DebugTrace("fifo send len = %u", msg.len);
@@ -91,13 +99,11 @@ namespace {
 	  fskr->fifoWrite(&msg.len, msg.len + sizeof(msg.len) - sizeof(msg.crc.distant));
 	  // send crc
 	  fskr->fifoWrite(&msg.crc.distant, sizeof(msg.crc.distant));
-	} else {
-	  board.setError("Frame too big");
-	}
-	break;
-      case SerialProtocol::Status::LEN_ERROR:
-      case SerialProtocol::Status::TIMOUT:
-	break;
+	} break;
+	case SerialProtocol::Status::LEN_ERROR:
+	  case SerialProtocol::Status::TIMOUT:
+	    break;
+      }
       }
     }
   }
@@ -113,7 +119,7 @@ namespace {
     while(true) {
       // we wait for the rfm69 fifo to filled with a complete message
       while(fskr->getPayloadReady() == false) {
-	chThdSleepMilliseconds(1);
+	chThdSleepMicroseconds(100);
       }
       chVTSetContinuous(&vtWatchDog, TIME_MS2I(1500), resetRfCb, nullptr);
       fskr->fifoRead(msg.payload.data(), &msg.len);

@@ -377,14 +377,14 @@ Rfm69Status Rfm69BaseRadio::waitReady(void)
 
 void Rfm69BaseRadio::setPowerAmp(uint8_t pmask, RampTime rt, int8_t gain)
 {
-  chDbgAssert((gain >= -13) and (gain <= 18),
+  chDbgAssert((gain >= -18) and (gain <= 13),
 	      "out of bound amplifier level");
   
   rfm69.reg.paLevel_pa0On = (pmask & 0b001) != 0;
   rfm69.reg.paLevel_pa1On = (pmask & 0b010) != 0;
   rfm69.reg.paLevel_pa2On = (pmask & 0b100) != 0;
-  // power outpul level is from -13db to 18 db
-  rfm69.reg.paLevel_outputPower = gain + 13; 
+  // power outpul level is from -18db to 13 db
+  rfm69.reg.paLevel_outputPower = gain + 18; 
   
   rfm69.reg.paRamp = rt;
   rfm69.cacheWrite(Rfm69RegIndex::PaLevel, 2);
@@ -770,12 +770,11 @@ void  Rfm69FskRadio::configPacketMode(void)
   rfm69.reg.payloadLength = fifoMaxLen + 1U;
   rfm69.reg.autoModes_enterCondition = EnterCondition::NONE;
   rfm69.reg.autoModes_exitCondition = ExitCondition::NONE;
-  rfm69.reg.fifoThresh_txStartCondition = TxStartCondition::FIFO_NOT_EMPTY;
+  rfm69.reg.fifoThresh_txStartCondition = TxStartCondition::FIFO_NOT_EMPTY; // FIFO_LEVEL
   rfm69.reg.packetConfig2_interPacketRxDelay = interPacketRxDelay;
   rfm69.reg.packetConfig2_autoRxRestartOn = true;
   rfm69.reg.packetConfig2_aesOn = false;
-  rfm69.reg.fifoThresh_threshold = 4;
-  rfm69.reg.fifoThresh_txStartCondition = TxStartCondition::FIFO_LEVEL;
+  rfm69.reg.fifoThresh_threshold = 0U;
 }
 
 void Rfm69FskRadio::setFrequencyDeviation(uint32_t frequencyDeviation)

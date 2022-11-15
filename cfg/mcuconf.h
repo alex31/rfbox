@@ -207,6 +207,8 @@
 #define STM32_SERIAL_USE_LPUART1            FALSE
 #define STM32_SERIAL_USART1_IN_BUF_SIZE     4096
 #define STM32_SERIAL_USART1_OUT_BUF_SIZE    2048
+#define STM32_UART_USART1_IRQ_PRIORITY      3
+
 /*
  * SIO driver system settings.
  */

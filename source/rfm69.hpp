@@ -36,6 +36,10 @@ private:
   { \
     rfm69.cacheRead(Rfm69RegIndex::regi, 1U); \
     return rfm69.reg.bfn; \
+  } \
+  bft cache##name(void) \
+  { \
+    return rfm69.reg.bfn; \
   }
 
 #define SET_DECL(name, bft, bfn, regi)	\
@@ -149,6 +153,7 @@ public:
   GET_DECL(FifoNotEmpty, bool, irqFlags_fifoNotEmpty, IrqFlags2);
   GET_DECL(FifoFull, bool, irqFlags_fifoFull, IrqFlags2);
   GET_DECL(FifoLevel, bool, irqFlags_fifoLevel, IrqFlags2);
+  SET_DECL(FifoThreshold, uint8_t,  fifoThresh_threshold, FifoThresh);
   static constexpr uint8_t fifoMaxLen = 66U;
 protected:
   void setRfTuning(void) override;

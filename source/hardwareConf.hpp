@@ -54,7 +54,7 @@ inline constexpr uint32_t spiBaudRate = 6'000'000;
 inline constexpr uint32_t carrierFrequencyLow = 868'000'000;
 inline constexpr uint32_t carrierFrequencyHigh = 870'000'000;
 inline constexpr int8_t   ampLevelDbLow = 0;
-inline constexpr int8_t   ampLevelDbHigh = 18;
+inline constexpr int8_t   ampLevelDbHigh = 13;
 inline constexpr std::array<uint32_t, +BitRateIndex::UpBound> baudRates = {
   4800, 19200, /*57600*/ 115200};
 inline constexpr float    fskBroadcastLowBitRate_ratio = 1.3f;
