@@ -86,7 +86,7 @@ namespace Ope {
 
       // in this mode, one should dynamically test which entry (serial or usb) is in use
     case Mode::RF_TX_EXTERNAL_FSK: {
-      chDbgAssert(source != ModeFsk::Source::NONE, "call ajustParamIfFsk before this method");
+      chDbgAssert(source != ModeFsk::Source::NONE, "call ajustSourceParams before this method");
       rfMode = RfMode::TX;
       const auto bri = board.getBitRateIdx();
       board.setBitRateIdx(bri);
@@ -129,7 +129,7 @@ namespace Ope {
     return status;
   }
 
-  void ajustParamIfFsk(Mode opMode)
+  void ajustSourceParams(Mode opMode)
   {
     switch (opMode) {
     case Mode::RF_RX_EXTERNAL_FSK: {
@@ -146,7 +146,7 @@ namespace Ope {
       board.setBitRateIdx(bri);
       source = activeSource;
     } break;
-      
+
     default:
       break;
     }

@@ -129,7 +129,7 @@ namespace {
       "     BE MCU     ",
       "module radio OFF",
       "mode Serie->USB ",
-      "tune baud on PC "
+      "-> @4800 baud   "
     };
   };
   

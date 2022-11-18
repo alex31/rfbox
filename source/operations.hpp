@@ -18,6 +18,6 @@ namespace Ope {
   const char* toAscii(Mode opMode);
   const char* toAscii(Status status);
   
-  void ajustParamIfFsk(Mode opMode);
+  void ajustSourceParams(Mode opMode);
   Ope::Status setMode(Mode opMode);
 }
