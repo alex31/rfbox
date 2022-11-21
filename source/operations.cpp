@@ -88,8 +88,6 @@ namespace Ope {
     case Mode::RF_TX_EXTERNAL_FSK: {
       chDbgAssert(source != ModeFsk::Source::NONE, "call ajustParamIfFsk before this method");
       rfMode = RfMode::TX;
-      const auto bri = board.getBitRateIdx();
-      board.setBitRateIdx(bri);
       buffer_RF_TX_EXTERNAL_FSK(source);
     } break ;
       
@@ -143,7 +141,7 @@ namespace Ope {
     case Mode::RF_TX_EXTERNAL_FSK: {
       crcStart(&CRCD1, &crcCfgModbus);
       const auto [bri, activeSource] = getConnectedSource();
-      board.setBitRateIdx(bri);
+      board.setBitRateIdx(BitRateIndex::VeryHigh);
       source = activeSource;
     } break;
       

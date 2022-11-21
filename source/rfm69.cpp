@@ -332,6 +332,7 @@ Rfm69Status Rfm69BaseRadio::calibrate()
 
   rfm69.cacheRead(Rfm69RegIndex::RfMode);
   rfm69.cacheRead(Rfm69RegIndex::IrqFlags1);
+#ifdef TRACE
   if (mode == RfMode::RX) {
     DebugTrace("calibration ends mode = 0x%x; dio2 avg = %.2f",
 	       static_cast<uint16_t>(rfm69.reg.opMode_mode),
@@ -340,6 +341,8 @@ Rfm69Status Rfm69BaseRadio::calibrate()
     DebugTrace("calibration ends mode = 0x%x",
 	       static_cast<uint16_t>(rfm69.reg.opMode_mode));
   }
+#endif
+  
   humanDisplayModeFlags();
 
   return rfm69.reg.osc1_calibDone ? Rfm69Status::OK : Rfm69Status::TIMOUT;

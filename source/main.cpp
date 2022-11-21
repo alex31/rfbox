@@ -2,6 +2,7 @@
 #include <hal.h>
 #include <algorithm>
 #include "stdutil.h"
+  
 #ifndef NOSHELL
 #include "ttyConsole.hpp"
 #endif
@@ -43,28 +44,32 @@ int main (void)
   
   Oled::start();
   const RfMode rfMode = DIP::getDip(DIPSWITCH::RXTX) ? RfMode::TX : RfMode::RX;
+#ifdef TRACE
   if (rfMode == RfMode::RX) {
     DebugTrace("mode RX");
   } else {
     DebugTrace("mode TX");
   }
+#endif
+  
   DIP::start();
   const bool rfEnable = DIP::getDip(DIPSWITCH::RFENABLE);
   board.setRfEnable(rfEnable);
+#ifdef TRACE
   if (rfEnable) {
     DebugTrace("RF Enable");
   } else {
     DebugTrace("RF Disable");
   }
+#endif
+  
   const uint32_t frequencyCarrier = DIP::getDip(DIPSWITCH::FREQ) ?
     carrierFrequencyHigh : carrierFrequencyLow;
 
   const int8_t amplificationLevelDb = DIP::getDip(DIPSWITCH::PWRLVL) ?
     ampLevelDbHigh : ampLevelDbLow;
   const bool berMode = DIP::getDip(DIPSWITCH::BER);
-  const  BitRateIndex bitRateIndex = DIP::getDip(DIPSWITCH::BAUD_MODUL) ?
-    BitRateIndex::High :
-    BitRateIndex::Low;
+  const  BitRateIndex bitRateIndex =     BitRateIndex::VeryHigh ;
   board.setBitRateIdx(bitRateIndex);
   
   DebugTrace("carrier frequency %lu @ %d Db level", frequencyCarrier, amplificationLevelDb);
@@ -106,10 +111,11 @@ int main (void)
   } while (opStatus != Ope::Status::OK);
   board.clearError();
 
+  
 #ifdef NOSHELL
   wdgStart(&WDGD1, &wdgcfg);
 #endif
-  
+
 #ifdef NOSHELL
   while (true) {
     chThdSleepMilliseconds(100);

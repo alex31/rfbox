@@ -6,6 +6,7 @@
 #include "hardwareConf.hpp"
 #include "bboard.hpp"
 #include "serialProtocol.hpp"
+#include "stdutil++.hpp"
 
 namespace {
   THD_WORKING_AREA(waMsgRelay, 1280);
@@ -64,46 +65,32 @@ namespace {
 
   void msgRelaySerialToSpi(void *)
   {
-    chRegSetThreadName("Serial to SPI");
+    chRegSetThreadName("RF69 thruput test");
     auto fskr = static_cast<Rfm69FskRadio *>(Radio::radio);
+    static constexpr size_t payloadLen = 50U;
+    TraceSomeTime trace(TIME_MS2I(1000));
     
+    const systime_t startTs = chVTGetSystemTimeX();
+    uint32_t totalBytes = 0;
+    SerialProtocol::Msg msg;
+    msg.len = payloadLen;
+      
     while(true) {
-      SerialProtocol::Msg msg = SerialProtocol::waitMsg(&SD_METEO);
-      //             DebugTrace("+++++++ Ser2Spi msg ++++++++");
-      switch (msg.status) {
-      case SerialProtocol::Status::CRC_ERROR:
-	//	DebugTrace("CRC differ : L:0x%x != D:0x%x", msg.crc.local, msg.crc.distant);
-	break;
-      case SerialProtocol::Status::SUCCESS: {
-	//	 // we wait for the rfm69 fifo to be empty
-	//	DebugTrace("+++++++ Ser2Spi Ok ++++++++");
-
-	if (msg.len > frameMaxLen) {
-	  board.setError("Frame too big");
-	} else if (fskr->getFifoFull() == true) {
-	  board.setError("Fifo Full");
-	} else {
-	  const int threshold = frameMaxLen - msg.len;
-	  fskr->setFifoThreshold(static_cast<uint8_t>(threshold));
-	  while((fskr->getFifoLevel() == true) && (fskr->cacheFifoNotEmpty() == true)) 
-	    chThdSleepMicroseconds(100);
-	  fskr->setFifoThreshold(0);
-	  
-	  // serial msg len is len of just payload
-	  // spi_frame len is for : payload + crc
-	  //	 DebugTrace("+++++++ Ser2Spi fifo W ++++++++");
-	  board.clearError();
-	  msg.len += sizeof(msg.crc.distant);
-	  //	DebugTrace("fifo send len = %u", msg.len);
-	  // send payload
-	  fskr->fifoWrite(&msg.len, msg.len + sizeof(msg.len) - sizeof(msg.crc.distant));
-	  // send crc
-	  fskr->fifoWrite(&msg.crc.distant, sizeof(msg.crc.distant));
-	} break;
-	case SerialProtocol::Status::LEN_ERROR:
-	  case SerialProtocol::Status::TIMOUT:
-	    break;
-      }
+      if (fskr->getFifoFull() == true) {
+	board.setError("Fifo Full");
+      } else {
+	const int threshold = frameMaxLen - msg.len;
+	fskr->setFifoThreshold(static_cast<uint8_t>(threshold));
+	//while((fskr->getFifoLevel() == true)  && (fskr->cacheFifoNotEmpty() == true)) 
+	  	while(fskr->getFifoNotEmpty() == true) 
+	  {chThdSleepMicroseconds(100); }
+	fskr->setFifoThreshold(0);
+	
+	fskr->fifoWrite(&msg.len, msg.len);
+	totalBytes += msg.len;
+	const float elapsed = TIME_I2MS(chTimeDiffX(startTs, chVTGetSystemTimeX())) / 1000.0f;
+	const float throughput = totalBytes / elapsed;
+	trace("packet mode thruput = %.2f Kb/s", throughput / 1000.0f);
       }
     }
   }
