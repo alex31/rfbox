@@ -7,6 +7,8 @@ namespace {
   DiffIntegrator<32> integ6Ms;
   ioline_t dio2Line;
   THD_WORKING_AREA(waSurvey, 512);
+  bool started = false;
+  
   void survey (void *arg)		
   {
     (void)arg;				
@@ -26,8 +28,11 @@ namespace Dio2Spy {
   void start(ioline_t _dio2Line)
   {
     dio2Line = _dio2Line;
-    chThdCreateStatic(waSurvey, sizeof(waSurvey),
-		      HIGHPRIO, &survey, NULL);
+    if (not started) {
+      chThdCreateStatic(waSurvey, sizeof(waSurvey),
+			HIGHPRIO, &survey, nullptr);
+      started = true;
+    }
   }
 
   float getAverageLevel(void)

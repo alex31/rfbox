@@ -96,11 +96,15 @@ int main (void)
   Ope::Status opStatus = {};
   Ope::ajustParamIfFsk(opMode);
   do {
-    Radio::init(opMode);
+    const Rfm69Status rstatus = Radio::init(opMode);
+    if (rstatus == Rfm69Status::INIT_ERROR) {
+      board.setError("RF FAIL");
+      chThdSleep(TIME_INFINITE);
+    }
     opStatus = Ope::setMode(opMode);
     if (opStatus != Ope::Status::OK) {
-      DebugTrace("Ope::setMode error status = %u",
-		 static_cast<uint16_t>(opStatus));
+      DebugTrace("Ope::setMode error status = %u [%s]",
+		 static_cast<uint16_t>(opStatus), Ope::toAscii(opStatus));
       board.setError(Ope::toAscii(opStatus));
     }
   } while (opStatus != Ope::Status::OK);

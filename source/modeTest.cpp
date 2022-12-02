@@ -22,6 +22,7 @@ namespace {
     .cr3 = 0
   };
 
+  bool started = false;
   void autonomousTestWrite (void *);		
   void autonomousTestRead (void *);
   Integrator<1024> integ;
@@ -48,14 +49,17 @@ namespace ModeTest {
       meteoSerialConfig.cr2 |= USART_CR2_SWAP;
 
     sdStart(&SD_METEO, &meteoSerialConfig);
-    if (rfMode == RfMode::TX) {
-      chThdCreateStatic(waAutonomousTest, sizeof(waAutonomousTest),
-			NORMALPRIO, &autonomousTestWrite, nullptr);
-    } else  if (rfMode == RfMode::RX) {
-      chThdCreateStatic(waAutonomousTest, sizeof(waAutonomousTest),
-			NORMALPRIO, &autonomousTestRead, nullptr);
-    } else {
-      chSysHalt("invalid rfMode");
+    if (not started) {
+      started = true;
+      if (rfMode == RfMode::TX) {
+	chThdCreateStatic(waAutonomousTest, sizeof(waAutonomousTest),
+			  NORMALPRIO, &autonomousTestWrite, nullptr);
+      } else  if (rfMode == RfMode::RX) {
+	chThdCreateStatic(waAutonomousTest, sizeof(waAutonomousTest),
+			  NORMALPRIO, &autonomousTestRead, nullptr);
+      } else {
+	chSysHalt("invalid rfMode");
+      }
     }
   }
 }
