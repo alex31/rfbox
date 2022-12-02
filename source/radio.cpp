@@ -23,7 +23,7 @@ namespace {
 namespace Radio {
   Rfm69BaseRadio *radio = nullptr;
 
-  void init(Ope::Mode opMode)
+  Rfm69Status init(Ope::Mode opMode)
   {
     switch(opMode) {
     case Ope::Mode::RF_RX_EXTERNAL_OOK :
@@ -50,7 +50,9 @@ namespace Radio {
     
     if (Radio::radio and (Radio::radio->init(spiCfg) != Rfm69Status::OK)) {
       DebugTrace("radio->init failed");
+      return Rfm69Status::INIT_ERROR;
     }
+    return  Rfm69Status::OK;
   }
   
 } // end of anonymous namespace

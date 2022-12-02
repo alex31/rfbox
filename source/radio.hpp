@@ -7,5 +7,5 @@
 
 namespace Radio {
   extern Rfm69BaseRadio *radio;
-  void init(Ope::Mode opMode);
+  Rfm69Status init(Ope::Mode opMode);
 };
