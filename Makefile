@@ -131,7 +131,7 @@ endif
 PROJECT = ch
 
 # proto is v1, definitive is v2
-HARDWARE_VERSION = v1
+HARDWARE_VERSION = v2
 
 # Target settings.
 MCU  = cortex-m4
