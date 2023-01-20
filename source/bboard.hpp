@@ -53,7 +53,7 @@ private:
   BitRateIndex baudIdx = {};
   uint32_t freq = {};
   bool    rfEnable = false;
-  uint8_t txPower = {};
+  int16_t txPower = {};
   error_t error = {};
   source_t source = {};
   dio2Threshold_t dio2Threshold = {0, 1};
