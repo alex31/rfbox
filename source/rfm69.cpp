@@ -266,7 +266,11 @@ void Rfm69BaseRadio::setCommonRfParam(uint32_t frequencyCarrier,
 					     int8_t amplificationLevelDb)
 {
   setFrequencyCarrier(frequencyCarrier);
-  setPowerAmp(0b001, RampTime::US_20, amplificationLevelDb);
+
+  // after measure, 13dbm output 13dbm, but -10 dbm output -12dbm
+  // we apply simple linear interpolarion to correct the bias
+  const float correctedAmplificationLevelDb = ceilf((0.913f * amplificationLevelDb) + 1.127f);
+  setPowerAmp(0b001, RampTime::US_20, correctedAmplificationLevelDb);
   setLna(LnaGain::AGC, LnaInputImpedance::OHMS_50);
 
   setLowBetaOn(true);
