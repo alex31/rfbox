@@ -75,6 +75,7 @@ int main (void)
     if (berMode) {
       // forbidden combination
       board.setError("BER No RF invalid");
+      Radio::init(Ope::Mode::NORF_RX);
       chThdSleep(TIME_INFINITE);
     } else {
       opMode = rfMode == RfMode::RX ? Ope::Mode::NORF_RX : Ope::Mode::NORF_TX;
