@@ -26,6 +26,8 @@ public:
   volatile Rfm69Rmap reg {}; // registers are public to avoid massive
   // setter getters code with the numerous bitfields
 
+  static void externalReset(ioline_t _lineReset);
+  
 private:
   SPIDriver& spid;
   ioline_t  lineReset;

@@ -129,13 +129,17 @@ void Rfm69Spi::reset(void)
     spiStop(&spid);
     spiStart(&spid, cfg);
   }
-  
+  externalReset(lineReset);
+  spiReleaseBus(&spid);
+}
+
+void Rfm69Spi::externalReset(ioline_t lineReset)
+{
   palSetLine(lineReset);
   palSetLineMode(lineReset, PAL_MODE_OUTPUT_PUSHPULL);
   chThdSleepMicroseconds(100);
   palSetLineMode(lineReset, PAL_MODE_INPUT_ANALOG);
   chThdSleepMilliseconds(10);
-  spiReleaseBus(&spid);
 }
 
 Rfm69Status Rfm69Spi::init(const SPIConfig& spiCfg)

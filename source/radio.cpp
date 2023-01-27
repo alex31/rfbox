@@ -41,6 +41,7 @@ namespace Radio {
 
     case Ope::Mode::NORF_TX :
     case Ope::Mode::NORF_RX :
+      Rfm69Spi::externalReset(LINE_RADIO_RESET);
       Radio::radio = nullptr;
       break;
       
