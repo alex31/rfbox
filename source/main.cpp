@@ -11,7 +11,9 @@
 #include "hardwareConf.hpp"
 #include "oledDisplay.hpp"
 #include "bboard.hpp"
+#include "nucleoConf.hpp"
 #include "crcv1.h"
+
 
 
 void _init_chibios() __attribute__ ((constructor(101)));
@@ -42,6 +44,12 @@ int main (void)
 #endif
   
   Oled::start();
+
+  if (NucleoConf::checkShort() == true) {
+    DebugTrace("Nucleo SB16 and/or SB18 short detected");
+    chThdSleep(TIME_INFINITE);
+  }
+  
   const RfMode rfMode = DIP::getDip(DIPSWITCH::RXTX) ? RfMode::TX : RfMode::RX;
   if (rfMode == RfMode::RX) {
     DebugTrace("mode RX");
