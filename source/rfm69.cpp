@@ -508,11 +508,12 @@ void Rfm69BaseRadio::rfHealthSurvey(void *arg)
   
   while (not chThdShouldTerminateX()) {
     chThdSleepMilliseconds(100);
-   if (++calCount > 600) {
+    if (++calCount > 600) {
       radio->calibrate();
       calCount = 0;
     } else if (++restartRxCount > 15) {
-      radio->checkRestartRxNeeded();
+      if (radio->mode == RfMode::RX)
+	radio->checkRestartRxNeeded();
       restartRxCount = 0;
     } else if (++cmmCount > 10) {
       radio->checkModeMismatch();
@@ -612,13 +613,13 @@ void Rfm69OokRadio::checkRestartRxNeeded()
   const float rssi = getRssi();
   const float lnaGain = getLnaGain();
   //  static systime_t ts = 0;
-  if ( ((rssi < -90.0f ) and (lnaGain > -12.0f))
+  if ( ((rssi < -100.0f ) and (lnaGain > -12.0f))
        or
        ((rssi > -60.0f) and (lnaGain < -24.0f))
        //      or
        //       (not chVTIsSystemTimeWithin(ts, chTimeAddX(ts, TIME_S2I(1000))))
        ) {
-    DebugTrace("RSSI LNA Gain setRestartRx condition");
+    DebugTrace("RSSI LNA Gain : coldReset condition");
     //setRestartRx(true);
     coldReset();
     //    ts = chVTGetSystemTime();
