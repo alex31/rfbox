@@ -8,6 +8,7 @@
 #include "printf.h"
 #include "ttyConsole.hpp"
 #include "dip.hpp"
+#include "nucleoConf.hpp"
 #include <etl/string.h>
 #include <etl/vector.h>
 
@@ -21,7 +22,7 @@
 // declaration des prototypes de fonction
 // ces declarations sont necessaires pour remplir le tableau commands[] ci-dessous
 using cmd_func_t =  void  (BaseSequentialStream *lchp, int argc,const char * const argv[]);
-static cmd_func_t cmd_mem, cmd_uid, cmd_restart, cmd_param, cmd_dip;
+static cmd_func_t cmd_mem, cmd_uid, cmd_restart, cmd_param, cmd_dip, cmd_sb;
 #if CH_DBG_STATISTICS
 static cmd_func_t cmd_threads;
 #endif
@@ -35,6 +36,7 @@ static const ShellCommand commands[] = {
 #endif
   {"dip", cmd_dip},		// affiche le numéro d'identification unique du MCU
   {"uid", cmd_uid},		// affiche le numéro d'identification unique du MCU
+  {"sb", cmd_sb},		// affiche le numéro d'identification unique du MCU
   {"param", cmd_param},		// fonction à but pedagogique qui affiche les
 				//   paramètres qui lui sont passés
 
@@ -175,6 +177,15 @@ static void cmd_uid(BaseSequentialStream *lchp, int argc,const char* const argv[
   for (uint32_t i=0; i< UniqProcessorIdLen; i++)
     chprintf(lchp, "[%x] ", UniqProcessorId[i]);
   chprintf(lchp, "\r\n");
+}
+
+static void cmd_sb(BaseSequentialStream *lchp, int argc,const char* const argv[]) {
+  (void)argv;
+  if (argc > 0) {
+     chprintf(lchp, "Usage: sb\r\n");
+    return;
+  }
+  NucleoConf::examineSb18();
 }
 
 static void cmd_dip(BaseSequentialStream *, int ,const char* const []) {

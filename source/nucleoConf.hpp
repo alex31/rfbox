@@ -5,4 +5,5 @@
 
 namespace NucleoConf {
   bool checkShort();
+  void examineSb18();
 }
