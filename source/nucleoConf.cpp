@@ -50,7 +50,7 @@ bool NucleoConf::checkShort()
   const auto rxPuLev = palReadLine(LINE_EXTVCP_RX);
 
   if ((rxPdLev == PAL_LOW) and (rxPuLev == PAL_HIGH)) {
-    // USB serial is unplug and wa can test for short
+    // USB serial is unplug and we can test for short
     palSetLineMode(LINE_EXTVCP_TX, PAL_MODE_OUTPUT_PUSHPULL);
     palSetLineMode(LINE_RADIO_SCK, PAL_MODE_INPUT_PULLUP);
     palClearLine(LINE_EXTVCP_TX); w();
