@@ -7,11 +7,16 @@
 #include "hardwareConf.hpp"
 #include "bitIntegrator.hpp"
 #include "bboard.hpp"
+#include <limits>
+#include <bit>
 
-constexpr uint8_t preambleByte = 0xff;
+constexpr uint8_t preambleByte = 0xaa;
 
 namespace {
   using ErrorString = etl::string<48>;
+  constexpr uint32_t seqMax = std::numeric_limits<uint8_t>::max();
+  constexpr uint32_t seqMsbMask = 1U << (std::bit_width(seqMax) - 1U);
+
   THD_WORKING_AREA(waAutonomousTest, 1280);
   
   SerialConfig meteoSerialConfig =  {
@@ -25,6 +30,7 @@ namespace {
   bool started = false;
   void autonomousTestWrite (void *);		
   void autonomousTestRead (void *);
+  constexpr uint8_t nextSeq(const uint8_t v);
   Integrator<1024> integ;
   constexpr uint8_t frameLength = 160U;
 
@@ -74,16 +80,14 @@ namespace {
     // send 4 bytes preample
     static const uint8_t preamble[] = {preambleByte, preambleByte};
     uint8_t frame[32];
-    uint8_t counter = 0;
+    uint8_t curSeq = 0;
     while (true) {
       for (size_t i = 0; i < sizeof(frame); i++) {
-	frame[i] = counter++;
-	if (counter == frameLength)
-	  counter = 0;
+	frame[i] = curSeq;
+	curSeq = nextSeq(curSeq);
       }
       sdWrite(&SD_METEO, preamble, sizeof(preamble));
       sdWrite(&SD_METEO, frame, sizeof(frame));
-      chThdSleepMilliseconds(10);
     }
   }
 
@@ -131,19 +135,23 @@ namespace {
 	if (c != expectedByte) {
 	  if (c != preambleByte) {
 	    integ.push(true);
-	    expectedByte = c+1;
-	    if(expectedByte == frameLength)
-	      expectedByte = 0;
+	    expectedByte = nextSeq(c);
 	  } 
 	} else {
 	  integ.push(false);
-	  if(++expectedByte == frameLength) {
-	    expectedByte = 0;
-	  }
+	  expectedByte = nextSeq(c);
 	}
-	
       }
-      
     }
+  }
+
+  constexpr uint8_t nextSeq(const uint8_t v)
+  {
+    if (v == seqMsbMask)
+      return 0;
+    else if (v & seqMsbMask)
+      return (~v) + 1U;
+    else
+      return ~v;
   }
 }
