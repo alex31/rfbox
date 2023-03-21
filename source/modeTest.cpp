@@ -93,6 +93,7 @@ namespace {
     uint8_t expectedByte = 0;
     uint32_t zeroInRow = 0;
     systime_t ts = chVTGetSystemTimeX();
+    bool lastByteNotExpected = false;
 
     while (true) {
       const int c = sdGetTimeout(&SD_METEO, TIME_MS2I(200));
@@ -130,10 +131,16 @@ namespace {
 	timoutTs = 0;
 	if (c != expectedByte) {
 	  integ.push(true);
-	  expectedByte = nextSeq(c);
+	  if (lastByteNotExpected) {
+	    expectedByte = nextSeq(c);
+	  } else {
+	    expectedByte = nextSeq(expectedByte);
+	  }
+	  lastByteNotExpected = true;
 	} else {
 	  integ.push(false);
 	  expectedByte = nextSeq(c);
+	  lastByteNotExpected = false;
 	}
       }
     }
