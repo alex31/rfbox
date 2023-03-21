@@ -83,7 +83,7 @@ namespace {
 	curSeq = nextSeq(curSeq);
       }
       sdWrite(&SD_METEO, frame, sizeof(frame));
-      chThdSleepMilliseconds(10);
+      //chThdSleepMilliseconds(10);
     }
   }
 
@@ -93,7 +93,6 @@ namespace {
     uint8_t expectedByte = 0;
     uint32_t zeroInRow = 0;
     systime_t ts = chVTGetSystemTimeX();
-    bool unexpectedRec = false;
 
     while (true) {
       const int c = sdGetTimeout(&SD_METEO, TIME_MS2I(200));
@@ -131,15 +130,10 @@ namespace {
 	timoutTs = 0;
 	if (c != expectedByte) {
 	  integ.push(true);
-	  if (not unexpectedRec) {
-	    expectedByte = nextSeq(expectedByte);
-	    unexpectedRec = true;
-	  } else {
-	    expectedByte = nextSeq(c);
-	  }
+	  expectedByte = nextSeq(c);
 	} else {
 	  integ.push(false);
-	  unexpectedRec = false;
+	  expectedByte = nextSeq(c);
 	}
       }
     }
