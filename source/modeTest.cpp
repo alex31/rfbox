@@ -10,8 +10,6 @@
 #include <limits>
 #include <bit>
 
-constexpr uint8_t preambleByte = 0xaa;
-
 namespace {
   using ErrorString = etl::string<48>;
   constexpr uint32_t seqMax = std::numeric_limits<uint8_t>::max();
@@ -77,8 +75,6 @@ namespace {
   void autonomousTestWrite (void *)		
   {
     chRegSetThreadName("autonomousTestWrite");	
-    // send 4 bytes preample
-    static const uint8_t preamble[] = {preambleByte, preambleByte};
     uint8_t frame[32];
     uint8_t curSeq = 0;
     while (true) {
@@ -86,8 +82,8 @@ namespace {
 	frame[i] = curSeq;
 	curSeq = nextSeq(curSeq);
       }
-      sdWrite(&SD_METEO, preamble, sizeof(preamble));
       sdWrite(&SD_METEO, frame, sizeof(frame));
+      chThdSleepMilliseconds(10);
     }
   }
 
@@ -97,6 +93,7 @@ namespace {
     uint8_t expectedByte = 0;
     uint32_t zeroInRow = 0;
     systime_t ts = chVTGetSystemTimeX();
+    bool unexpectedRec = false;
 
     while (true) {
       const int c = sdGetTimeout(&SD_METEO, TIME_MS2I(200));
@@ -120,7 +117,7 @@ namespace {
 	board.setError("RX timeout");
 	integ.push(true);
 	continue;
-      } else if (c == 0) {
+      } else if ((c == 0) && (c != expectedByte)) {
 	if ((++zeroInRow) > 10U) {
 	  integ.push(true);
 	  zeroInRow = 0;
@@ -133,13 +130,16 @@ namespace {
 	board.clearError();
 	timoutTs = 0;
 	if (c != expectedByte) {
-	  if (c != preambleByte) {
-	    integ.push(true);
+	  integ.push(true);
+	  if (not unexpectedRec) {
+	    expectedByte = nextSeq(expectedByte);
+	    unexpectedRec = true;
+	  } else {
 	    expectedByte = nextSeq(c);
-	  } 
+	  }
 	} else {
 	  integ.push(false);
-	  expectedByte = nextSeq(c);
+	  unexpectedRec = false;
 	}
       }
     }
