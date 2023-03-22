@@ -146,6 +146,7 @@ VARIOUS = ext/chibios_enac_various_common
 USBD_LIB = $(VARIOUS)/Chibios-USB-Devices
 COMMUNITY = $(VARIOUS)
 ETL_LIB = := ../../../../etl/include
+FROZEN_LIB := ../../../../frozen/include
 SSD1306DIR := $(CONFDIR)/GFXfonts
 # Licensing files.
 include $(CHIBIOS)/os/license/license.mk
@@ -194,7 +195,7 @@ ASMXSRC = $(ALLXASMSRC)
 
 # Inclusion directories.
 INCDIR = $(CONFDIR) $(ALLINC) $(VARIOUS) \
-         $(USBD_LIB) $(ETL_LIB) $(SSD1306DIR)
+         $(USBD_LIB) $(ETL_LIB) $(FROZEN_LIB) $(SSD1306DIR)
 
 # Define C warning options here.
 CWARN = -Wall -Wextra -Wundef -Wstrict-prototypes
