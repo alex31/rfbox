@@ -1,230 +1,201 @@
 #include "modeTest.hpp"
-#include "ch.h"
-#include "hal.h"
-#include "stdutil.h"
-#include "radio.hpp"
-#include "etl/string.h"
-#include "hardwareConf.hpp"
-#include "bitIntegrator.hpp"
 #include "bboard.hpp"
-#include <limits>
+#include "bitIntegrator.hpp"
+#include "ch.h"
+#include "etl/string.h"
+#include "frozen/map.h"
+#include "hal.h"
+#include "hardwareConf.hpp"
+#include "radio.hpp"
+#include "stdutil.h"
 #include <array>
 #include <bit>
-#include "frozen/map.h"
+#include <limits>
 
 namespace {
-  using ErrorString = etl::string<48>;
-  THD_WORKING_AREA(waAutonomousTest, 1280);
-  
-  SerialConfig meteoSerialConfig =  {
+using ErrorString = etl::string<48>;
+THD_WORKING_AREA(waAutonomousTest, 1280);
+
+SerialConfig meteoSerialConfig = {
     .speed = baudRates[+BitRateIndex::Low],
     .cr1 = 0,
-    .cr2 = USART_CR2_STOP1_BITS | USART_CR2_LINEN |
-    invertOokModulation ? (USART_CR2_TXINV | USART_CR2_RXINV) : 0,
-    .cr3 = 0
-  };
-  
-  bool started = false;
-  void autonomousTestWrite (void *);		
-  void autonomousTestRead (void *);
-  Integrator<1024> integ;
-  constexpr uint8_t frameLength = 160U;
-  
-  systime_t timoutTs = 0;
-  
-  constexpr std::array<uint16_t, 256> seq2dcfGen = {
-    0x24db, 0x259b, 0x25ab, 0x25ad, 0x25b3, 0x25b5, 0x25b6, 0x269b, 0x26ab,
-    0x26ad, 0x26b3, 0x26b5, 0x26b6, 0x26cb, 0x26cd, 0x26d3, 0x26d5, 0x26d6,
-    0x26d9, 0x26da, 0x299b, 0x29ab, 0x29ad, 0x29b3, 0x29b5, 0x29b6, 0x2a9b,
-    0x2aab, 0x2aad, 0x2ab3, 0x2ab5, 0x2ab6, 0x2acb, 0x2acd, 0x2ad3, 0x2ad5,
-    0x2ad6, 0x2ad9, 0x2ada, 0x2c9b, 0x2cab, 0x2cad, 0x2cb3, 0x2cb5, 0x2cb6,
-    0x2ccb, 0x2ccd, 0x2cd3, 0x2cd5, 0x2cd6, 0x2cd9, 0x2cda, 0x2d93, 0x2d95,
-    0x2d96, 0x2d99, 0x2d9a, 0x2da5, 0x2da6, 0x2da9, 0x2daa, 0x2dac, 0x2db2,
-    0x2db4, 0x329b, 0x32ab, 0x32ad, 0x32b3, 0x32b5, 0x32b6, 0x32cb, 0x32cd,
-    0x32d3, 0x32d5, 0x32d6, 0x32d9, 0x32da, 0x349b, 0x34ab, 0x34ad, 0x34b3,
-    0x34b5, 0x34b6, 0x34cb, 0x34cd, 0x34d3, 0x34d5, 0x34d6, 0x34d9, 0x34da,
-    0x3593, 0x3595, 0x3596, 0x3599, 0x359a, 0x35a5, 0x35a6, 0x35a9, 0x35aa,
-    0x35ac, 0x35b2, 0x35b4, 0x3693, 0x3695, 0x3696, 0x3699, 0x369a, 0x36a5,
-    0x36a6, 0x36a9, 0x36aa, 0x36ac, 0x36b2, 0x36b4, 0x36c9, 0x36ca, 0x36cc,
-    0x36d2, 0x36d4, 0x499b, 0x49ab, 0x49ad, 0x49b3, 0x49b5, 0x49b6, 0x4a9b,
-    0x4aab, 0x4aad, 0x4ab3, 0x4ab5, 0x4ab6, 0x4acb, 0x4acd, 0x4ad3, 0x4ad5,
-    0x4ad6, 0x4ad9, 0x4ada, 0x4c9b, 0x4cab, 0x4cad, 0x4cb3, 0x4cb5, 0x4cb6,
-    0x4ccb, 0x4ccd, 0x4cd3, 0x4cd5, 0x4cd6, 0x4cd9, 0x4cda, 0x4d93, 0x4d95,
-    0x4d96, 0x4d99, 0x4d9a, 0x4da5, 0x4da6, 0x4da9, 0x4daa, 0x4dac, 0x4db2,
-    0x4db4, 0x529b, 0x52ab, 0x52ad, 0x52b3, 0x52b5, 0x52b6, 0x52cb, 0x52cd,
-    0x52d3, 0x52d5, 0x52d6, 0x52d9, 0x52da, 0x549b, 0x54ab, 0x54ad, 0x54b3,
-    0x54b5, 0x54b6, 0x54cb, 0x54cd, 0x54d3, 0x54d5, 0x54d6, 0x54d9, 0x54da,
-    0x5593, 0x5595, 0x5596, 0x5599, 0x559a, 0x55a5, 0x55a6, 0x55a9, 0x55aa,
-    0x55ac, 0x55b2, 0x55b4, 0x5693, 0x5695, 0x5696, 0x5699, 0x569a, 0x56a5,
-    0x56a6, 0x56a9, 0x56aa, 0x56ac, 0x56b2, 0x56b4, 0x56c9, 0x56ca, 0x56cc,
-    0x56d2, 0x56d4, 0x5993, 0x5995, 0x5996, 0x5999, 0x599a, 0x59a5, 0x59a6,
-    0x59a9, 0x59aa, 0x59ac, 0x59b2, 0x59b4, 0x5a93, 0x5a95, 0x5a96, 0x5a99,
-    0x5a9a, 0x5aa5, 0x5aa6, 0x5aa9, 0x5aaa, 0x5aac, 0x5ab2, 0x5ab4, 0x5ac9,
-    0x5aca, 0x5acc, 0x5ad2, 0x5ad4, 0x649b, 0x64ab, 0x64ad, 0x64b3, 0x64b5,
-    0x64b6, 0x64cb, 0x64cd, 0x64d3,
-  };
+    .cr2 = USART_CR2_STOP1_BITS | USART_CR2_LINEN | invertOokModulation
+               ? (USART_CR2_TXINV | USART_CR2_RXINV)
+               : 0,
+    .cr3 = 0};
 
-  constexpr frozen::map<uint16_t, uint8_t, 256> dcf2seqGen = {
-    {0x24db, 0},   {0x259b, 1},   {0x25ab, 2},   {0x25ad, 3},   {0x25b3, 4},
-    {0x25b5, 5},   {0x25b6, 6},   {0x269b, 7},   {0x26ab, 8},   {0x26ad, 9},
-    {0x26b3, 10},  {0x26b5, 11},  {0x26b6, 12},  {0x26cb, 13},  {0x26cd, 14},
-    {0x26d3, 15},  {0x26d5, 16},  {0x26d6, 17},  {0x26d9, 18},  {0x26da, 19},
-    {0x299b, 20},  {0x29ab, 21},  {0x29ad, 22},  {0x29b3, 23},  {0x29b5, 24},
-    {0x29b6, 25},  {0x2a9b, 26},  {0x2aab, 27},  {0x2aad, 28},  {0x2ab3, 29},
-    {0x2ab5, 30},  {0x2ab6, 31},  {0x2acb, 32},  {0x2acd, 33},  {0x2ad3, 34},
-    {0x2ad5, 35},  {0x2ad6, 36},  {0x2ad9, 37},  {0x2ada, 38},  {0x2c9b, 39},
-    {0x2cab, 40},  {0x2cad, 41},  {0x2cb3, 42},  {0x2cb5, 43},  {0x2cb6, 44},
-    {0x2ccb, 45},  {0x2ccd, 46},  {0x2cd3, 47},  {0x2cd5, 48},  {0x2cd6, 49},
-    {0x2cd9, 50},  {0x2cda, 51},  {0x2d93, 52},  {0x2d95, 53},  {0x2d96, 54},
-    {0x2d99, 55},  {0x2d9a, 56},  {0x2da5, 57},  {0x2da6, 58},  {0x2da9, 59},
-    {0x2daa, 60},  {0x2dac, 61},  {0x2db2, 62},  {0x2db4, 63},  {0x329b, 64},
-    {0x32ab, 65},  {0x32ad, 66},  {0x32b3, 67},  {0x32b5, 68},  {0x32b6, 69},
-    {0x32cb, 70},  {0x32cd, 71},  {0x32d3, 72},  {0x32d5, 73},  {0x32d6, 74},
-    {0x32d9, 75},  {0x32da, 76},  {0x349b, 77},  {0x34ab, 78},  {0x34ad, 79},
-    {0x34b3, 80},  {0x34b5, 81},  {0x34b6, 82},  {0x34cb, 83},  {0x34cd, 84},
-    {0x34d3, 85},  {0x34d5, 86},  {0x34d6, 87},  {0x34d9, 88},  {0x34da, 89},
-    {0x3593, 90},  {0x3595, 91},  {0x3596, 92},  {0x3599, 93},  {0x359a, 94},
-    {0x35a5, 95},  {0x35a6, 96},  {0x35a9, 97},  {0x35aa, 98},  {0x35ac, 99},
-    {0x35b2, 100}, {0x35b4, 101}, {0x3693, 102}, {0x3695, 103}, {0x3696, 104},
-    {0x3699, 105}, {0x369a, 106}, {0x36a5, 107}, {0x36a6, 108}, {0x36a9, 109},
-    {0x36aa, 110}, {0x36ac, 111}, {0x36b2, 112}, {0x36b4, 113}, {0x36c9, 114},
-    {0x36ca, 115}, {0x36cc, 116}, {0x36d2, 117}, {0x36d4, 118}, {0x499b, 119},
-    {0x49ab, 120}, {0x49ad, 121}, {0x49b3, 122}, {0x49b5, 123}, {0x49b6, 124},
-    {0x4a9b, 125}, {0x4aab, 126}, {0x4aad, 127}, {0x4ab3, 128}, {0x4ab5, 129},
-    {0x4ab6, 130}, {0x4acb, 131}, {0x4acd, 132}, {0x4ad3, 133}, {0x4ad5, 134},
-    {0x4ad6, 135}, {0x4ad9, 136}, {0x4ada, 137}, {0x4c9b, 138}, {0x4cab, 139},
-    {0x4cad, 140}, {0x4cb3, 141}, {0x4cb5, 142}, {0x4cb6, 143}, {0x4ccb, 144},
-    {0x4ccd, 145}, {0x4cd3, 146}, {0x4cd5, 147}, {0x4cd6, 148}, {0x4cd9, 149},
-    {0x4cda, 150}, {0x4d93, 151}, {0x4d95, 152}, {0x4d96, 153}, {0x4d99, 154},
-    {0x4d9a, 155}, {0x4da5, 156}, {0x4da6, 157}, {0x4da9, 158}, {0x4daa, 159},
-    {0x4dac, 160}, {0x4db2, 161}, {0x4db4, 162}, {0x529b, 163}, {0x52ab, 164},
-    {0x52ad, 165}, {0x52b3, 166}, {0x52b5, 167}, {0x52b6, 168}, {0x52cb, 169},
-    {0x52cd, 170}, {0x52d3, 171}, {0x52d5, 172}, {0x52d6, 173}, {0x52d9, 174},
-    {0x52da, 175}, {0x549b, 176}, {0x54ab, 177}, {0x54ad, 178}, {0x54b3, 179},
-    {0x54b5, 180}, {0x54b6, 181}, {0x54cb, 182}, {0x54cd, 183}, {0x54d3, 184},
-    {0x54d5, 185}, {0x54d6, 186}, {0x54d9, 187}, {0x54da, 188}, {0x5593, 189},
-    {0x5595, 190}, {0x5596, 191}, {0x5599, 192}, {0x559a, 193}, {0x55a5, 194},
-    {0x55a6, 195}, {0x55a9, 196}, {0x55aa, 197}, {0x55ac, 198}, {0x55b2, 199},
-    {0x55b4, 200}, {0x5693, 201}, {0x5695, 202}, {0x5696, 203}, {0x5699, 204},
-    {0x569a, 205}, {0x56a5, 206}, {0x56a6, 207}, {0x56a9, 208}, {0x56aa, 209},
-    {0x56ac, 210}, {0x56b2, 211}, {0x56b4, 212}, {0x56c9, 213}, {0x56ca, 214},
-    {0x56cc, 215}, {0x56d2, 216}, {0x56d4, 217}, {0x5993, 218}, {0x5995, 219},
-    {0x5996, 220}, {0x5999, 221}, {0x599a, 222}, {0x59a5, 223}, {0x59a6, 224},
-    {0x59a9, 225}, {0x59aa, 226}, {0x59ac, 227}, {0x59b2, 228}, {0x59b4, 229},
-    {0x5a93, 230}, {0x5a95, 231}, {0x5a96, 232}, {0x5a99, 233}, {0x5a9a, 234},
-    {0x5aa5, 235}, {0x5aa6, 236}, {0x5aa9, 237}, {0x5aaa, 238}, {0x5aac, 239},
-    {0x5ab2, 240}, {0x5ab4, 241}, {0x5ac9, 242}, {0x5aca, 243}, {0x5acc, 244},
-    {0x5ad2, 245}, {0x5ad4, 246}, {0x649b, 247}, {0x64ab, 248}, {0x64ad, 249},
-    {0x64b3, 250}, {0x64b5, 251}, {0x64b6, 252}, {0x64cb, 253}, {0x64cd, 254},
-    {0x64d3, 255}
-  };
+bool started = false;
+void autonomousTestWrite(void *);
+void autonomousTestRead(void *);
+Integrator<1024> integ;
+constexpr uint8_t frameLength = 160U;
+
+systime_t timoutTs = 0;
+
+constexpr std::array<uint16_t, 195> seq2dcfGen = {
+    0x25ad, 0x25b5, 0x25b6, 0x26ad, 0x26b5, 0x26b6, 0x29ad, 0x29b5, 0x29b6,
+    0x2aad, 0x2ab5, 0x2ab6, 0x2b95, 0x2b96, 0x2b99, 0x2b9a, 0x2ba5, 0x2ba6,
+    0x2ba9, 0x2baa, 0x2bb2, 0x2cad, 0x2cb5, 0x2cb6, 0x2d95, 0x2d96, 0x2d99,
+    0x2d9a, 0x2da5, 0x2da6, 0x2da9, 0x2daa, 0x2db2, 0x32ad, 0x32b5, 0x32b6,
+    0x3395, 0x3396, 0x3399, 0x339a, 0x33a5, 0x33a6, 0x33a9, 0x33aa, 0x33b2,
+    0x34ad, 0x34b5, 0x34b6, 0x3595, 0x3596, 0x3599, 0x359a, 0x35a5, 0x35a6,
+    0x35a9, 0x35aa, 0x35b2, 0x3695, 0x3696, 0x3699, 0x369a, 0x36a5, 0x36a6,
+    0x36a9, 0x36aa, 0x36b2, 0x49ad, 0x49b5, 0x49b6, 0x4aad, 0x4ab5, 0x4ab6,
+    0x4b95, 0x4b96, 0x4b99, 0x4b9a, 0x4ba5, 0x4ba6, 0x4ba9, 0x4baa, 0x4bb2,
+    0x4cad, 0x4cb5, 0x4cb6, 0x4d95, 0x4d96, 0x4d99, 0x4d9a, 0x4da5, 0x4da6,
+    0x4da9, 0x4daa, 0x4db2, 0x52ad, 0x52b5, 0x52b6, 0x5395, 0x5396, 0x5399,
+    0x539a, 0x53a5, 0x53a6, 0x53a9, 0x53aa, 0x53b2, 0x54ad, 0x54b5, 0x54b6,
+    0x5595, 0x5596, 0x5599, 0x559a, 0x55a5, 0x55a6, 0x55a9, 0x55aa, 0x55b2,
+    0x5695, 0x5696, 0x5699, 0x569a, 0x56a5, 0x56a6, 0x56a9, 0x56aa, 0x56b2,
+    0x5995, 0x5996, 0x5999, 0x599a, 0x59a5, 0x59a6, 0x59a9, 0x59aa, 0x59b2,
+    0x5a95, 0x5a96, 0x5a99, 0x5a9a, 0x5aa5, 0x5aa6, 0x5aa9, 0x5aaa, 0x5ab2,
+    0x5b92, 0x64ad, 0x64b5, 0x64b6, 0x6595, 0x6596, 0x6599, 0x659a, 0x65a5,
+    0x65a6, 0x65a9, 0x65aa, 0x65b2, 0x6695, 0x6696, 0x6699, 0x669a, 0x66a5,
+    0x66a6, 0x66a9, 0x66aa, 0x66b2, 0x6995, 0x6996, 0x6999, 0x699a, 0x69a5,
+    0x69a6, 0x69a9, 0x69aa, 0x69b2, 0x6a95, 0x6a96, 0x6a99, 0x6a9a, 0x6aa5,
+    0x6aa6, 0x6aa9, 0x6aaa, 0x6ab2, 0x6b92, 0x6c95, 0x6c96, 0x6c99, 0x6c9a,
+    0x6ca5, 0x6ca6, 0x6ca9, 0x6caa, 0x6cb2, 0x6d92};
   
-}
+constexpr frozen::map<uint16_t, uint8_t, 195> dcf2seqGen = {
+    {0x25ad, 0},   {0x25b5, 1},   {0x25b6, 2},   {0x26ad, 3},   {0x26b5, 4},
+    {0x26b6, 5},   {0x29ad, 6},   {0x29b5, 7},   {0x29b6, 8},   {0x2aad, 9},
+    {0x2ab5, 10},  {0x2ab6, 11},  {0x2b95, 12},  {0x2b96, 13},  {0x2b99, 14},
+    {0x2b9a, 15},  {0x2ba5, 16},  {0x2ba6, 17},  {0x2ba9, 18},  {0x2baa, 19},
+    {0x2bb2, 20},  {0x2cad, 21},  {0x2cb5, 22},  {0x2cb6, 23},  {0x2d95, 24},
+    {0x2d96, 25},  {0x2d99, 26},  {0x2d9a, 27},  {0x2da5, 28},  {0x2da6, 29},
+    {0x2da9, 30},  {0x2daa, 31},  {0x2db2, 32},  {0x32ad, 33},  {0x32b5, 34},
+    {0x32b6, 35},  {0x3395, 36},  {0x3396, 37},  {0x3399, 38},  {0x339a, 39},
+    {0x33a5, 40},  {0x33a6, 41},  {0x33a9, 42},  {0x33aa, 43},  {0x33b2, 44},
+    {0x34ad, 45},  {0x34b5, 46},  {0x34b6, 47},  {0x3595, 48},  {0x3596, 49},
+    {0x3599, 50},  {0x359a, 51},  {0x35a5, 52},  {0x35a6, 53},  {0x35a9, 54},
+    {0x35aa, 55},  {0x35b2, 56},  {0x3695, 57},  {0x3696, 58},  {0x3699, 59},
+    {0x369a, 60},  {0x36a5, 61},  {0x36a6, 62},  {0x36a9, 63},  {0x36aa, 64},
+    {0x36b2, 65},  {0x49ad, 66},  {0x49b5, 67},  {0x49b6, 68},  {0x4aad, 69},
+    {0x4ab5, 70},  {0x4ab6, 71},  {0x4b95, 72},  {0x4b96, 73},  {0x4b99, 74},
+    {0x4b9a, 75},  {0x4ba5, 76},  {0x4ba6, 77},  {0x4ba9, 78},  {0x4baa, 79},
+    {0x4bb2, 80},  {0x4cad, 81},  {0x4cb5, 82},  {0x4cb6, 83},  {0x4d95, 84},
+    {0x4d96, 85},  {0x4d99, 86},  {0x4d9a, 87},  {0x4da5, 88},  {0x4da6, 89},
+    {0x4da9, 90},  {0x4daa, 91},  {0x4db2, 92},  {0x52ad, 93},  {0x52b5, 94},
+    {0x52b6, 95},  {0x5395, 96},  {0x5396, 97},  {0x5399, 98},  {0x539a, 99},
+    {0x53a5, 100}, {0x53a6, 101}, {0x53a9, 102}, {0x53aa, 103}, {0x53b2, 104},
+    {0x54ad, 105}, {0x54b5, 106}, {0x54b6, 107}, {0x5595, 108}, {0x5596, 109},
+    {0x5599, 110}, {0x559a, 111}, {0x55a5, 112}, {0x55a6, 113}, {0x55a9, 114},
+    {0x55aa, 115}, {0x55b2, 116}, {0x5695, 117}, {0x5696, 118}, {0x5699, 119},
+    {0x569a, 120}, {0x56a5, 121}, {0x56a6, 122}, {0x56a9, 123}, {0x56aa, 124},
+    {0x56b2, 125}, {0x5995, 126}, {0x5996, 127}, {0x5999, 128}, {0x599a, 129},
+    {0x59a5, 130}, {0x59a6, 131}, {0x59a9, 132}, {0x59aa, 133}, {0x59b2, 134},
+    {0x5a95, 135}, {0x5a96, 136}, {0x5a99, 137}, {0x5a9a, 138}, {0x5aa5, 139},
+    {0x5aa6, 140}, {0x5aa9, 141}, {0x5aaa, 142}, {0x5ab2, 143}, {0x5b92, 144},
+    {0x64ad, 145}, {0x64b5, 146}, {0x64b6, 147}, {0x6595, 148}, {0x6596, 149},
+    {0x6599, 150}, {0x659a, 151}, {0x65a5, 152}, {0x65a6, 153}, {0x65a9, 154},
+    {0x65aa, 155}, {0x65b2, 156}, {0x6695, 157}, {0x6696, 158}, {0x6699, 159},
+    {0x669a, 160}, {0x66a5, 161}, {0x66a6, 162}, {0x66a9, 163}, {0x66aa, 164},
+    {0x66b2, 165}, {0x6995, 166}, {0x6996, 167}, {0x6999, 168}, {0x699a, 169},
+    {0x69a5, 170}, {0x69a6, 171}, {0x69a9, 172}, {0x69aa, 173}, {0x69b2, 174},
+    {0x6a95, 175}, {0x6a96, 176}, {0x6a99, 177}, {0x6a9a, 178}, {0x6aa5, 179},
+    {0x6aa6, 180}, {0x6aa9, 181}, {0x6aaa, 182}, {0x6ab2, 183}, {0x6b92, 184},
+    {0x6c95, 185}, {0x6c96, 186}, {0x6c99, 187}, {0x6c9a, 188}, {0x6ca5, 189},
+    {0x6ca6, 190}, {0x6ca9, 191}, {0x6caa, 192}, {0x6cb2, 193}, {0x6d92, 194}};
 
-
+} // namespace
 
 namespace ModeTest {
-  float getBer(void) {
-    const float ber = integ.getAvg() * 1000.0f;
-    board.setBer(ber);
-    return ber;
-  }
+float getBer(void) {
+  const float ber = integ.getAvg() * 1000.0f;
+  board.setBer(ber);
+  return ber;
+}
 
-  void start(RfMode rfMode, uint32_t baud)
-  {
-    board.setDio2Threshold({0.48f, 0.62f});
-    meteoSerialConfig.speed = baud;
-    // DIO is connected on UART1_TX
-    if (rfMode == RfMode::RX) 
-      meteoSerialConfig.cr2 |= USART_CR2_SWAP;
+void start(RfMode rfMode, uint32_t baud) {
+  board.setDio2Threshold({0.48f, 0.62f});
+  meteoSerialConfig.speed = baud;
+  // DIO is connected on UART1_TX
+  if (rfMode == RfMode::RX)
+    meteoSerialConfig.cr2 |= USART_CR2_SWAP;
 
-    sdStart(&SD_METEO, &meteoSerialConfig);
-    if (not started) {
-      started = true;
-      if (rfMode == RfMode::TX) {
-	chThdCreateStatic(waAutonomousTest, sizeof(waAutonomousTest),
-			  NORMALPRIO, &autonomousTestWrite, nullptr);
-      } else  if (rfMode == RfMode::RX) {
-	chThdCreateStatic(waAutonomousTest, sizeof(waAutonomousTest),
-			  NORMALPRIO, &autonomousTestRead, nullptr);
-      } else {
-	chSysHalt("invalid rfMode");
-      }
+  sdStart(&SD_METEO, &meteoSerialConfig);
+  if (not started) {
+    started = true;
+    if (rfMode == RfMode::TX) {
+      chThdCreateStatic(waAutonomousTest, sizeof(waAutonomousTest), NORMALPRIO,
+                        &autonomousTestWrite, nullptr);
+    } else if (rfMode == RfMode::RX) {
+      chThdCreateStatic(waAutonomousTest, sizeof(waAutonomousTest), NORMALPRIO,
+                        &autonomousTestRead, nullptr);
+    } else {
+      chSysHalt("invalid rfMode");
     }
   }
 }
-
-
+} // namespace ModeTest
 
 namespace {
-  
-  void autonomousTestWrite (void *)		
-  {
-    chRegSetThreadName("autonomousTestWrite");	
-    while (true) {
-      sdWrite(&SD_METEO, reinterpret_cast<const uint8_t *>(seq2dcfGen.data()),
-	      seq2dcfGen.size() * sizeof(seq2dcfGen[0]));
-    }
+
+void autonomousTestWrite(void *) {
+  chRegSetThreadName("autonomousTestWrite");
+  while (true) {
+    sdWrite(&SD_METEO, reinterpret_cast<const uint8_t *>(seq2dcfGen.data()),
+            seq2dcfGen.size() * sizeof(seq2dcfGen[0]));
   }
-
-  void autonomousTestRead (void *)		
-  {
-    chRegSetThreadName("autonomousTestRead");
-    uint8_t expectedByte = 0;
-    uint32_t zeroInRow = 0;
-    systime_t ts = chVTGetSystemTimeX();
-
-    while (true) {
-      const int lsb = sdGetTimeout(&SD_METEO, TIME_MS2I(200));
-      if (const systime_t now = chVTGetSystemTimeX();
-	  chTimeDiffX(ts, now) > TIME_MS2I(500)) {
-	ts = now;
-	ModeTest::getBer();
-      }
-      if (lsb < 0) {
-	if ((++zeroInRow) > 100U) {
-	  zeroInRow = 0;
-	  DebugTrace("problem detected : Read Timeout");
-	  board.setError("Read Timeout");
-	}
-
-	if (chTimeDiffX(timoutTs, chVTGetSystemTimeX()) > TIME_S2I(5)) {
-	  timoutTs = 0;
-	} else {
-	  timoutTs = chVTGetSystemTimeX();
-	}
-	board.setError("RX timeout");
-	integ.push(true);
-	continue;
-      } else if (lsb == 0) {
-	if ((++zeroInRow) > 10U) {
-	  integ.push(true);
-	  zeroInRow = 0;
-	  DebugTrace("problem detected : Read only 0");
-	  board.setError("Read only 0");
-	  //	  Radio::radio.calibrate();
-	}
-      } else {
-	zeroInRow = 0;
-	board.clearError();
-	timoutTs = 0;
-	if (lsb < 0x80)
-	  continue;
-	const int msb = sdGetTimeout(&SD_METEO, TIME_MS2I(200));
-	if (msb <= 0)
-	   continue;
-	uint16_t balancedWord = (lsb & 0xff) | ((msb & 0xff) << 8);
-	uint8_t c = 0;
-	if (dcf2seqGen.contains(balancedWord)) {
-	  c = dcf2seqGen.at(balancedWord);
-	} else {
-	  integ.push(true);
-	  continue;
-	}
-	integ.push(c != expectedByte);
-	expectedByte = c + 1;
-      }
-    }
-  }
-
 }
+
+void autonomousTestRead(void *) {
+  chRegSetThreadName("autonomousTestRead");
+  uint8_t expectedByte = 0;
+  uint32_t zeroInRow = 0;
+  systime_t ts = chVTGetSystemTimeX();
+
+  while (true) {
+    const int lsb = sdGetTimeout(&SD_METEO, TIME_MS2I(200));
+    if (const systime_t now = chVTGetSystemTimeX();
+        chTimeDiffX(ts, now) > TIME_MS2I(500)) {
+      ts = now;
+      ModeTest::getBer();
+    }
+    if (lsb < 0) {
+      if ((++zeroInRow) > 100U) {
+        zeroInRow = 0;
+        DebugTrace("problem detected : Read Timeout");
+        board.setError("Read Timeout");
+      }
+
+      if (chTimeDiffX(timoutTs, chVTGetSystemTimeX()) > TIME_S2I(5)) {
+        timoutTs = 0;
+      } else {
+        timoutTs = chVTGetSystemTimeX();
+      }
+      board.setError("RX timeout");
+      integ.push(true);
+      continue;
+    } else if (lsb == 0) {
+      if ((++zeroInRow) > 10U) {
+        integ.push(true);
+        zeroInRow = 0;
+        DebugTrace("problem detected : Read only 0");
+        board.setError("Read only 0");
+        //	  Radio::radio.calibrate();
+      }
+    } else {
+      zeroInRow = 0;
+      board.clearError();
+      timoutTs = 0;
+      if (lsb < 0x80)
+        continue;
+      const int msb = sdGetTimeout(&SD_METEO, TIME_MS2I(200));
+      if (msb <= 0)
+        continue;
+      uint16_t balancedWord = (lsb & 0xff) | ((msb & 0xff) << 8);
+      uint8_t c = 0;
+      if (dcf2seqGen.contains(balancedWord)) {
+        c = dcf2seqGen.at(balancedWord);
+      } else {
+        integ.push(true);
+        continue;
+      }
+      integ.push(c != expectedByte);
+      expectedByte = (c + 1) % dcf2seqGen.size();
+    }
+  }
+}
+
+} // namespace
