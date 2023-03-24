@@ -205,7 +205,7 @@ namespace {
     chsnprintf(oledScreen[0].begin(), oledScreen[0].capacity(),
   	       "RX %lu Mhz", board.getFreq() / 1'000'000U);
     chsnprintf(oledScreen[1].begin(), oledScreen[1].capacity(),
-  	       "BER %04d / 1000", std::min(uint16_t{1000}, board.getBer()));
+  	       "BER %04d / 1000", std::min(1000U, board.getBer() / 2U));
     chsnprintf(oledScreen[2].begin(), oledScreen[2].capacity(),
   	       "Lna %d; @%lu  ", board.getLnaGain(), board.getBaud());
     chsnprintf(oledScreen[3].begin(), oledScreen[3].capacity(),

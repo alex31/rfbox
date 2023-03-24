@@ -221,10 +221,12 @@ void autonomousTestRead(void *) {
       board.clearError();
       timoutTs = 0;
       if (not lsbValid.contains(lsb)) {
+	integ.push(true);
         continue;
       }
       const int msb = sdGetTimeout(&SD_METEO, TIME_MS2I(200));
       if (not msbValid.contains(msb)) {
+	integ.push(true);
         continue;
       }
       uint16_t balancedWord = (lsb & 0xff) | ((msb & 0xff) << 8);
